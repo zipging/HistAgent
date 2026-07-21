@@ -1,0 +1,44 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "histagent"
+version = "0.1.0"
+description = "Ranked spatial molecular inference from H&E histology"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [{name = "HistAgent authors"}]
+dependencies = [
+  "huggingface-hub>=0.24",
+  "peft>=0.13,<0.14",
+  "pillow>=10",
+  "safetensors>=0.4",
+  "timm>=1.0.3",
+  "torch>=2.2",
+  "torchvision>=0.17"
+]
+
+[project.optional-dependencies]
+train = [
+  "accelerate>=0.33",
+  "h5py>=3.10",
+  "pandas>=2.1",
+  "pyarrow>=15",
+  "scikit-learn>=1.4",
+  "transformers>=4.44"
+]
+dev = ["pytest>=8", "ruff>=0.6"]
+
+[project.scripts]
+histagent-predict = "histagent.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

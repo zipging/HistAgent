@@ -1,0 +1,11 @@
+{
+  "source_checkpoint": "lora_v3_ep30.pth",
+  "source_sha256": "74e27bd55335d530536abfa93bf23c974100a7cbbd420f8f2002ee4d81e00996",
+  "release_file": "model.safetensors",
+  "release_sha256": "a91ef2fd44377051aa9193a69058e378ecd01510242477968a27a8935f46552b",
+  "source_keys": 1036,
+  "release_keys": 470,
+  "verified_frozen_gigapath_keys": 566,
+  "release_bytes": 378413816,
+  "base_model_id": "prov-gigapath/prov-gigapath"
+}

@@ -1,0 +1,7 @@
+huggingface-hub>=0.24
+peft>=0.13,<0.14
+pillow>=10
+safetensors>=0.4
+timm>=1.0.3
+torch>=2.2
+torchvision>=0.17

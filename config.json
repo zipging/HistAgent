@@ -1,0 +1,16 @@
+{
+  "architecture": "HistAgentVisualOmics",
+  "base_model_id": "prov-gigapath/prov-gigapath",
+  "vocab_size": 44542,
+  "num_organs": 32,
+  "num_species": 3,
+  "d_model": 512,
+  "n_head": 8,
+  "n_layers": 6,
+  "max_len": 52,
+  "num_latents": 16,
+  "vision_embed_dim": 1536,
+  "lora_rank": 16,
+  "lora_alpha": 32,
+  "max_gene_rank": 50
+}

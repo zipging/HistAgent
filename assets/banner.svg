@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="280" viewBox="0 0 1400 280" role="img" aria-labelledby="title desc">
+  <title id="title">HistAgent</title>
+  <desc id="desc">Spatial molecular inference and evidence-grounded reasoning from routine histology</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f5fbfa"/>
+      <stop offset="1" stop-color="#eef2fb"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#197b6c"/>
+      <stop offset="1" stop-color="#355ca8"/>
+    </linearGradient>
+  </defs>
+  <rect width="1400" height="280" rx="28" fill="url(#bg)"/>
+  <circle cx="114" cy="140" r="65" fill="#ffffff" stroke="#bdd9d3" stroke-width="4"/>
+  <circle cx="92" cy="119" r="17" fill="#c784ad" opacity=".82"/>
+  <circle cx="133" cy="108" r="13" fill="#647fb9" opacity=".82"/>
+  <circle cx="139" cy="150" r="21" fill="#7eaf9e" opacity=".88"/>
+  <circle cx="91" cy="163" r="12" fill="#d49b74" opacity=".8"/>
+  <path d="M178 140h94" stroke="url(#accent)" stroke-width="8" stroke-linecap="round"/>
+  <path d="m252 119 24 21-24 21" fill="none" stroke="#355ca8" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="318" y="135" font-family="Arial, Helvetica, sans-serif" font-size="82" font-weight="700" fill="#155f58">HistAgent</text>
+  <text x="322" y="188" font-family="Arial, Helvetica, sans-serif" font-size="28" fill="#31465c">Spatial molecular inference and evidence-grounded reasoning from routine histology</text>
+  <rect x="1180" y="74" width="120" height="34" rx="17" fill="#dcebe7"/>
+  <rect x="1140" y="123" width="160" height="34" rx="17" fill="#dce4f2"/>
+  <rect x="1205" y="172" width="95" height="34" rx="17" fill="#eadde6"/>
+</svg>
