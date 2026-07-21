@@ -18,7 +18,7 @@ This repository provides the GigaPath-backed visual-omics model used by HistAgen
 ## Framework
 
 <p align="center">
-  <img src="assets/framework.svg" width="96%" alt="Overview of the HistAgent framework">
+  <img src="assets/figure1_ab.png" width="100%" alt="Overview of the HistAgent framework and training corpora">
 </p>
 
 HistAgent combines:
