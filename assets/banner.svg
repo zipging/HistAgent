@@ -20,8 +20,8 @@
   <path d="M178 140h94" stroke="url(#accent)" stroke-width="8" stroke-linecap="round"/>
   <path d="m252 119 24 21-24 21" fill="none" stroke="#355ca8" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
   <text x="318" y="135" font-family="Arial, Helvetica, sans-serif" font-size="82" font-weight="700" fill="#155f58">HistAgent</text>
-  <text x="322" y="188" font-family="Arial, Helvetica, sans-serif" font-size="28" fill="#31465c">Spatial molecular inference and evidence-grounded reasoning from routine histology</text>
-  <rect x="1180" y="74" width="120" height="34" rx="17" fill="#dcebe7"/>
-  <rect x="1140" y="123" width="160" height="34" rx="17" fill="#dce4f2"/>
-  <rect x="1205" y="172" width="95" height="34" rx="17" fill="#eadde6"/>
+  <text x="322" y="205" font-family="Arial, Helvetica, sans-serif" font-size="25" fill="#31465c">Spatial molecular inference and evidence-grounded reasoning from routine histology</text>
+  <rect x="1180" y="40" width="120" height="30" rx="15" fill="#dcebe7"/>
+  <rect x="1140" y="84" width="160" height="30" rx="15" fill="#dce4f2"/>
+  <rect x="1205" y="128" width="95" height="30" rx="15" fill="#eadde6"/>
 </svg>
