@@ -4,7 +4,7 @@
 
 <p align="center">
   <a href="https://github.com/zipging/HistAgent"><img src="https://img.shields.io/badge/GitHub-HistAgent-181717?logo=github" alt="GitHub"></a>
-  <a href="https://huggingface.co/wli13/HistAgent-GigaPath"><img src="https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-checkpoint-FFD21E" alt="Hugging Face"></a>
+  <a href="https://huggingface.co/wli13/HistAgent"><img src="https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-checkpoint-FFD21E" alt="Hugging Face"></a>
   <img src="https://img.shields.io/badge/Python-%E2%89%A53.10-3776AB?logo=python&logoColor=white" alt="Python 3.10 or newer">
   <img src="https://img.shields.io/badge/PyTorch-%E2%89%A52.2-EE4C2C?logo=pytorch&logoColor=white" alt="PyTorch 2.2 or newer">
 </p>
@@ -32,7 +32,7 @@ HistAgent combines:
 
 | Model | Base encoder | Output | Checkpoint |
 |---|---|---|---|
-| HistAgent-GigaPath | [Prov-GigaPath](https://huggingface.co/prov-gigapath/prov-gigapath) with LoRA | Ranked top-50 genes | [Hugging Face](https://huggingface.co/wli13/HistAgent-GigaPath) |
+| HistAgent | [Prov-GigaPath](https://huggingface.co/prov-gigapath/prov-gigapath) with LoRA | Ranked top-50 genes | [Hugging Face](https://huggingface.co/wli13/HistAgent) |
 
 The released checkpoint contains HistAgent's trained LoRA parameters and all non-GigaPath modules. The original GigaPath parameters are loaded from the official model repository and are not redistributed.
 
