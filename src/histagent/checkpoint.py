@@ -11,7 +11,7 @@ from .model import HistAgentVisualOmics
 from .tokenizer import GeneTokenizer
 
 
-DEFAULT_REPO_ID = "wli13/HistAgent-GigaPath"
+DEFAULT_REPO_ID = "wli13/HistAgent"
 
 
 def _is_frozen_base_key(key: str) -> bool:

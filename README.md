@@ -5,6 +5,7 @@
 <p align="center">
   <a href="https://github.com/zipging/HistAgent"><img src="https://img.shields.io/badge/GitHub-HistAgent-181717?logo=github" alt="GitHub"></a>
   <a href="https://huggingface.co/wli13/HistAgent"><img src="https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-checkpoint-FFD21E" alt="Hugging Face"></a>
+  <a href="https://huggingface.co/datasets/wli13/HistAgent-data"><img src="https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-data-FFD21E" alt="Hugging Face data"></a>
   <img src="https://img.shields.io/badge/Python-%E2%89%A53.10-3776AB?logo=python&logoColor=white" alt="Python 3.10 or newer">
   <img src="https://img.shields.io/badge/PyTorch-%E2%89%A52.2-EE4C2C?logo=pytorch&logoColor=white" alt="PyTorch 2.2 or newer">
 </p>
@@ -87,11 +88,36 @@ histagent-predict \
 
 To use an already downloaded GigaPath checkpoint, pass `base_checkpoint_path` to `load_pretrained` or `--base-checkpoint` to the command-line interface.
 
+## Tutorial and Agent Module data
+
+The public data repository contains the files used by the five executed
+tutorials and a directly configurable Agent Module bundle:
+
+```python
+from huggingface_hub import snapshot_download
+
+data_root = snapshot_download(
+    "wli13/HistAgent-data",
+    repo_type="dataset",
+)
+```
+
+Tutorial notebooks use the `tutorials/` directory. The Agent Module example downloads
+its own `chat/` files and writes the required local paths automatically:
+
+```bash
+python examples/chat/run_chat.py
+```
+
+See [examples/chat/README.md](examples/chat/README.md) for language-model and
+image-inference configuration.
+
 ## Repository layout
 
 ```text
 HistAgent/
 ├── src/histagent/          # model, checkpoint loader and inference API
+├── examples/chat/          # configurable Agent Module service and Spot Chat
 ├── scripts/                # training and checkpoint export utilities
 ├── vocab/                  # gene, organ and species vocabularies
 ├── tests/                  # lightweight release checks

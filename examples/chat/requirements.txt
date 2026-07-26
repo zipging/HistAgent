@@ -1,0 +1,6 @@
+fastapi>=0.110
+huggingface-hub>=0.24
+pillow>=10
+pydantic>=2
+requests>=2.31
+uvicorn[standard]>=0.30

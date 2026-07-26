@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>HistAgent Spot Chat</title>
+    <link rel="stylesheet" href="/static/style.css?v=20260726pairedfov3" />
+  </head>
+  <body>
+    <div class="app">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-row">
+            <span class="brand-logo-ha" aria-hidden="true">HA</span>
+            <h1 class="brand-wordmark"><span class="hist">Hist</span><span class="reason">Agent</span></h1>
+          </div>
+          <p id="brandSubtitle">Molecular analysis of tissue spots</p>
+        </div>
+
+        <div class="panel">
+          <label class="label has-icon icon-search" id="labelSearchSpot">Select a spot</label>
+          <div class="subpanel">
+            <div class="subpanel-title has-icon icon-spatial" id="interactiveTitle">Select from Tissue Map</div>
+            <label class="label-inline has-icon icon-cells" id="speciesLabel">Species</label>
+            <select id="speciesSelect" class="input"></select>
+
+            <label class="label-inline has-icon icon-spot" id="organLabel">Organ</label>
+            <select id="organSelect" class="input"></select>
+
+            <label class="label-inline has-icon icon-spatial" id="sliceLabel">Tissue slice</label>
+            <select id="sliceSelect" class="input"></select>
+
+            <div class="spot-map-card">
+              <div id="spotMapStage" class="spot-map-stage">
+                <img id="spotMapImage" class="spot-map-image" alt="Selected tissue slice" />
+                <canvas id="spotMapCanvas" class="spot-map-canvas" role="img" aria-label="Interactive spot map"></canvas>
+                <div class="spot-map-tools" aria-label="Spot map controls">
+                  <button id="spotZoomOutBtn" class="spot-map-tool" type="button" title="Zoom out" aria-label="Zoom out">-</button>
+                  <button id="spotZoomResetBtn" class="spot-map-tool" type="button" title="Reset zoom" aria-label="Reset zoom">1x</button>
+                  <button id="spotZoomInBtn" class="spot-map-tool" type="button" title="Zoom in" aria-label="Zoom in">+</button>
+                </div>
+              </div>
+              <div id="spotMapHint" class="spot-map-hint"></div>
+            </div>
+          </div>
+
+          <div class="subpanel subpanel-manual">
+            <div class="subpanel-title has-icon icon-spot" id="manualTitle">Manual spot ID</div>
+            <input
+              id="manualSpotInput"
+              class="input"
+              placeholder="Enter spot_key (slice_id<TAB>barcode)"
+            />
+            <button id="manualSpotBtn" class="btn btn-secondary btn-inline">Load Spot</button>
+            <button id="clearSpotBtn" class="btn btn-secondary btn-inline">General Chat (no spot)</button>
+          </div>
+        </div>
+
+        <div class="panel panel-current-spot">
+          <label class="label has-icon icon-spot" id="currentSpotLabel">Current Spot</label>
+          <div id="spotMeta" class="meta"></div>
+        </div>
+
+        <div class="panel panel-session">
+          <label class="label has-icon icon-chat">Conversation</label>
+          <button id="resetBtn" class="btn btn-secondary">Reset Current Session</button>
+        </div>
+
+        <div class="copyright-note">
+          <div>&copy; 2026 Wenlin LI</div>
+          <a href="mailto:wenlinli1@link.cuhk.edu.cn">wenlinli1@link.cuhk.edu.cn</a>
+        </div>
+      </aside>
+
+      <main class="chat-main">
+        <div class="chat-header">
+          <div class="chat-header-left">
+            <h2 id="chatTitle" class="heading-with-icon has-icon icon-chat">HistAgent Spot Chat</h2>
+            <p id="chatSubtitle">Ask about the selected spot's ranked genes, cell states, pathways or spatial context.</p>
+          </div>
+          <div class="header-tools">
+            <button id="thinkingToggleBtn" class="btn btn-thinking" type="button">Thinking: Off</button>
+            <div class="lang-switch">
+              <button id="langZhBtn" class="btn btn-lang">中文</button>
+              <button id="langEnBtn" class="btn btn-lang">EN</button>
+            </div>
+          <div id="appStatus" class="app-status">Loading</div>
+          </div>
+        </div>
+
+        <div id="messages" class="messages chat-workspace"></div>
+
+        <div class="suggestion-bar chat-workspace">
+          <div id="spotSnapshot" class="spot-snapshot"></div>
+          <div id="suggestionTitle" class="suggestion-title has-icon icon-chat">Suggested Follow-ups</div>
+          <div id="suggestions" class="suggestions"></div>
+        </div>
+
+        <form id="chatForm" class="composer chat-workspace">
+          <textarea
+            id="messageInput"
+            class="composer-input"
+            placeholder="Type your question"
+            rows="3"
+          ></textarea>
+          <div class="composer-actions">
+            <button type="submit" id="sendBtn" class="btn btn-primary btn-with-icon icon-send">Send</button>
+          </div>
+        </form>
+
+      </main>
+    </div>
+
+    <template id="msgTpl">
+      <div class="msg">
+        <div class="bubble"></div>
+      </div>
+    </template>
+
+    <script src="/static/app.js?v=20260726copy1"></script>
+  </body>
+</html>
