@@ -102,15 +102,23 @@ data_root = snapshot_download(
 )
 ```
 
-Tutorial notebooks use the `tutorials/` directory. The Agent Module example downloads
-its own `chat/` files and writes the required local paths automatically:
+Download the executed notebooks from the
+[HistAgent tutorials](https://zipging.github.io/HistAgent/tutorials/). Each
+notebook contains its installation cell and downloads only the files needed for
+that workflow. To run a downloaded notebook locally:
 
 ```bash
-python examples/chat/run_chat.py
+python -m pip install jupyter
+python -m jupyter lab
 ```
 
-See [examples/chat/README.md](examples/chat/README.md) for language-model and
-image-inference configuration.
+Open the downloaded `.ipynb` file in Jupyter and choose **Run All**.
+
+The Agent Module runs as two processes: an OpenAI-compatible language model and
+the Web/API service. The repository includes a local Qwen3-8B server, or you can
+configure another compatible endpoint. See
+[examples/chat/README.md](examples/chat/README.md) for the two-terminal startup
+commands and the additional requirements for H&E image analysis.
 
 ## Repository layout
 
