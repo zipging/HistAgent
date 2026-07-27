@@ -88,6 +88,29 @@ histagent-predict \
 
 To use an already downloaded GigaPath checkpoint, pass `base_checkpoint_path` to `load_pretrained` or `--base-checkpoint` to the command-line interface.
 
+## Clinical prediction API
+
+Install the optional analysis dependencies to run the clinical tutorial:
+
+```bash
+pip install -e ".[clinical]"
+```
+
+The public interface loads the released HistAgent tile representations and
+trained ABMIL checkpoints, then performs tile inference, spatial mapping,
+region tests and survival analysis:
+
+```python
+from histagent.clinical import HistAgentClinical
+
+clinical_model = HistAgentClinical.from_data_dir("data/tutorials")
+predictions = clinical_model()
+region_tests = clinical_model.compare_regions(predictions)
+
+clinical_model.plot_stad(predictions, region_tests)
+clinical_model.plot_brca(predictions, region_tests)
+```
+
 ## Tutorial and Agent Module data
 
 The public data repository contains the files used by the five executed
