@@ -27,9 +27,45 @@ cp examples/chat/.env.example examples/chat/.env
 `HISTAGENT_API_BASE_URL`, `HISTAGENT_MODEL` and `HISTAGENT_API_KEY` configure
 the language model used for Spot Chat and natural-language atlas queries.
 
-## Run
+## Start the language model
+
+The Agent Module and the language model run as separate processes.
+
+### Local Qwen3-8B
+
+In the first terminal:
 
 ```bash
+source .venv/bin/activate
+python -m pip install -r examples/chat/requirements-llm.txt
+HISTAGENT_QWEN_PATH=Qwen/Qwen3-8B \
+python examples/chat/llm_server.py
+```
+
+The local server listens at `http://127.0.0.1:8001/v1`, which matches
+`.env.example`. It loads Qwen3-8B in bfloat16. A CUDA GPU with about 20 GB of
+available memory is recommended. Use an external endpoint if that hardware is
+not available.
+
+### External OpenAI-compatible endpoint
+
+Edit `examples/chat/.env`:
+
+```text
+HISTAGENT_API_BASE_URL=https://your-endpoint.example/v1
+HISTAGENT_MODEL=your-model-name
+HISTAGENT_API_KEY=your-api-key
+```
+
+The endpoint must provide `/v1/chat/completions`.
+
+## Start the Agent Module
+
+Keep the language model running. In a second terminal:
+
+```bash
+cd HistAgent
+source .venv/bin/activate
 python examples/chat/run_chat.py
 ```
 
@@ -44,20 +80,6 @@ To connect a deployed project page, set its service origin:
 <meta name="histagent-chat-origin" content="https://your-agent-service.example">
 ```
 
-## Local Qwen endpoint
-
-An external OpenAI-compatible endpoint is not required. To serve Qwen3-8B
-locally:
-
-```bash
-python -m pip install -r examples/chat/requirements-llm.txt
-HISTAGENT_QWEN_PATH=Qwen/Qwen3-8B \
-python examples/chat/llm_server.py
-```
-
-The default Chat configuration connects to this server at
-`http://127.0.0.1:8001/v1`.
-
 ## Image analysis
 
 H&E image analysis loads the released HistAgent checkpoint from
@@ -66,6 +88,8 @@ and set `HF_TOKEN` in `examples/chat/.env` before using image analysis.
 
 Set `HISTAGENT_BASE_CHECKPOINT` when the GigaPath checkpoint is already
 available locally.
+
+Spot Chat and natural-language Atlas Search do not require the image model.
 
 ## Data configuration
 
