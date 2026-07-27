@@ -20,6 +20,13 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+clinical = [
+  "matplotlib>=3.8",
+  "numpy>=1.26",
+  "pandas>=2.1",
+  "scipy>=1.12",
+  "seaborn>=0.13",
+]
 train = [
   "accelerate>=0.33",
   "h5py>=3.10",
