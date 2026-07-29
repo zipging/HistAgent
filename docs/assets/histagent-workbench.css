@@ -1,0 +1,676 @@
+.histagent-product-bar {
+  grid-template-columns: 210px minmax(420px, 1fr) auto;
+}
+
+.histagent-steps {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.histagent-steps li {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 135px;
+  color: #8a9791;
+  font-size: 11px;
+}
+
+.histagent-steps li:not(:last-child)::after {
+  width: 42px;
+  height: 1px;
+  margin: 0 14px;
+  background: #cfdbd5;
+  content: "";
+}
+
+.histagent-steps span {
+  display: grid;
+  width: 22px;
+  height: 22px;
+  flex: 0 0 22px;
+  place-items: center;
+  border: 1px solid #bbc9c2;
+  border-radius: 50%;
+  background: #fff;
+  color: #6c7c74;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.histagent-steps li.complete,
+.histagent-steps li.active {
+  color: var(--atlas-ink);
+}
+
+.histagent-steps li.complete span {
+  border-color: var(--atlas-teal);
+  background: var(--atlas-teal-pale);
+  color: var(--atlas-teal-dark);
+}
+
+.histagent-steps li.active span {
+  border-color: var(--atlas-orange);
+  background: var(--atlas-orange-pale);
+  color: #885715;
+}
+
+.histagent-generate {
+  min-width: 174px;
+  padding: 11px 17px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--atlas-teal);
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 740;
+}
+
+.histagent-generate:hover {
+  background: var(--atlas-teal-dark);
+}
+
+.histagent-generate:disabled {
+  cursor: wait;
+  opacity: 0.68;
+}
+
+.histagent-workspace {
+  display: grid;
+  grid-template-columns: 250px minmax(460px, 1fr) minmax(350px, 410px);
+  min-height: calc(100vh - 186px);
+}
+
+.histagent-controls {
+  padding: 14px;
+  border-right: 1px solid var(--atlas-line-dark);
+  background: #f8faf8;
+}
+
+.histagent-upload {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  min-height: 67px;
+  margin-bottom: 7px;
+  padding: 11px;
+  border: 1px dashed var(--atlas-line-dark);
+  border-radius: 9px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.histagent-upload[data-dragging="true"] {
+  border-color: var(--atlas-teal);
+  background: #f1faf6;
+}
+
+.histagent-upload input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+.histagent-upload-icon {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  flex: 0 0 30px;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--atlas-teal-pale);
+  color: var(--atlas-teal-dark);
+  font-size: 20px;
+}
+
+.histagent-upload > span:last-child {
+  display: grid;
+  gap: 2px;
+}
+
+.histagent-upload strong {
+  font-size: 11px;
+}
+
+.histagent-upload small {
+  color: var(--atlas-muted);
+  font-size: 9px;
+}
+
+.histagent-example-button {
+  width: 100%;
+  margin-bottom: 16px;
+  padding: 7px 9px;
+  border: 1px solid var(--atlas-line);
+  border-radius: 7px;
+  background: #fff;
+  color: var(--atlas-teal-dark);
+  cursor: pointer;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.histagent-parameter-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 8px;
+  margin: 4px 0 16px;
+}
+
+.histagent-parameter-grid > label,
+.histagent-parameter-grid > div {
+  display: grid;
+  gap: 5px;
+  align-content: start;
+}
+
+.histagent-parameter-grid > label > span:first-child,
+.histagent-parameter-grid > div > span {
+  color: #54675e;
+  font-size: 10px;
+  font-weight: 650;
+}
+
+.histagent-parameter-grid > div > strong {
+  min-height: 34px;
+  padding: 9px 8px;
+  border: 1px solid var(--atlas-line);
+  border-radius: 7px;
+  background: #f1f5f2;
+  color: #43564d;
+  font-size: 10px;
+  text-align: center;
+}
+
+.histagent-unit-input {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  min-height: 34px;
+  border: 1px solid var(--atlas-line);
+  border-radius: 7px;
+  background: #fff;
+}
+
+.histagent-unit-input input {
+  min-width: 0;
+  padding: 8px 4px 8px 8px;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--atlas-ink);
+  font: inherit;
+  font-size: 10px;
+}
+
+.histagent-unit-input small {
+  padding-right: 7px;
+  color: var(--atlas-muted);
+  font-size: 9px;
+}
+
+.histagent-selected-spot {
+  padding-top: 13px;
+  border-top: 1px solid var(--atlas-line);
+}
+
+.histagent-control-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.histagent-control-heading span {
+  color: #54675e;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.histagent-control-heading b {
+  padding: 3px 6px;
+  border-radius: 5px;
+  background: var(--atlas-orange-pale);
+  color: #8b5b1d;
+  font-size: 9px;
+}
+
+.histagent-crop-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.histagent-crop-pair figure {
+  overflow: hidden;
+  margin: 0;
+  border: 1px solid var(--atlas-line);
+  border-radius: 7px;
+  background: #fff;
+}
+
+.histagent-crop-pair img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  background: #eef1ef;
+}
+
+.histagent-crop-pair figcaption {
+  padding: 5px;
+  color: var(--atlas-muted);
+  font-size: 8px;
+  text-align: center;
+}
+
+.histagent-selected-spot p {
+  margin: 6px 0 0;
+  color: var(--atlas-muted);
+  font-size: 9px;
+  text-align: center;
+}
+
+.histagent-run-status {
+  min-height: 30px;
+  margin: 13px 0 0;
+  color: var(--atlas-muted);
+  font-size: 9.5px;
+  line-height: 1.45;
+}
+
+.histagent-run-status[data-error="true"] {
+  color: #9a4439;
+}
+
+.histagent-tissue-panel {
+  display: grid;
+  grid-template-rows: auto minmax(470px, 1fr) auto;
+  min-width: 0;
+  padding: 14px;
+  background: #fff;
+}
+
+.histagent-tissue-header {
+  min-height: 49px;
+}
+
+.atlas-legend i.histagent-candidate {
+  box-sizing: border-box;
+  border: 1px solid rgba(31, 157, 136, 0.78);
+  background: rgba(255,255,255,0.5);
+}
+
+.atlas-legend i.histagent-context {
+  box-sizing: border-box;
+  border: 1px solid #bd8440;
+  background: transparent;
+}
+
+.histagent-tissue-stage {
+  position: relative;
+  min-height: 470px;
+  overflow: hidden;
+  border: 1px solid var(--atlas-line-dark);
+  border-radius: 10px;
+  background:
+    linear-gradient(45deg, #e9eeeb 25%, transparent 25%),
+    linear-gradient(-45deg, #e9eeeb 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #e9eeeb 75%),
+    linear-gradient(-45deg, transparent 75%, #e9eeeb 75%),
+    #f3f6f4;
+  background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+  background-size: 16px 16px;
+}
+
+.histagent-tissue-stage > img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.histagent-spot-grid {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+}
+
+.histagent-spot {
+  position: absolute;
+  width: 11px;
+  height: 11px;
+  padding: 0;
+  border: 1.5px solid rgba(255,255,255,0.9);
+  border-radius: 50%;
+  background: rgba(31, 157, 136, 0.56);
+  box-shadow: 0 0 0 1px rgba(20, 118, 100, 0.5);
+  cursor: pointer;
+  transform: translate(-50%, -50%);
+  transition: width 120ms ease, height 120ms ease, background 120ms ease, box-shadow 120ms ease;
+}
+
+.histagent-spot:hover,
+.histagent-spot:focus-visible {
+  width: 14px;
+  height: 14px;
+  outline: 0;
+  background: rgba(31, 157, 136, 0.88);
+  box-shadow: 0 0 0 3px rgba(31, 157, 136, 0.19);
+}
+
+.histagent-spot[aria-selected="true"] {
+  z-index: 5;
+  width: 16px;
+  height: 16px;
+  border-width: 2px;
+  background: var(--atlas-orange);
+  box-shadow: 0 0 0 3px rgba(239, 163, 58, 0.24), 0 2px 7px rgba(71, 45, 10, 0.28);
+}
+
+.histagent-context-ring {
+  position: absolute;
+  z-index: 2;
+  border: 1px dashed rgba(168, 105, 31, 0.88);
+  border-radius: 50%;
+  background: rgba(239, 163, 58, 0.05);
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+}
+
+.histagent-stage-loading {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  padding: 24px;
+  background: rgba(247, 250, 248, 0.94);
+  text-align: center;
+}
+
+.histagent-stage-loading[hidden] {
+  display: none;
+}
+
+.histagent-stage-loading > span {
+  width: 35px;
+  height: 35px;
+  margin-bottom: 13px;
+  border: 3px solid #d6e6df;
+  border-top-color: var(--atlas-teal);
+  border-radius: 50%;
+  animation: atlas-spin 0.8s linear infinite;
+}
+
+.histagent-stage-loading strong {
+  font-size: 13px;
+}
+
+.histagent-stage-loading small {
+  max-width: 330px;
+  margin-top: 5px;
+  color: var(--atlas-muted);
+  font-size: 10px;
+}
+
+.histagent-selection-summary {
+  margin-top: 10px;
+}
+
+.histagent-results {
+  grid-template-rows: minmax(410px, 1.18fr) minmax(300px, 0.82fr);
+}
+
+.histagent-evidence-section {
+  min-height: 0;
+}
+
+.histagent-readout {
+  padding: 9px 10px 10px;
+  border: 1px solid var(--atlas-line-dark);
+  border-radius: 9px;
+  background: #fff;
+}
+
+.histagent-evidence-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.histagent-evidence-heading strong {
+  font-size: 10.5px;
+}
+
+.histagent-evidence-heading span {
+  color: var(--atlas-muted);
+  font-size: 8.5px;
+}
+
+.histagent-gene-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin: 0;
+  padding: 0;
+  counter-reset: ranked-gene;
+  list-style: none;
+}
+
+.histagent-gene-list li {
+  counter-increment: ranked-gene;
+  padding: 4px 6px;
+  border-radius: 5px;
+  background: var(--atlas-teal-pale);
+  color: var(--atlas-teal-dark);
+  font-size: 8.8px;
+  line-height: 1;
+}
+
+.histagent-gene-list li::before {
+  margin-right: 3px;
+  color: #7ba99c;
+  content: counter(ranked-gene);
+  font-size: 7.5px;
+  font-style: normal;
+}
+
+.histagent-evidence-fields {
+  display: grid;
+  gap: 7px;
+  margin-top: 8px;
+}
+
+.histagent-evidence-fields article {
+  padding: 8px 9px;
+  border-left: 3px solid var(--atlas-teal);
+  border-radius: 0 7px 7px 0;
+  background: #fff;
+}
+
+.histagent-evidence-fields article:nth-child(2) {
+  border-left-color: var(--atlas-orange);
+}
+
+.histagent-evidence-fields article:nth-child(3) {
+  border-left-color: #96a7a0;
+}
+
+.histagent-evidence-fields span {
+  display: block;
+  margin-bottom: 3px;
+  color: var(--atlas-muted);
+  font-size: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.histagent-evidence-fields strong {
+  display: block;
+  color: var(--atlas-ink);
+  font-size: 9.5px;
+  line-height: 1.3;
+}
+
+.histagent-evidence-fields p {
+  margin: 3px 0 0;
+  color: #5d7067;
+  font-size: 8.5px;
+  line-height: 1.35;
+}
+
+.histagent-evidence-empty {
+  display: grid;
+  min-height: 210px;
+  place-items: center;
+  padding: 24px;
+  border: 1px dashed var(--atlas-line-dark);
+  border-radius: 9px;
+  color: var(--atlas-muted);
+  font-size: 10px;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.histagent-chat-section {
+  grid-template-rows: auto minmax(105px, 1fr) auto auto;
+}
+
+.histagent-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 5px;
+}
+
+.histagent-suggestions button {
+  padding: 5px 7px;
+  border: 1px solid var(--atlas-line);
+  border-radius: 999px;
+  background: #fff;
+  color: #53675e;
+  cursor: pointer;
+  font: inherit;
+  font-size: 8.5px;
+}
+
+.histagent-suggestions button:hover {
+  border-color: var(--atlas-teal);
+  color: var(--atlas-teal-dark);
+}
+
+@media (max-width: 1240px) {
+  .histagent-product-bar {
+    grid-template-columns: 180px minmax(360px, 1fr) auto;
+  }
+
+  .histagent-steps li {
+    min-width: 112px;
+  }
+
+  .histagent-steps li:not(:last-child)::after {
+    width: 25px;
+    margin-inline: 9px;
+  }
+
+  .histagent-workspace {
+    grid-template-columns: 230px minmax(420px, 1fr) 350px;
+  }
+}
+
+@media (max-width: 1020px) {
+  .histagent-product-bar {
+    grid-template-columns: 1fr auto;
+  }
+
+  .histagent-steps {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    order: 3;
+  }
+
+  .histagent-workspace {
+    grid-template-columns: 220px minmax(0, 1fr);
+  }
+
+  .histagent-results {
+    grid-column: 1 / -1;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: minmax(390px, auto);
+    border-top: 1px solid var(--atlas-line-dark);
+    border-left: 0;
+  }
+
+  .histagent-evidence-section {
+    border-right: 1px solid var(--atlas-line-dark);
+    border-bottom: 0;
+  }
+}
+
+@media (max-width: 720px) {
+  .histagent-product-bar {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .histagent-generate {
+    width: 100%;
+  }
+
+  .histagent-steps {
+    justify-content: flex-start;
+    overflow-x: auto;
+  }
+
+  .histagent-steps li {
+    min-width: max-content;
+  }
+
+  .histagent-steps li:not(:last-child)::after {
+    width: 18px;
+  }
+
+  .histagent-workspace {
+    display: block;
+  }
+
+  .histagent-controls {
+    border-right: 0;
+    border-bottom: 1px solid var(--atlas-line-dark);
+  }
+
+  .histagent-tissue-panel {
+    grid-template-rows: auto 460px auto;
+  }
+
+  .histagent-results {
+    display: block;
+  }
+
+  .histagent-evidence-section {
+    border-right: 0;
+    border-bottom: 1px solid var(--atlas-line-dark);
+  }
+
+  .histagent-chat-section {
+    min-height: 380px;
+  }
+}

@@ -22,6 +22,11 @@ const imagePanel = document.querySelector("#atlas-image-query");
 const imageInput = document.querySelector("#atlas-image-input");
 const imagePreview = document.querySelector("#atlas-image-preview");
 const evidenceChips = document.querySelector("#query-evidence-chips");
+const evidenceFilterInputs = [
+  document.querySelector("#atlas-cell-filter"),
+  document.querySelector("#atlas-pathway-filter"),
+  document.querySelector("#atlas-microenvironment-filter")
+].filter(Boolean);
 
 const manuscriptExampleEvidence = {
   spot: {
@@ -136,7 +141,10 @@ function queryTerms(query) {
 }
 
 function updateChips(query) {
-  const terms = queryTerms(query);
+  const selectedFilters = evidenceFilterInputs.map((input) => input.value).filter(Boolean);
+  const terms = [...selectedFilters, ...queryTerms(query)]
+    .filter((term, index, values) => values.indexOf(term) === index)
+    .slice(0, 5);
   evidenceChips.innerHTML = terms.length
     ? terms.map((term) => `<span>${escapeHtml(term)}</span>`).join("")
     : "<span>Biological state</span>";
@@ -306,7 +314,11 @@ form?.addEventListener("submit", (event) => {
     window.location.href = "/histagent/";
     return;
   }
-  runRetrieval(query);
+  const selectedFilters = evidenceFilterInputs.map((input) => input.value).filter(Boolean);
+  const retrievalQuery = selectedFilters.length
+    ? `${query}. Evidence constraints: ${selectedFilters.join("; ")}.`
+    : query;
+  runRetrieval(retrievalQuery);
 });
 
 chatForm?.addEventListener("submit", async (event) => {
@@ -363,6 +375,10 @@ imageInput?.addEventListener("change", () => {
   imagePreview.src = URL.createObjectURL(file);
   imagePreview.hidden = false;
   queryInput.value = file.name;
+});
+
+evidenceFilterInputs.forEach((input) => {
+  input.addEventListener("change", () => updateChips(queryInput.value));
 });
 
 seedDots();

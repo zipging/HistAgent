@@ -257,11 +257,26 @@ body.atlas-page {
   margin-bottom: 6px;
 }
 
-.atlas-evidence-filters button {
-  display: flex;
-  justify-content: space-between;
+.atlas-evidence-filters label {
+  position: relative;
+  display: grid;
+}
+
+.atlas-evidence-filters label > span {
+  position: absolute;
+  z-index: 1;
+  top: 50%;
+  left: 9px;
+  color: #596a62;
+  font-size: 11px;
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+
+.atlas-evidence-filters select {
   width: 100%;
-  padding: 7px 9px;
+  min-height: 31px;
+  padding: 7px 26px 7px 112px;
   border: 1px solid var(--atlas-line);
   border-radius: 7px;
   background: #fff;
@@ -272,9 +287,11 @@ body.atlas-page {
   text-align: left;
 }
 
-.atlas-evidence-filters button:hover {
+.atlas-evidence-filters select:hover,
+.atlas-evidence-filters select:focus {
   border-color: var(--atlas-teal);
   color: var(--atlas-teal-dark);
+  outline: 0;
 }
 
 .atlas-active-evidence > div {

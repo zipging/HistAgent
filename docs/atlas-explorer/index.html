@@ -9,7 +9,7 @@
     <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
     <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
     <link rel="stylesheet" href="/assets/site.css?v=20260729paper2">
-    <link rel="stylesheet" href="/assets/atlas-workbench.css?v=20260729a">
+    <link rel="stylesheet" href="/assets/atlas-workbench.css?v=20260729c">
   </head>
   <body class="atlas-page">
     <a class="skip-link" href="#atlas-workbench">Skip to Atlas Explorer</a>
@@ -121,9 +121,41 @@
 
               <fieldset class="atlas-evidence-filters">
                 <legend>Evidence filters</legend>
-                <button type="button">Cell type <span>›</span></button>
-                <button type="button">Pathway <span>›</span></button>
-                <button type="button">Microenvironment <span>›</span></button>
+                <label>
+                  <span>Cell type</span>
+                  <select id="atlas-cell-filter">
+                    <option value="">Any</option>
+                    <option value="B cell-rich">B cell-rich</option>
+                    <option value="T cell-rich">T cell-rich</option>
+                    <option value="epithelial">Epithelial</option>
+                    <option value="stromal">Stromal</option>
+                    <option value="myeloid">Myeloid</option>
+                    <option value="cardiomyocyte">Cardiomyocyte</option>
+                    <option value="oligodendrocyte">Oligodendrocyte</option>
+                  </select>
+                </label>
+                <label>
+                  <span>Pathway</span>
+                  <select id="atlas-pathway-filter">
+                    <option value="">Any</option>
+                    <option value="antigen presentation">Antigen presentation</option>
+                    <option value="muscle contraction">Muscle contraction</option>
+                    <option value="oxidative phosphorylation">Oxidative phosphorylation</option>
+                    <option value="myelination">Myelination</option>
+                    <option value="epithelial-to-mesenchymal transition">EMT</option>
+                  </select>
+                </label>
+                <label>
+                  <span>Microenvironment</span>
+                  <select id="atlas-microenvironment-filter">
+                    <option value="">Any</option>
+                    <option value="tumor-adjacent">Tumor-adjacent</option>
+                    <option value="TLS-like">TLS-like</option>
+                    <option value="tumor-stroma interface">Tumor–stroma interface</option>
+                    <option value="glioma edge">Glioma edge</option>
+                    <option value="myocardium">Myocardium</option>
+                  </select>
+                </label>
               </fieldset>
 
               <div class="atlas-active-evidence">
@@ -228,6 +260,6 @@
 
     <script src="/assets/site.js?v=20260729bio1"></script>
     <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
-    <script type="module" src="/assets/atlas-workbench.js?v=20260729b"></script>
+    <script type="module" src="/assets/atlas-workbench.js?v=20260729c"></script>
   </body>
 </html>

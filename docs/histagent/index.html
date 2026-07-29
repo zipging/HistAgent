@@ -3,15 +3,17 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="Generate ranked molecular readouts from paired H&E views and examine spot-level evidence with HistAgent.">
-    <meta name="theme-color" content="#17362f">
-    <title>Try HistAgent | HistAgent</title>
+    <meta name="description" content="Select a tissue spot, generate its ranked molecular readout and analyze its evidence with HistAgent.">
+    <meta name="theme-color" content="#f4f7f5">
+    <title>HistAgent Workbench</title>
     <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
     <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
     <link rel="stylesheet" href="/assets/site.css?v=20260729paper2">
+    <link rel="stylesheet" href="/assets/atlas-workbench.css?v=20260729c">
+    <link rel="stylesheet" href="/assets/histagent-workbench.css?v=20260729a">
   </head>
-  <body>
-    <a class="skip-link" href="#main">Skip to content</a>
+  <body class="atlas-page histagent-page">
+    <a class="skip-link" href="#histagent-workbench">Skip to HistAgent</a>
     <header class="site-header">
       <div class="header-inner">
         <a class="brand" href="/">
@@ -29,67 +31,225 @@
       </div>
     </header>
 
-    <main id="main">
-      <div class="page-shell">
-        <header class="page-hero">
-          <p class="eyebrow">Visual-omics foundation model · spatial agentic module</p>
-          <h1>From H&amp;E to evidence-grounded spatial analysis</h1>
-          <p class="lede">HistAgent converts local and surrounding tissue morphology into a ranked molecular readout, organizes the readout into a spot-level evidence card and supports successive questions about the local tissue state.</p>
-          <div class="page-meta"><span>Multi-scale H&amp;E input</span><span>Top-50 gene ranking</span><span>Spot-level evidence cards</span><span>Adapted Qwen3-8B</span></div>
-          <div class="paper-workflow" aria-label="HistAgent workflow">
-            <article class="workflow-card inference">
-              <span>01 · Input</span>
-              <strong>Local and contextual H&amp;E</strong>
-              <p>Two views centered on the same tissue location capture local morphology and the surrounding tissue context.</p>
-            </article>
-            <article class="workflow-card inference">
-              <span>02 · Molecular inference</span>
-              <strong>Ranked molecular readout</strong>
-              <p>The foundation model autoregressively generates an ordered list of up to 50 genes.</p>
-            </article>
-            <article class="workflow-card evidence">
-              <span>03 · Evidence construction</span>
-              <strong>Spot-level evidence card</strong>
-              <p>Ranked genes, inferred cell composition, functional programs and spatial context are organized together.</p>
-            </article>
-            <article class="workflow-card evidence">
-              <span>04 · Follow-up analysis</span>
-              <strong>Evidence-grounded reasoning</strong>
-              <p>The agentic module answers successive questions while grounding its conclusions in the evidence card.</p>
-            </article>
-          </div>
+    <main class="atlas-main" id="histagent-workbench">
+      <section class="atlas-product histagent-product" aria-label="HistAgent image analysis workbench">
+        <header class="atlas-product-bar histagent-product-bar">
+          <a class="atlas-product-brand" href="/histagent/" aria-label="HistAgent workbench home">
+            <span class="brand-mark" aria-hidden="true"></span>
+            <span>HistAgent</span>
+          </a>
+          <ol class="histagent-steps" aria-label="Analysis workflow">
+            <li class="complete" data-step="image"><span>1</span><strong>Tissue image</strong></li>
+            <li class="active" data-step="spot"><span>2</span><strong>Select spot</strong></li>
+            <li data-step="evidence"><span>3</span><strong>Generate evidence</strong></li>
+          </ol>
+          <button class="histagent-generate" id="histagent-generate" type="button">
+            Generate spot evidence
+          </button>
         </header>
 
-        <section class="section embedded-tool" aria-labelledby="histagent-demo-heading">
-          <div class="embedded-tool-heading">
-            <div>
-              <p class="eyebrow">Interactive workflow</p>
-              <h2 id="histagent-demo-heading">Run HistAgent</h2>
+        <div class="histagent-workspace">
+          <aside class="histagent-controls" aria-label="Image and spot setup">
+            <div class="atlas-panel-heading">
+              <p>Input setup</p>
             </div>
-            <a class="button" href="https://wli13-histagent-demo.hf.space" target="_blank" rel="noopener">Open in a new window</a>
-          </div>
-          <iframe
-            src="https://wli13-histagent-demo.hf.space"
-            title="HistAgent interactive demonstration"
-            loading="eager"
-            allow="clipboard-read; clipboard-write"
-          ></iframe>
-          <p class="embedded-tool-note">The public demonstration provides live ranked-gene generation and evidence-grounded reasoning with measured reference evidence cards. The first request may wait briefly while a ZeroGPU worker starts. Research use only.</p>
-        </section>
-      </div>
+
+            <label class="histagent-upload" id="histagent-upload-zone" for="histagent-file">
+              <input id="histagent-file" type="file" accept="image/png,image/jpeg,image/webp">
+              <span class="histagent-upload-icon" aria-hidden="true">+</span>
+              <span>
+                <strong>Upload tissue image</strong>
+                <small>PNG, JPEG or WebP</small>
+              </span>
+            </label>
+            <button class="histagent-example-button" id="histagent-example" type="button">Reset to RCC example</button>
+
+            <label class="atlas-field" for="histagent-species">
+              <span class="atlas-label">Species</span>
+              <select id="histagent-species">
+                <option value="human" selected>Human</option>
+                <option value="mouse">Mouse</option>
+                <option value="unknown">Unknown</option>
+              </select>
+            </label>
+
+            <label class="atlas-field" for="histagent-organ">
+              <span class="atlas-label">Organ</span>
+              <select id="histagent-organ">
+                <option value="Unknown">Unknown</option>
+                <option value="bone">Bone</option>
+                <option value="brain">Brain</option>
+                <option value="breast">Breast</option>
+                <option value="cervix">Cervix</option>
+                <option value="colon">Colon</option>
+                <option value="endometrium">Endometrium</option>
+                <option value="glioblastoma">Glioblastoma</option>
+                <option value="glioma">Glioma</option>
+                <option value="heart">Heart</option>
+                <option value="kidney" selected>Kidney</option>
+                <option value="liver">Liver</option>
+                <option value="lung">Lung</option>
+                <option value="lymph node">Lymph node</option>
+                <option value="melanoma">Melanoma</option>
+                <option value="mouth">Mouth</option>
+                <option value="muscle">Muscle</option>
+                <option value="ovary">Ovary</option>
+                <option value="pancreas">Pancreas</option>
+                <option value="prostate">Prostate</option>
+                <option value="skin">Skin</option>
+                <option value="spleen">Spleen</option>
+                <option value="stomach">Stomach</option>
+                <option value="thymus">Thymus</option>
+              </select>
+            </label>
+
+            <div class="histagent-parameter-grid">
+              <label for="histagent-mpp">
+                <span>Image scale</span>
+                <span class="histagent-unit-input">
+                  <input id="histagent-mpp" type="number" min="0.05" max="20" step="0.01" value="1.00" inputmode="decimal">
+                  <small>µm/px</small>
+                </span>
+              </label>
+              <div>
+                <span>Spot diameter</span>
+                <strong>55 µm</strong>
+              </div>
+            </div>
+
+            <section class="histagent-selected-spot" aria-labelledby="selected-spot-title">
+              <div class="histagent-control-heading">
+                <span id="selected-spot-title">Selected spot</span>
+                <b id="selected-spot-id">S112</b>
+              </div>
+              <div class="histagent-crop-pair">
+                <figure>
+                  <img id="histagent-local-preview" alt="Local H&E view for the selected spot">
+                  <figcaption>Local · 55 µm</figcaption>
+                </figure>
+                <figure>
+                  <img id="histagent-context-preview" alt="Contextual H&E view around the selected spot">
+                  <figcaption>Context · 220 µm</figcaption>
+                </figure>
+              </div>
+              <p id="histagent-selected-coordinates">Center 759, 875 px</p>
+            </section>
+
+            <p class="histagent-run-status" id="histagent-run-status" role="status" aria-live="polite">
+              Select a spot or generate evidence for the current selection.
+            </p>
+          </aside>
+
+          <section class="histagent-tissue-panel" aria-labelledby="tissue-map-title">
+            <header class="atlas-map-header histagent-tissue-header">
+              <div>
+                <h1 id="tissue-map-title">Tissue spot selection</h1>
+                <div class="atlas-legend" aria-label="Spot legend">
+                  <span><i class="histagent-candidate"></i>Candidate spot</span>
+                  <span><i class="top-ranked"></i>Selected spot</span>
+                  <span><i class="histagent-context"></i>Context field</span>
+                </div>
+              </div>
+              <span id="histagent-spot-count">224 spots</span>
+            </header>
+
+            <div class="histagent-tissue-stage" id="histagent-tissue-stage">
+              <img id="histagent-tissue-image" src="/assets/rcc-tissue.jpg" alt="Uploaded H&E tissue image divided into selectable spots">
+              <div class="histagent-spot-grid" id="histagent-spot-grid"></div>
+              <div class="histagent-context-ring" id="histagent-context-ring" aria-hidden="true"></div>
+              <div class="atlas-map-tools" aria-hidden="true">
+                <span>+</span><span>−</span><span>⌂</span>
+              </div>
+              <div class="atlas-scale"><span></span>1 mm</div>
+              <div class="histagent-stage-loading" id="histagent-stage-loading" hidden>
+                <span></span>
+                <strong>Generating ranked molecular readout</strong>
+                <small>HistAgent is processing the local and contextual H&amp;E views.</small>
+              </div>
+            </div>
+
+            <div class="atlas-retrieved-summary histagent-selection-summary">
+              <div>
+                <strong id="histagent-image-name">RCC tissue example · GSM5924038</strong>
+                <span id="histagent-image-meta">1,517 × 1,749 px · 1.00 µm/px</span>
+              </div>
+              <span class="atlas-status-badge live" id="histagent-selection-badge">Spot selected</span>
+            </div>
+          </section>
+
+          <aside class="atlas-results histagent-results" aria-label="Spot evidence and analysis">
+            <section class="atlas-ranked-section histagent-evidence-section">
+              <header class="atlas-results-header">
+                <h2>Spot evidence card</h2>
+                <span id="histagent-evidence-badge">Example</span>
+              </header>
+
+              <div class="histagent-readout">
+                <div class="histagent-evidence-heading">
+                  <strong>Ranked molecular readout</strong>
+                  <span id="histagent-gene-count">Top 12 of 50</span>
+                </div>
+                <ol class="histagent-gene-list" id="histagent-gene-list">
+                  <li><em>IGKC</em></li>
+                  <li><em>IGHG1</em></li>
+                  <li><em>COL1A1</em></li>
+                  <li><em>UBC</em></li>
+                  <li><em>TMSB4X</em></li>
+                  <li><em>COL1A2</em></li>
+                  <li><em>IGFBP7</em></li>
+                  <li><em>COL3A1</em></li>
+                  <li><em>ACTB</em></li>
+                  <li><em>B2M</em></li>
+                  <li><em>MT2A</em></li>
+                  <li><em>IGLC1</em></li>
+                </ol>
+              </div>
+
+              <div class="histagent-evidence-fields" id="histagent-evidence-fields">
+                <article>
+                  <span>Cell evidence</span>
+                  <strong>Stromal cell · Plasma cell · B cell</strong>
+                  <p><em>COL1A1</em>, <em>COL1A2</em>, <em>COL3A1</em>, <em>LUM</em>, <em>DCN</em>, <em>IGHG1</em>, <em>IGHA1</em>, <em>JCHAIN</em>, <em>IGKC</em>, <em>CD74</em></p>
+                </article>
+                <article>
+                  <span>Program evidence</span>
+                  <strong>Extracellular matrix organization · Immunoglobulin production · Antigen presentation</strong>
+                  <p><em>COL1A1</em>, <em>COL1A2</em>, <em>COL3A1</em>, <em>LUM</em>, <em>DCN</em>, <em>IGKC</em>, <em>IGHG1</em>, <em>IGHG2</em>, <em>IGHA1</em>, <em>JCHAIN</em>, <em>B2M</em>, <em>CD74</em>, <em>HLA-DRA</em></p>
+                </article>
+                <article>
+                  <span>Spatial context</span>
+                  <strong>Selected spot with surrounding tissue context</strong>
+                  <p>Selected 55 µm spot interpreted with its 220 µm surrounding context.</p>
+                </article>
+              </div>
+            </section>
+
+            <section class="atlas-chat-section histagent-chat-section">
+              <header class="atlas-results-header">
+                <h2>Evidence-grounded analysis</h2>
+              </header>
+              <div class="atlas-chat" id="histagent-chat-log" aria-live="polite">
+                <div class="atlas-message assistant">
+                  <span>HistAgent</span>
+                  <p>The selected spot is ready. Ask about its ranked genes, inferred cellular states, functional programs or surrounding tissue context.</p>
+                </div>
+              </div>
+              <div class="histagent-suggestions" id="histagent-suggestions">
+                <button type="button">Which genes support this interpretation?</button>
+                <button type="button">What cell types are suggested here?</button>
+              </div>
+              <form class="atlas-chat-form" id="histagent-chat-form">
+                <label class="sr-only" for="histagent-chat-input">Ask about the selected spot evidence</label>
+                <textarea id="histagent-chat-input" rows="2" placeholder="Ask about the selected spot"></textarea>
+                <button type="submit" aria-label="Send question">↑</button>
+              </form>
+            </section>
+          </aside>
+        </div>
+      </section>
     </main>
 
-    <footer class="site-footer">
-      <div class="page-shell footer-grid">
-        <div><strong>HistAgent</strong><span class="fine-print">Spatial molecular analysis from routine histology.</span></div>
-        <div class="footer-links">
-          <a href="https://github.com/zipging/HistAgent">GitHub</a>
-          <a href="https://huggingface.co/wli13/HistAgent">Checkpoint</a>
-          <a href="https://huggingface.co/datasets/wli13/HistAgent-data">Data</a>
-          <a href="/tutorials/">Tutorials</a>
-        </div>
-      </div>
-    </footer>
     <script src="/assets/site.js?v=20260729bio1"></script>
+    <script type="module" src="/assets/histagent-workbench.js?v=20260729a"></script>
   </body>
 </html>
