@@ -55,6 +55,12 @@ export HF_TOKEN="your_read_token"
 
 HistAgent receives two H&E crops centred on the same location: a local view and a broader context view. Both are converted to 224 × 224 pixels before encoding.
 
+Run the complete example in Google Colab:
+
+<a href="https://colab.research.google.com/github/zipging/HistAgent/blob/main/notebooks/histagent_colab_quickstart.ipynb">
+  <img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open in Colab">
+</a>
+
 ```python
 import torch
 
