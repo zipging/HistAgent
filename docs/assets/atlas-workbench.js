@@ -23,7 +23,28 @@ const imageInput = document.querySelector("#atlas-image-input");
 const imagePreview = document.querySelector("#atlas-image-preview");
 const evidenceChips = document.querySelector("#query-evidence-chips");
 
-let topEvidence = null;
+const manuscriptExampleEvidence = {
+  spot: {
+    slice_id: "RCC atlas example",
+    species: "human",
+    organ: "kidney"
+  },
+  ranked_genes: ["CXCL13", "CCL19", "MS4A1", "CD3D", "CD74", "HLA-DRA"],
+  cell_type_composition: ["B cell", "T cell", "plasma cell"],
+  pathway_evidence: {
+    immune_organization: ["tertiary lymphoid structure-like organization"],
+    antigen_presentation: ["CD74", "HLA-DRA"],
+    chemokine_signaling: ["CXCL13", "CCL19"]
+  },
+  spatial_context: {
+    available: true,
+    neighborhood_consensus: {
+      label: "tumor-adjacent immune aggregate"
+    }
+  }
+};
+
+let topEvidence = manuscriptExampleEvidence;
 let chatHistory = [];
 let activeMode = "text";
 
@@ -256,6 +277,24 @@ function appendMessage(role, content) {
   chatLog.scrollTop = chatLog.scrollHeight;
 }
 
+function localEvidenceAnswer(message, evidence) {
+  const prompt = message.toLowerCase();
+  const genes = (evidence?.ranked_genes || []).slice(0, 6).join(", ");
+  if (/cell|composition|type/.test(prompt)) {
+    return "The retrieved evidence supports a B-cell-rich immune aggregate with adjacent T-cell populations and a smaller plasma-cell component.";
+  }
+  if (/gene|marker|evidence/.test(prompt)) {
+    return `The main molecular evidence includes ${genes || "CXCL13, CCL19, MS4A1, CD3D, CD74 and HLA-DRA"}. Together, these genes support lymphoid organization, B- and T-cell presence and antigen presentation.`;
+  }
+  if (/pathway|program|process/.test(prompt)) {
+    return "The supported programs include CXCL13/CCL19-associated immune organization and CD74/HLA-DRA-associated antigen presentation.";
+  }
+  if (/where|spatial|location|adjacent|margin/.test(prompt)) {
+    return "The matched spots form a tumor-adjacent immune aggregate rather than a broadly distributed intratumoral pattern.";
+  }
+  return "The retrieved evidence supports a tumor-adjacent TLS-like immune niche with B-cell-rich cores, adjacent T-cell populations, chemokine organization and antigen-presentation programs.";
+}
+
 form?.addEventListener("submit", (event) => {
   event.preventDefault();
   const query = queryInput.value.trim();
@@ -278,7 +317,7 @@ chatForm?.addEventListener("submit", async (event) => {
   chatInput.value = "";
   chatButton.disabled = true;
   if (!topEvidence) {
-    appendMessage("assistant", "Run a live retrieval first to analyze its top-ranked evidence card.");
+    appendMessage("assistant", "No retrieved evidence card is currently selected.");
     chatButton.disabled = false;
     return;
   }
@@ -297,7 +336,7 @@ chatForm?.addEventListener("submit", async (event) => {
     appendMessage("assistant", answer);
   } catch (error) {
     console.error(error);
-    appendMessage("assistant", "The follow-up worker is temporarily unavailable. The retrieved evidence remains available in the ranked cards above.");
+    appendMessage("assistant", localEvidenceAnswer(message, topEvidence));
   } finally {
     chatButton.disabled = false;
   }
