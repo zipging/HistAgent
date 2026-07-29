@@ -8,7 +8,7 @@
     <title>HistAgent | Spatial molecular evidence from histology</title>
     <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
     <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
-    <link rel="stylesheet" href="/assets/site.css?v=20260727paper1">
+    <link rel="stylesheet" href="/assets/site.css?v=20260729paper2">
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
@@ -80,14 +80,14 @@
             </a>
             <a class="route-card" href="/histagent/">
               <span class="route-number">02 / HistAgent</span>
-              <h3>Generate and interpret molecular evidence</h3>
-              <p>Run HistAgent on paired H&amp;E views or discuss the evidence card of a measured reference spot with adapted Qwen3-8B.</p>
+              <h3>Generate ranked readouts and analyze the evidence</h3>
+              <p>Follow the HistAgent workflow from paired H&amp;E views to a ranked molecular readout, spot-level evidence card and evidence-grounded reasoning.</p>
               <span class="route-link">Try HistAgent →</span>
             </a>
             <a class="route-card" href="/atlas-explorer/">
               <span class="route-number">03 / Atlas Explorer</span>
-              <h3>Search the reference evidence bank</h3>
-              <p>Use a natural-language query to retrieve related molecular states measured by spatial transcriptomics.</p>
+              <h3>Retrieve measured ST evidence</h3>
+              <p>Search the measured ST evidence bank, inspect retrieved spots in tissue space and continue with retrieval-grounded analysis.</p>
               <span class="route-link">Open Atlas Explorer →</span>
             </a>
           </div>
@@ -101,12 +101,13 @@
             </figure>
             <div class="framework-copy">
               <p class="eyebrow">Method at a glance</p>
-              <h2 id="framework-heading">A ranked molecular readout from H&amp;E</h2>
-              <p>HistAgent receives a spot-centered H&amp;E crop, a larger contextual crop and tissue metadata, then produces an ordered list of genes for downstream spatial analysis.</p>
+              <h2 id="framework-heading">From ranked molecular readout to spatial analysis</h2>
+              <p>HistAgent receives a spot-centered H&amp;E crop, a larger contextual crop and tissue metadata, then connects its ranked molecular readout to structured molecular and spatial evidence.</p>
               <ul class="plain-list">
                 <li><strong>Dual-scale morphology</strong>Local and contextual views share a GigaPath encoder and retain distinct spatial roles.</li>
                 <li><strong>Autoregressive generation</strong>The decoder produces up to 50 non-repeating gene symbols in rank order.</li>
-                <li><strong>Downstream analysis</strong>Ranked genes support cell-state scoring, pathway analysis and spatial neighborhood comparisons.</li>
+                <li><strong>Evidence construction</strong>Ranked genes, inferred cell composition, functional programs and spatial context form a spot-level evidence card.</li>
+                <li><strong>Evidence-grounded reasoning</strong>The spatial agentic module uses the evidence card to answer successive region-specific questions.</li>
               </ul>
             </div>
           </div>

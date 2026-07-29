@@ -428,15 +428,97 @@ p {
 .embedded-tool iframe {
   display: block;
   width: 100%;
-  min-height: 940px;
+  min-height: 1180px;
   border: 1px solid var(--rule);
   background: #fff;
+}
+
+.embedded-tool iframe.atlas-frame {
+  min-height: 1720px;
 }
 
 .embedded-tool-note {
   margin: 12px 0 0;
   color: var(--muted);
   font-size: 12px;
+}
+
+.paper-workflow {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-top: 34px;
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+  background: var(--surface);
+}
+
+.paper-workflow.three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.workflow-card {
+  position: relative;
+  min-height: 150px;
+  padding: 24px 24px 22px;
+  border-right: 1px solid var(--rule);
+}
+
+.workflow-card:last-child {
+  border-right: 0;
+}
+
+.workflow-card:not(:last-child)::after {
+  content: "→";
+  position: absolute;
+  z-index: 2;
+  top: 55px;
+  right: -10px;
+  width: 20px;
+  color: #73867f;
+  background: var(--surface);
+  font-family: var(--mono);
+  font-size: 15px;
+  text-align: center;
+}
+
+.workflow-card span {
+  display: block;
+  margin-bottom: 20px;
+  color: var(--green);
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.workflow-card strong {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: 22px;
+  font-weight: 550;
+  line-height: 1.2;
+}
+
+.workflow-card p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.workflow-card.inference {
+  box-shadow: inset 0 3px 0 #7c9fbc;
+}
+
+.workflow-card.evidence {
+  box-shadow: inset 0 3px 0 #6c9b89;
+}
+
+.workflow-card.retrieval {
+  box-shadow: inset 0 3px 0 #c68a5d;
 }
 
 .route-card {
@@ -2696,8 +2778,30 @@ pre {
     flex-direction: column;
   }
 
+  .paper-workflow,
+  .paper-workflow.three {
+    grid-template-columns: 1fr;
+  }
+
+  .workflow-card {
+    border-right: 0;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .workflow-card:last-child {
+    border-bottom: 0;
+  }
+
+  .workflow-card::after {
+    display: none;
+  }
+
   .embedded-tool iframe {
-    min-height: 760px;
+    min-height: 980px;
+  }
+
+  .embedded-tool iframe.atlas-frame {
+    min-height: 1800px;
   }
 
   .chat-route-bar {

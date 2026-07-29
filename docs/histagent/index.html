@@ -3,12 +3,12 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="Run HistAgent on paired H&E views and discuss spatial molecular evidence with adapted Qwen3-8B.">
+    <meta name="description" content="Generate ranked molecular readouts from paired H&E views and examine spot-level evidence with HistAgent.">
     <meta name="theme-color" content="#17362f">
     <title>Try HistAgent | HistAgent</title>
     <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
     <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
-    <link rel="stylesheet" href="/assets/site.css?v=20260729bio1">
+    <link rel="stylesheet" href="/assets/site.css?v=20260729paper2">
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
@@ -32,17 +32,39 @@
     <main id="main">
       <div class="page-shell">
         <header class="page-hero">
-          <p class="eyebrow">Interactive demonstration</p>
-          <h1>Try HistAgent</h1>
-          <p class="lede">Generate a ranked molecular readout from local and surrounding H&amp;E morphology, or discuss measured spatial molecular evidence with adapted Qwen3-8B.</p>
-          <div class="page-meta"><span>Ranked gene generation</span><span>Measured evidence cards</span><span>Adapted Qwen3-8B</span></div>
+          <p class="eyebrow">Visual-omics foundation model · spatial agentic module</p>
+          <h1>From H&amp;E to evidence-grounded spatial analysis</h1>
+          <p class="lede">HistAgent converts local and surrounding tissue morphology into a ranked molecular readout, organizes the readout into a spot-level evidence card and supports successive questions about the local tissue state.</p>
+          <div class="page-meta"><span>Multi-scale H&amp;E input</span><span>Top-50 gene ranking</span><span>Spot-level evidence cards</span><span>Adapted Qwen3-8B</span></div>
+          <div class="paper-workflow" aria-label="HistAgent workflow">
+            <article class="workflow-card inference">
+              <span>01 · Input</span>
+              <strong>Local and contextual H&amp;E</strong>
+              <p>Two views centered on the same tissue location capture local morphology and the surrounding tissue context.</p>
+            </article>
+            <article class="workflow-card inference">
+              <span>02 · Molecular inference</span>
+              <strong>Ranked molecular readout</strong>
+              <p>The foundation model autoregressively generates an ordered list of up to 50 genes.</p>
+            </article>
+            <article class="workflow-card evidence">
+              <span>03 · Evidence construction</span>
+              <strong>Spot-level evidence card</strong>
+              <p>Ranked genes, inferred cell composition, functional programs and spatial context are organized together.</p>
+            </article>
+            <article class="workflow-card evidence">
+              <span>04 · Follow-up analysis</span>
+              <strong>Evidence-grounded reasoning</strong>
+              <p>The agentic module answers successive questions while grounding its conclusions in the evidence card.</p>
+            </article>
+          </div>
         </header>
 
         <section class="section embedded-tool" aria-labelledby="histagent-demo-heading">
           <div class="embedded-tool-heading">
             <div>
-              <p class="eyebrow">Live model</p>
-              <h2 id="histagent-demo-heading">HistAgent demonstration</h2>
+              <p class="eyebrow">Interactive workflow</p>
+              <h2 id="histagent-demo-heading">Run HistAgent</h2>
             </div>
             <a class="button" href="https://wli13-histagent-demo.hf.space" target="_blank" rel="noopener">Open in a new window</a>
           </div>
@@ -52,7 +74,7 @@
             loading="eager"
             allow="clipboard-read; clipboard-write"
           ></iframe>
-          <p class="embedded-tool-note">The first request may wait briefly while a ZeroGPU worker starts. Research use only.</p>
+          <p class="embedded-tool-note">The public demonstration provides live ranked-gene generation and evidence-grounded reasoning with measured reference evidence cards. The first request may wait briefly while a ZeroGPU worker starts. Research use only.</p>
         </section>
       </div>
     </main>

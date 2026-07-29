@@ -8,7 +8,7 @@
     <title>Atlas Explorer | HistAgent</title>
     <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
     <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
-    <link rel="stylesheet" href="/assets/site.css?v=20260729bio1">
+    <link rel="stylesheet" href="/assets/site.css?v=20260729paper2">
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
@@ -32,10 +32,27 @@
     <main id="main">
       <div class="page-shell">
         <header class="page-hero">
-          <p class="eyebrow">Measured ST evidence</p>
-          <h1>Explore the evidence bank</h1>
-          <p class="lede">Describe a biological state and retrieve related tissue locations from a public index of measured spatial transcriptomics evidence.</p>
-          <div class="page-meta"><span>100,000 measured ST spots</span><span>4,096-dimensional embeddings</span><span>Cosine similarity</span></div>
+          <p class="eyebrow">Spatial transcriptomics atlas retrieval</p>
+          <h1>Retrieve measured ST evidence</h1>
+          <p class="lede">Describe a biological state, inspect the retrieved tissue locations in spatial context and continue the analysis using their measured evidence cards.</p>
+          <div class="page-meta"><span>Natural-language queries</span><span>Spatial tissue maps</span><span>Ranked evidence cards</span><span>Retrieval-grounded follow-up analysis</span></div>
+          <div class="paper-workflow three" aria-label="HistAgent atlas retrieval workflow">
+            <article class="workflow-card evidence">
+              <span>01 · Offline construction</span>
+              <strong>Measured ST evidence bank</strong>
+              <p>Evidence cards derived from measured atlas spots are embedded in a shared 4,096-dimensional retrieval space.</p>
+            </article>
+            <article class="workflow-card retrieval">
+              <span>02 · Online retrieval</span>
+              <strong>Natural-language query</strong>
+              <p>The query is embedded with the same model and matched to atlas spots by cosine similarity.</p>
+            </article>
+            <article class="workflow-card evidence">
+              <span>03 · Follow-up analysis</span>
+              <strong>Spatially grounded results</strong>
+              <p>Retrieved spots are examined through their tissue coordinates, ranked evidence cards and evidence-grounded dialogue.</p>
+            </article>
+          </div>
         </header>
 
         <section class="section embedded-tool" aria-labelledby="atlas-demo-heading">
@@ -47,12 +64,13 @@
             <a class="button" href="https://wli13-histagent-chat.hf.space/?view=atlas" target="_blank" rel="noopener">Open in a new window</a>
           </div>
           <iframe
+            class="atlas-frame"
             src="https://wli13-histagent-chat.hf.space/?view=atlas"
             title="HistAgent Atlas Explorer"
             loading="eager"
             allow="clipboard-read; clipboard-write"
           ></iframe>
-          <p class="embedded-tool-note">The public demonstration uses a balanced 100,000-spot index. The manuscript analyses use the complete 2.23-million-spot evidence bank. The first search may wait briefly while a ZeroGPU worker starts.</p>
+          <p class="embedded-tool-note">The public demonstration uses a balanced 100,000-spot index; the manuscript analyses use the complete 2.23-million-spot evidence bank. The first search may wait briefly while a ZeroGPU worker starts.</p>
         </section>
       </div>
     </main>
