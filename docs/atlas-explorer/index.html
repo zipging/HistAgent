@@ -3,15 +3,16 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="Search measured spatial transcriptomics evidence using the HistAgent Atlas Explorer.">
-    <meta name="theme-color" content="#17362f">
+    <meta name="description" content="Search measured spatial transcriptomics evidence with the HistAgent Atlas Explorer.">
+    <meta name="theme-color" content="#f4f7f5">
     <title>Atlas Explorer | HistAgent</title>
     <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
     <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
     <link rel="stylesheet" href="/assets/site.css?v=20260729paper2">
+    <link rel="stylesheet" href="/assets/atlas-workbench.css?v=20260729a">
   </head>
-  <body>
-    <a class="skip-link" href="#main">Skip to content</a>
+  <body class="atlas-page">
+    <a class="skip-link" href="#atlas-workbench">Skip to Atlas Explorer</a>
     <header class="site-header">
       <div class="header-inner">
         <a class="brand" href="/">
@@ -29,63 +30,204 @@
       </div>
     </header>
 
-    <main id="main">
-      <div class="page-shell">
-        <header class="page-hero">
-          <p class="eyebrow">Spatial transcriptomics atlas retrieval</p>
-          <h1>Retrieve measured ST evidence</h1>
-          <p class="lede">Describe a biological state, inspect the retrieved tissue locations in spatial context and continue the analysis using their measured evidence cards.</p>
-          <div class="page-meta"><span>Natural-language queries</span><span>Spatial tissue maps</span><span>Ranked evidence cards</span><span>Retrieval-grounded follow-up analysis</span></div>
-          <div class="paper-workflow three" aria-label="HistAgent atlas retrieval workflow">
-            <article class="workflow-card evidence">
-              <span>01 · Offline construction</span>
-              <strong>Measured ST evidence bank</strong>
-              <p>Evidence cards derived from measured atlas spots are embedded in a shared 4,096-dimensional retrieval space.</p>
-            </article>
-            <article class="workflow-card retrieval">
-              <span>02 · Online retrieval</span>
-              <strong>Natural-language query</strong>
-              <p>The query is embedded with the same model and matched to atlas spots by cosine similarity.</p>
-            </article>
-            <article class="workflow-card evidence">
-              <span>03 · Follow-up analysis</span>
-              <strong>Spatially grounded results</strong>
-              <p>Retrieved spots are examined through their tissue coordinates, ranked evidence cards and evidence-grounded dialogue.</p>
-            </article>
-          </div>
+    <main class="atlas-main" id="atlas-workbench">
+      <section class="atlas-product" aria-label="HistAgent Atlas Explorer">
+        <header class="atlas-product-bar">
+          <a class="atlas-product-brand" href="/atlas-explorer/" aria-label="HistAgent Atlas Explorer home">
+            <span class="brand-mark" aria-hidden="true"></span>
+            <span>HistAgent Atlas Explorer</span>
+          </a>
+          <form class="atlas-search" id="atlas-search-form">
+            <label class="sr-only" for="atlas-query">Biological query</label>
+            <span class="atlas-search-icon" aria-hidden="true"></span>
+            <input
+              id="atlas-query"
+              name="query"
+              type="search"
+              value="Find tumor-adjacent TLS-like regions."
+              autocomplete="off"
+              spellcheck="true"
+            >
+            <span class="atlas-search-mode" id="atlas-search-mode">Text</span>
+            <button type="submit" id="atlas-search-button">Search</button>
+          </form>
         </header>
 
-        <section class="section embedded-tool" aria-labelledby="atlas-demo-heading">
-          <div class="embedded-tool-heading">
-            <div>
-              <p class="eyebrow">Live retrieval</p>
-              <h2 id="atlas-demo-heading">HistAgent Atlas Explorer</h2>
+        <div class="atlas-workspace">
+          <aside class="atlas-controls" aria-labelledby="query-setup-title">
+            <div class="atlas-panel-heading">
+              <p>Query setup</p>
             </div>
-            <a class="button" href="https://wli13-histagent-chat.hf.space/?view=atlas" target="_blank" rel="noopener">Open in a new window</a>
-          </div>
-          <iframe
-            class="atlas-frame"
-            src="https://wli13-histagent-chat.hf.space/?view=atlas"
-            title="HistAgent Atlas Explorer"
-            loading="eager"
-            allow="clipboard-read; clipboard-write"
-          ></iframe>
-          <p class="embedded-tool-note">The public demonstration uses a balanced 100,000-spot index; the manuscript analyses use the complete 2.23-million-spot evidence bank. The first search may wait briefly while a ZeroGPU worker starts.</p>
-        </section>
-      </div>
+
+            <div class="atlas-field">
+              <span class="atlas-label">Query mode</span>
+              <div class="atlas-segmented" role="tablist" aria-label="Query mode">
+                <button type="button" role="tab" aria-selected="true" data-query-mode="text">Text</button>
+                <button type="button" role="tab" aria-selected="false" data-query-mode="image">Image</button>
+              </div>
+            </div>
+
+            <div class="atlas-image-query" id="atlas-image-query" hidden>
+              <label class="atlas-upload" for="atlas-image-input">
+                <input id="atlas-image-input" type="file" accept="image/*">
+                <span class="atlas-upload-icon" aria-hidden="true">+</span>
+                <strong>Upload H&amp;E query</strong>
+                <small>Preview the image, then generate its molecular readout in HistAgent.</small>
+              </label>
+              <img id="atlas-image-preview" alt="Uploaded H&E query preview" hidden>
+              <a class="atlas-secondary-action" href="/histagent/">Open image inference</a>
+            </div>
+
+            <div id="atlas-text-filters">
+              <label class="atlas-field" for="atlas-dataset">
+                <span class="atlas-label">Dataset</span>
+                <select id="atlas-dataset">
+                  <option>Public evidence bank</option>
+                </select>
+              </label>
+
+              <label class="atlas-field" for="atlas-species">
+                <span class="atlas-label">Species</span>
+                <select id="atlas-species">
+                  <option value="human" selected>Human</option>
+                  <option value="mouse">Mouse</option>
+                  <option value="Any">Any</option>
+                </select>
+              </label>
+
+              <label class="atlas-field" for="atlas-organ">
+                <span class="atlas-label">Tissue</span>
+                <select id="atlas-organ">
+                  <option value="Any" selected>Any tissue</option>
+                  <option value="brain">Brain</option>
+                  <option value="breast">Breast</option>
+                  <option value="colon">Colon</option>
+                  <option value="heart">Heart</option>
+                  <option value="kidney">Kidney</option>
+                  <option value="liver">Liver</option>
+                  <option value="lung">Lung</option>
+                  <option value="skin">Skin</option>
+                  <option value="spleen">Spleen</option>
+                  <option value="stomach">Stomach</option>
+                </select>
+              </label>
+
+              <label class="atlas-field" for="atlas-slide">
+                <span class="atlas-label">Atlas slide</span>
+                <select id="atlas-slide">
+                  <option>All indexed slides</option>
+                </select>
+              </label>
+
+              <fieldset class="atlas-evidence-filters">
+                <legend>Evidence filters</legend>
+                <button type="button">Cell type <span>›</span></button>
+                <button type="button">Pathway <span>›</span></button>
+                <button type="button">Microenvironment <span>›</span></button>
+              </fieldset>
+
+              <div class="atlas-active-evidence">
+                <span class="atlas-label">Active query evidence</span>
+                <div id="query-evidence-chips">
+                  <span>TLS-like</span>
+                  <span>Tumor-adjacent</span>
+                  <span>B cell-rich</span>
+                </div>
+              </div>
+            </div>
+          </aside>
+
+          <section class="atlas-map-panel" aria-labelledby="spatial-map-title">
+            <header class="atlas-map-header">
+              <div>
+                <h1 id="spatial-map-title">Spatial tissue map</h1>
+                <div class="atlas-legend" aria-label="Map legend">
+                  <span><i class="matched"></i>Matched</span>
+                  <span><i class="top-ranked"></i>Top-ranked</span>
+                  <span><i class="other"></i>Other spots</span>
+                </div>
+              </div>
+              <span id="atlas-spot-count">12,478 spots</span>
+            </header>
+
+            <div class="atlas-map-stage" id="atlas-map-stage" aria-live="polite">
+              <div class="atlas-tissue-example" id="atlas-tissue-example">
+                <img src="/assets/rcc-tissue.jpg" alt="H&E tissue section with retrieved atlas spots">
+                <div class="atlas-dot-layer" id="atlas-dot-layer" aria-hidden="true"></div>
+                <div class="atlas-map-tools" aria-hidden="true">
+                  <span>+</span><span>−</span><span>⌂</span>
+                </div>
+                <div class="atlas-scale"><span></span>1 mm</div>
+              </div>
+              <div class="atlas-plot" id="atlas-live-plot" hidden></div>
+              <div class="atlas-loading" id="atlas-loading" hidden>
+                <span></span>
+                <strong>Searching measured ST evidence</strong>
+                <small>The first search may take longer while the retrieval worker starts.</small>
+              </div>
+            </div>
+
+            <div class="atlas-retrieved-summary">
+              <div>
+                <strong>Retrieved spots</strong>
+                <span id="atlas-result-summary">186 matched spots · 24 top ranked · RCC atlas example</span>
+              </div>
+              <span class="atlas-status-badge" id="atlas-status-badge">Example view</span>
+            </div>
+          </section>
+
+          <aside class="atlas-results" aria-label="Retrieved evidence and follow-up analysis">
+            <section class="atlas-ranked-section">
+              <header class="atlas-results-header">
+                <h2>Ranked evidence cards</h2>
+                <span>Top 3</span>
+              </header>
+              <div class="atlas-cards" id="atlas-evidence-cards">
+                <article class="atlas-evidence-card">
+                  <div class="atlas-card-title"><span class="rank rank-one">1</span><strong>TLS-like, tumor-adjacent</strong><b>0.88</b></div>
+                  <p><span>Cell composition</span>B cell; T cell</p>
+                  <p><span>Evidence</span><em>CXCL13</em>, <em>CCL19</em>, <em>MS4A1</em>, <em>CD3D</em></p>
+                </article>
+                <article class="atlas-evidence-card">
+                  <div class="atlas-card-title"><span class="rank rank-two">2</span><strong>Peritumoral lymphoid aggregate</strong><b>0.76</b></div>
+                  <p><span>Cell composition</span>B cell; T cell; plasma cell</p>
+                  <p><span>Evidence</span>Antigen presentation; <em>CXCL13</em></p>
+                </article>
+                <article class="atlas-evidence-card">
+                  <div class="atlas-card-title"><span class="rank rank-three">3</span><strong>Margin immune aggregate</strong><b>0.64</b></div>
+                  <p><span>Cell composition</span>B-cell core; T-cell rim</p>
+                  <p><span>Evidence</span><em>CD74</em>, <em>HLA-DRA</em>, <em>CCL19</em></p>
+                </article>
+              </div>
+            </section>
+
+            <section class="atlas-chat-section">
+              <header class="atlas-results-header">
+                <h2>Grounded analysis</h2>
+              </header>
+              <div class="atlas-chat" id="atlas-chat-log" aria-live="polite">
+                <div class="atlas-message user">
+                  <span>User</span>
+                  <p>What microenvironment is enriched here?</p>
+                </div>
+                <div class="atlas-message assistant">
+                  <span>HistAgent</span>
+                  <p>Retrieved spots support a tumor-adjacent TLS-like immune niche with B-cell-rich cores, adjacent T-cell populations and <em>CXCL13</em>/<em>CCL19</em> chemokine programs.</p>
+                </div>
+              </div>
+              <form class="atlas-chat-form" id="atlas-chat-form">
+                <label class="sr-only" for="atlas-chat-input">Ask about the top-ranked evidence card</label>
+                <textarea id="atlas-chat-input" rows="2" placeholder="Ask about the retrieved evidence"></textarea>
+                <button type="submit" aria-label="Send question">↑</button>
+              </form>
+            </section>
+          </aside>
+        </div>
+      </section>
     </main>
 
-    <footer class="site-footer">
-      <div class="page-shell footer-grid">
-        <div><strong>HistAgent</strong><span class="fine-print">Spatial molecular analysis from routine histology.</span></div>
-        <div class="footer-links">
-          <a href="https://github.com/zipging/HistAgent">GitHub</a>
-          <a href="https://huggingface.co/wli13/HistAgent">Checkpoint</a>
-          <a href="https://huggingface.co/datasets/wli13/HistAgent-data">Data</a>
-          <a href="/tutorials/">Tutorials</a>
-        </div>
-      </div>
-    </footer>
     <script src="/assets/site.js?v=20260729bio1"></script>
+    <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+    <script type="module" src="/assets/atlas-workbench.js?v=20260729a"></script>
   </body>
 </html>
