@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Run HistAgent on paired H&E views and discuss spatial molecular evidence with adapted Qwen3-8B.">
+    <meta name="theme-color" content="#17362f">
+    <title>Try HistAgent | HistAgent</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
+    <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+    <link rel="stylesheet" href="/assets/site.css?v=20260729bio1">
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="site-header">
+      <div class="header-inner">
+        <a class="brand" href="/">
+          <span class="brand-mark" aria-hidden="true"></span>
+          <span class="brand-copy"><strong>HistAgent</strong><small>Project website</small></span>
+        </a>
+        <button class="nav-toggle" type="button" data-nav-toggle aria-expanded="false" aria-controls="primary-nav">Menu</button>
+        <nav class="primary-nav" id="primary-nav" data-primary-nav aria-label="Primary navigation">
+          <a href="/">Overview</a>
+          <a href="/tutorials/">Tutorials</a>
+          <a href="/histagent/" aria-current="page">HistAgent</a>
+          <a href="/atlas-explorer/">Atlas Explorer</a>
+          <a href="https://github.com/zipging/HistAgent">GitHub</a>
+        </nav>
+      </div>
+    </header>
+
+    <main id="main">
+      <div class="page-shell">
+        <header class="page-hero">
+          <p class="eyebrow">Interactive demonstration</p>
+          <h1>Try HistAgent</h1>
+          <p class="lede">Generate a ranked molecular readout from local and surrounding H&amp;E morphology, or discuss measured spatial molecular evidence with adapted Qwen3-8B.</p>
+          <div class="page-meta"><span>Ranked gene generation</span><span>Measured evidence cards</span><span>Adapted Qwen3-8B</span></div>
+        </header>
+
+        <section class="section embedded-tool" aria-labelledby="histagent-demo-heading">
+          <div class="embedded-tool-heading">
+            <div>
+              <p class="eyebrow">Live model</p>
+              <h2 id="histagent-demo-heading">HistAgent demonstration</h2>
+            </div>
+            <a class="button" href="https://wli13-histagent-demo.hf.space" target="_blank" rel="noopener">Open in a new window</a>
+          </div>
+          <iframe
+            src="https://wli13-histagent-demo.hf.space"
+            title="HistAgent interactive demonstration"
+            loading="eager"
+            allow="clipboard-read; clipboard-write"
+          ></iframe>
+          <p class="embedded-tool-note">The first request may wait briefly while a ZeroGPU worker starts. Research use only.</p>
+        </section>
+      </div>
+    </main>
+
+    <footer class="site-footer">
+      <div class="page-shell footer-grid">
+        <div><strong>HistAgent</strong><span class="fine-print">Spatial molecular analysis from routine histology.</span></div>
+        <div class="footer-links">
+          <a href="https://github.com/zipging/HistAgent">GitHub</a>
+          <a href="https://huggingface.co/wli13/HistAgent">Checkpoint</a>
+          <a href="https://huggingface.co/datasets/wli13/HistAgent-data">Data</a>
+          <a href="/tutorials/">Tutorials</a>
+        </div>
+      </div>
+    </footer>
+    <script src="/assets/site.js?v=20260729bio1"></script>
+  </body>
+</html>

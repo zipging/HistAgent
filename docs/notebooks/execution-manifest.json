@@ -1,0 +1,32 @@
+[
+  {
+    "notebook": "ranked_molecular_readouts.ipynb",
+    "code_cells": 5,
+    "executed": 5,
+    "html": "tutorials/ranked-molecular-readouts/index.html"
+  },
+  {
+    "notebook": "spatial_biological_findings.ipynb",
+    "code_cells": 9,
+    "executed": 9,
+    "html": "tutorials/spatial-biological-findings/index.html"
+  },
+  {
+    "notebook": "spatial_transcriptomic_analyses.ipynb",
+    "code_cells": 10,
+    "executed": 10,
+    "html": "tutorials/spatial-transcriptomic-analyses/index.html"
+  },
+  {
+    "notebook": "clinical_prediction.ipynb",
+    "code_cells": 9,
+    "executed": 9,
+    "html": "tutorials/clinical-prediction/index.html"
+  },
+  {
+    "notebook": "st_atlas_retrieval.ipynb",
+    "code_cells": 6,
+    "executed": 6,
+    "html": "tutorials/st-atlas-retrieval/index.html"
+  }
+]

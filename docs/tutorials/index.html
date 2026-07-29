@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="HistAgent tutorials for ranked molecular readouts, spatial analysis, clinical prediction and atlas retrieval.">
+  <meta name="theme-color" content="#17362f"><link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png"><link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+  <title>HistAgent tutorials</title>
+  <link rel="stylesheet" href="/assets/site.css?v=20260727paper2">
+  <link rel="stylesheet" href="/assets/notebook.css">
+</head>
+<body>
+
+<a class="skip-link" href="#tutorial-main">Skip to content</a>
+<header class="site-header">
+  <div class="header-inner">
+    <a class="brand" href="/">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <span class="brand-copy"><strong>HistAgent</strong><small>Project website</small></span>
+    </a>
+    <button class="nav-toggle" type="button" data-nav-toggle aria-expanded="false" aria-controls="primary-nav">Menu</button>
+    <nav class="primary-nav" id="primary-nav" data-primary-nav aria-label="Primary navigation">
+      <a href="/">Overview</a>
+      <a href="/tutorials/" aria-current="page">Tutorials</a>
+      <a href="/histagent/">HistAgent</a>
+      <a href="/atlas-explorer/">Atlas Explorer</a>
+      <a href="https://github.com/zipging/HistAgent">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+  <div class="nb-workspace">
+    <aside class="nb-sidebar" aria-label="Tutorial directory"><div class="nb-sidebar-heading"><span class="nb-sidebar-kicker">HistAgent</span><h2>Tutorials</h2><p>Five tutorials with code and outputs.</p></div><nav class="nb-tutorial-nav"><div class="nb-nav-group"><a class="nb-nav-chapter" href="/tutorials/" aria-current="page"><span class="nb-nav-number">00</span><span><strong>Overview</strong><small>Choose a tutorial</small></span></a><nav class="nb-subnav" aria-label="Overview sections"><a href="#choose-a-workflow">Choose a workflow</a><a href="#how-to-use-the-notebooks">How to use the notebooks</a></nav></div><div class="nb-nav-group"><a class="nb-nav-chapter" href="/tutorials/ranked-molecular-readouts/"><span class="nb-nav-number">01</span><span><strong>Ranked molecular readouts</strong><small>HitRate@50 · mAP@50 · PCC</small></span></a></div><div class="nb-nav-group"><a class="nb-nav-chapter" href="/tutorials/spatial-biological-findings/"><span class="nb-nav-number">02</span><span><strong>Spatial biological findings</strong><small>Expression · TLS · evidence</small></span></a></div><div class="nb-nav-group"><a class="nb-nav-chapter" href="/tutorials/spatial-transcriptomic-analyses/"><span class="nb-nav-number">03</span><span><strong>Spatial transcriptomic analyses</strong><small>SVG · domains · deconvolution</small></span></a></div><div class="nb-nav-group"><a class="nb-nav-chapter" href="/tutorials/clinical-prediction/"><span class="nb-nav-number">04</span><span><strong>Clinical prediction</strong><small>WSI · prognosis</small></span></a></div><div class="nb-nav-group"><a class="nb-nav-chapter" href="/tutorials/st-atlas-retrieval/"><span class="nb-nav-number">05</span><span><strong>ST atlas retrieval</strong><small>Text · H&E retrieval</small></span></a></div></nav><div class="nb-sidebar-note"><strong>Downloadable notebooks</strong><span>Use the link at the top of each tutorial page.</span></div></aside>
+    <main class="nb-page nb-overview" id="tutorial-main">
+      <div class="nb-toolbar"><span>Tutorials</span><strong>Overview</strong></div>
+      <section class="nb-overview-hero">
+        <p class="eyebrow">Runnable notebooks</p>
+        <h1>HistAgent tutorials</h1>
+        <p class="lede">Five runnable notebooks for gene ranking, spatial analysis, clinical prediction and atlas exploration.</p>
+      </section>
+      <section class="nb-overview-section" id="choose-a-workflow">
+        <p class="eyebrow">Notebook directory</p>
+        <h2>Choose a workflow</h2>
+        <div class="nb-overview-list"><a class="nb-overview-row" href="/tutorials/ranked-molecular-readouts/"><span class="nb-overview-number">01</span><span><h3>Generate and evaluate ranked molecular readouts</h3><p>Calculate spot-level HitRate@50 and mAP@50, then compare measured ST and HistAgent spatial profiles across five held-out slides.</p></span><span class="nb-overview-meta">Five held-out slides</span></a><a class="nb-overview-row" href="/tutorials/spatial-biological-findings/"><span class="nb-overview-number">02</span><span><h3>Analyze spatial biological findings</h3><p>Compare predicted and measured expression, localize an RCC TLS-like niche and review cross-study finding recovery.</p></span><span class="nb-overview-meta">RCC TLS case study</span></a><a class="nb-overview-row" href="/tutorials/spatial-transcriptomic-analyses/"><span class="nb-overview-number">03</span><span><h3>Run standard spatial transcriptomic analyses</h3><p>Run SVG detection, spatial domain identification, cell-type deconvolution, differential expression and pathway enrichment.</p></span><span class="nb-overview-meta">Five standard ST analyses</span></a><a class="nb-overview-row" href="/tutorials/clinical-prediction/"><span class="nb-overview-number">04</span><span><h3>Interpret whole-slide clinical predictions</h3><p>Inspect tissue regions associated with slide-level predictions, then compare patient-level risk groups.</p></span><span class="nb-overview-meta">WSI · prognosis</span></a><a class="nb-overview-row" href="/tutorials/st-atlas-retrieval/"><span class="nb-overview-number">05</span><span><h3>Search the spatial transcriptomics atlas</h3><p>Explore measured tissue locations and run representative natural-language and H&E image queries.</p></span><span class="nb-overview-meta">Text and image retrieval</span></a></div>
+      </section>
+      <section class="nb-overview-section nb-reading-note" id="how-to-use-the-notebooks">
+        <div>
+          <p class="eyebrow">Notebook format</p>
+          <h2>How to use the notebooks</h2>
+        </div>
+        <div>
+          <p>Open a tutorial and use <strong>Download .ipynb</strong> to save the notebook. Follow its installation cell, start Jupyter with <code>python -m jupyter lab</code>, open the downloaded file and choose <strong>Run All</strong>.</p>
+          <p>The first run downloads the required files from <a href="https://huggingface.co/datasets/wli13/HistAgent-data">HistAgent-data</a>. Quick Start downloads only the selected organ packs. The clinical tutorial uses a released ABMIL model instead of training one from scratch.</p>
+          <a class="button primary" href="/tutorials/ranked-molecular-readouts/">Start with ranked molecular readouts</a>
+        </div>
+      </section>
+    </main>
+  </div>
+
+<footer class="site-footer">
+  <div class="page-shell footer-grid">
+    <div><strong>HistAgent</strong><span class="fine-print">Spatial molecular analysis from routine histology.</span></div>
+    <div class="footer-links">
+      <a href="https://github.com/zipging/HistAgent">GitHub</a>
+      <a href="https://huggingface.co/wli13/HistAgent">Checkpoint</a>
+      <a href="https://huggingface.co/datasets/wli13/HistAgent-data">Data</a>
+      <a href="/tutorials/">Tutorials</a>
+    </div>
+  </div>
+</footer>
+
+  <script src="/assets/site.js?v=20260727paper2"></script>
+</body>
+</html>

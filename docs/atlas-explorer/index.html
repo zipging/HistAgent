@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Search measured spatial transcriptomics evidence using the HistAgent Atlas Explorer.">
+    <meta name="theme-color" content="#17362f">
+    <title>Atlas Explorer | HistAgent</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
+    <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+    <link rel="stylesheet" href="/assets/site.css?v=20260729bio1">
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="site-header">
+      <div class="header-inner">
+        <a class="brand" href="/">
+          <span class="brand-mark" aria-hidden="true"></span>
+          <span class="brand-copy"><strong>HistAgent</strong><small>Project website</small></span>
+        </a>
+        <button class="nav-toggle" type="button" data-nav-toggle aria-expanded="false" aria-controls="primary-nav">Menu</button>
+        <nav class="primary-nav" id="primary-nav" data-primary-nav aria-label="Primary navigation">
+          <a href="/">Overview</a>
+          <a href="/tutorials/">Tutorials</a>
+          <a href="/histagent/">HistAgent</a>
+          <a href="/atlas-explorer/" aria-current="page">Atlas Explorer</a>
+          <a href="https://github.com/zipging/HistAgent">GitHub</a>
+        </nav>
+      </div>
+    </header>
+
+    <main id="main">
+      <div class="page-shell">
+        <header class="page-hero">
+          <p class="eyebrow">Measured ST evidence</p>
+          <h1>Explore the evidence bank</h1>
+          <p class="lede">Describe a biological state and retrieve related tissue locations from a public index of measured spatial transcriptomics evidence.</p>
+          <div class="page-meta"><span>100,000 measured ST spots</span><span>4,096-dimensional embeddings</span><span>Cosine similarity</span></div>
+        </header>
+
+        <section class="section embedded-tool" aria-labelledby="atlas-demo-heading">
+          <div class="embedded-tool-heading">
+            <div>
+              <p class="eyebrow">Live retrieval</p>
+              <h2 id="atlas-demo-heading">HistAgent Atlas Explorer</h2>
+            </div>
+            <a class="button" href="https://wli13-histagent-chat.hf.space/?view=atlas" target="_blank" rel="noopener">Open in a new window</a>
+          </div>
+          <iframe
+            src="https://wli13-histagent-chat.hf.space/?view=atlas"
+            title="HistAgent Atlas Explorer"
+            loading="eager"
+            allow="clipboard-read; clipboard-write"
+          ></iframe>
+          <p class="embedded-tool-note">The public demonstration uses a balanced 100,000-spot index. The manuscript analyses use the complete 2.23-million-spot evidence bank. The first search may wait briefly while a ZeroGPU worker starts.</p>
+        </section>
+      </div>
+    </main>
+
+    <footer class="site-footer">
+      <div class="page-shell footer-grid">
+        <div><strong>HistAgent</strong><span class="fine-print">Spatial molecular analysis from routine histology.</span></div>
+        <div class="footer-links">
+          <a href="https://github.com/zipging/HistAgent">GitHub</a>
+          <a href="https://huggingface.co/wli13/HistAgent">Checkpoint</a>
+          <a href="https://huggingface.co/datasets/wli13/HistAgent-data">Data</a>
+          <a href="/tutorials/">Tutorials</a>
+        </div>
+      </div>
+    </footer>
+    <script src="/assets/site.js?v=20260729bio1"></script>
+  </body>
+</html>
