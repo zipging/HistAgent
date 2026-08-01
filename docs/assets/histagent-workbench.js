@@ -1,10 +1,10 @@
 import {
-  callGradioAt,
   callHistAgentService,
-  withHistAgentService
+  generateHistAgentReadout
 } from "./histagent-services.js";
 const LOCAL_DIAMETER_UM = 55;
 const CONTEXT_DIAMETER_UM = 220;
+const EXAMPLE_MANIFEST_URL = "/assets/gsm5924036-spots.json";
 
 const tissueImage = document.querySelector("#histagent-tissue-image");
 const tissueStage = document.querySelector("#histagent-tissue-stage");
@@ -36,16 +36,6 @@ const chatInput = document.querySelector("#histagent-chat-input");
 const chatButton = chatForm?.querySelector("button");
 const chatLog = document.querySelector("#histagent-chat-log");
 
-const defaultGenes = [
-  "IGKC", "IGHG1", "COL1A1", "UBC", "TMSB4X", "COL1A2", "IGFBP7",
-  "COL3A1", "ACTB", "B2M", "MT2A", "IGLC1", "FN1", "VIM", "TIMP1",
-  "FTL", "SPARC", "IGHG2", "UBA52", "PABPC1", "CD74", "CCN2", "EEF2",
-  "LUM", "DCN", "BGN", "FTH1", "IFITM3", "IGLV3-1", "MT1E", "S100A6",
-  "C1R", "C3", "VCAN", "IGHA1", "CD63", "RACK1", "AEBP1", "EEF1G",
-  "HLA-DRA", "TPM1", "ITM2B", "MYL9", "JCHAIN", "HTRA1", "C7", "ACTA2",
-  "IGKV4-1", "PFN1", "PSAP"
-];
-
 const markerCatalog = {
   cells: [
     { label: "B cell", markers: ["MS4A1", "CD79A", "CD74", "CD37", "CD79B", "CD22", "IGKC", "CD19"] },
@@ -75,17 +65,15 @@ const markerCatalog = {
 };
 
 let sourceFile = null;
-let sourceUrl = "/assets/rcc-tissue.jpg";
-let sourceLabel = "RCC tissue example · GSM5924038";
+let sourceUrl = "/assets/gsm5924036.jpg";
+let sourceLabel = "Human clear-cell renal cell carcinoma · GSM5924036";
 let spots = [];
 let selectedSpot = null;
-let currentEvidence = buildEvidence(defaultGenes, {
-  source: "manuscript RCC example",
-  spatialLabel: "Selected spot with surrounding tissue context"
-});
+let currentEvidence = null;
 let chatHistory = [];
-let evidenceSpotKey = "default";
+let evidenceSpotKey = "";
 let isDefaultExample = true;
+let exampleManifest = null;
 
 function escapeHtml(value = "") {
   return String(value)
@@ -172,6 +160,20 @@ function imageTissueMask() {
 
 function createSpots(preserveEvidence = false) {
   if (!tissueImage.naturalWidth || !tissueImage.naturalHeight) return;
+  if (isDefaultExample && exampleManifest) {
+    spots = exampleManifest.spots.map((spot) => ({
+      ...spot,
+      xNorm: Number(spot.x) / tissueImage.naturalWidth,
+      yNorm: Number(spot.y) / tissueImage.naturalHeight
+    }));
+    const defaultSpot = spots.find(
+      (spot) => spot.barcode === exampleManifest.default_barcode
+    ) || spots[0];
+    renderSpots();
+    selectSpot(defaultSpot, { preserveEvidence });
+    spotCount.textContent = `${spots.length.toLocaleString()} Visium spots · 55 µm`;
+    return;
+  }
   const mpp = Number(mppInput.value);
   if (!Number.isFinite(mpp) || mpp <= 0) {
     setStatus("Enter a valid image scale before dividing the image into spots.", true);
@@ -210,14 +212,14 @@ function createSpots(preserveEvidence = false) {
   }, null)?.spot || spots[0];
   renderSpots();
   selectSpot(center, { preserveEvidence });
-  spotCount.textContent = `${spots.length.toLocaleString()} spots`;
+  spotCount.textContent = `${spots.length.toLocaleString()} 55 µm sampling spots`;
 }
 
 function renderSpots() {
   const box = displayBox();
   if (!box) return;
   const spotDiameter = Math.max(
-    8,
+    isDefaultExample ? 4 : 8,
     Math.min(12, (LOCAL_DIAMETER_UM / Number(mppInput.value)) * box.scale)
   );
   const fragment = document.createDocumentFragment();
@@ -295,8 +297,10 @@ function updateCropPreviews() {
   const contextCanvas = canvasCrop(selectedSpot.x, selectedSpot.y, CONTEXT_DIAMETER_UM);
   localPreview.src = localCanvas.toDataURL("image/png");
   contextPreview.src = contextCanvas.toDataURL("image/png");
-  selectedCoordinates.textContent =
-    `Center ${Math.round(selectedSpot.x)}, ${Math.round(selectedSpot.y)} px`;
+  const coordinateText = `Center ${Math.round(selectedSpot.x)}, ${Math.round(selectedSpot.y)} px`;
+  selectedCoordinates.textContent = selectedSpot.array_row == null
+    ? `${coordinateText} · 55 µm sampling diameter`
+    : `${coordinateText} · Visium row ${selectedSpot.array_row}, column ${selectedSpot.array_col} · 55 µm`;
 }
 
 function clearEvidenceForSelection() {
@@ -363,10 +367,13 @@ function buildEvidence(genes, options = {}) {
   return {
     spot: {
       id: selectedSpot?.id || "S112",
+      barcode: selectedSpot?.barcode || null,
       species: speciesInput?.value || "human",
       organ: organInput?.value || "kidney",
       x: selectedSpot ? Math.round(selectedSpot.x) : 759,
-      y: selectedSpot ? Math.round(selectedSpot.y) : 875
+      y: selectedSpot ? Math.round(selectedSpot.y) : 875,
+      array_row: selectedSpot?.array_row ?? null,
+      array_col: selectedSpot?.array_col ?? null
     },
     ranked_genes: cleanGenes,
     cell_type_composition: cells,
@@ -376,6 +383,9 @@ function buildEvidence(genes, options = {}) {
       selected_spot: selectedSpot?.id || "S112",
       local_diameter_um: LOCAL_DIAMETER_UM,
       context_diameter_um: CONTEXT_DIAMETER_UM,
+      coordinate_source: isDefaultExample
+        ? "Official 10x Visium tissue positions for GSM5924036"
+        : "User-defined physical sampling grid",
       interpretation: options.spatialLabel || "Selected spot interpreted with surrounding tissue context"
     },
     display: {
@@ -467,23 +477,6 @@ function canvasBlob(canvas) {
   });
 }
 
-async function uploadGradioFiles(space, files) {
-  const form = new FormData();
-  files.forEach(({ blob, name }) => form.append("files", blob, name));
-  const response = await fetch(`${space}/gradio_api/upload`, {
-    method: "POST",
-    body: form
-  });
-  if (!response.ok) throw new Error(`Image upload failed (${response.status})`);
-  const paths = await response.json();
-  return paths.map((path, index) => ({
-    path,
-    orig_name: files[index].name,
-    mime_type: "image/png",
-    meta: { _type: "gradio.FileData" }
-  }));
-}
-
 async function generateEvidence() {
   if (!selectedSpot) {
     setStatus("Select a tissue spot before generating evidence.", true);
@@ -498,23 +491,21 @@ async function generateEvidence() {
   setStatus(`Generating the ranked molecular readout for ${selectedSpot.id}.`);
   try {
     const localCanvas = canvasCrop(selectedSpot.x, selectedSpot.y, LOCAL_DIAMETER_UM);
-    const contextCanvas = canvasCrop(selectedSpot.x, selectedSpot.y, CONTEXT_DIAMETER_UM);
+    // Training stored the four-times context field at 256 px; the released
+    // inference transform then applies its 224 px center crop.
+    const contextCanvas = canvasCrop(selectedSpot.x, selectedSpot.y, CONTEXT_DIAMETER_UM, 256);
     const [localBlob, contextBlob] = await Promise.all([
       canvasBlob(localCanvas),
       canvasBlob(contextCanvas)
     ]);
-    const outputs = await withHistAgentService("inference", async (space) => {
-      const [localFile, contextFile] = await uploadGradioFiles(space, [
-        { blob: localBlob, name: `${selectedSpot.id}_local.png` },
-        { blob: contextBlob, name: `${selectedSpot.id}_context.png` }
-      ]);
-      return callGradioAt(space, "generate_ranked_readout", [
-        localFile,
-        contextFile,
-        speciesInput.value,
-        organInput.value,
-        50
-      ]);
+    const outputs = await generateHistAgentReadout({
+      localBlob,
+      contextBlob,
+      localName: `${selectedSpot.id}_local.png`,
+      contextName: `${selectedSpot.id}_context.png`,
+      species: speciesInput.value,
+      organ: organInput.value,
+      topK: 50
     });
     const genes = parseGenes(outputs?.[0], outputs?.[1]);
     if (!genes.length) throw new Error("HistAgent returned no ranked genes for this spot");
@@ -527,12 +518,8 @@ async function generateEvidence() {
     setStatus(`${genes.length} ranked genes generated for ${selectedSpot.id}.`);
   } catch (error) {
     console.error(error);
-    if (isDefaultExample && evidenceSpotKey === selectedSpot.id) {
-      setStatus("The live worker is temporarily unavailable. The example evidence remains available.", true);
-    } else {
-      clearEvidenceForSelection();
-      setStatus(`${error.message || "Spot inference is temporarily unavailable"}. The selected local and contextual views are ready to retry.`, true);
-    }
+    clearEvidenceForSelection();
+    setStatus(`${error.message || "Spot inference is temporarily unavailable"}. The selected local and contextual views are ready to retry.`, true);
   } finally {
     setBusy(false);
   }
@@ -612,6 +599,7 @@ async function setSourceImage(file) {
   sourceUrl = URL.createObjectURL(file);
   sourceLabel = file.name || "Uploaded tissue image";
   isDefaultExample = false;
+  mppInput.readOnly = false;
   mppInput.value = "0.50";
   tissueImage.src = sourceUrl;
   imageName.textContent = sourceLabel;
@@ -620,42 +608,43 @@ async function setSourceImage(file) {
   setStatus("Image loaded. Select its scale and choose a spot.");
 }
 
-function resetExample() {
+async function resetExample() {
+  setStatus("Loading the GSM5924036 example and its official Visium coordinates.");
+  if (!exampleManifest) {
+    const response = await fetch(EXAMPLE_MANIFEST_URL);
+    if (!response.ok) {
+      throw new Error(`Could not load the example spot manifest (${response.status})`);
+    }
+    exampleManifest = await response.json();
+    if (!Array.isArray(exampleManifest.spots) || !exampleManifest.spots.length) {
+      throw new Error("The example spot manifest contains no tissue spots");
+    }
+  }
   if (sourceUrl.startsWith("blob:")) URL.revokeObjectURL(sourceUrl);
   sourceFile = null;
-  sourceUrl = "/assets/rcc-tissue.jpg";
-  sourceLabel = "RCC tissue example · GSM5924038";
+  sourceUrl = exampleManifest.image_url;
+  sourceLabel = exampleManifest.title;
   isDefaultExample = true;
-  mppInput.value = "1.00";
-  speciesInput.value = "human";
-  organInput.value = "kidney";
-  tissueImage.src = sourceUrl;
+  mppInput.value = Number(exampleManifest.mpp).toFixed(4);
+  mppInput.readOnly = true;
+  speciesInput.value = exampleManifest.species;
+  organInput.value = exampleManifest.organ;
   imageName.textContent = sourceLabel;
-  currentEvidence = buildEvidence(defaultGenes, {
-    source: "manuscript RCC example",
-    spatialLabel: "Selected spot with surrounding tissue context"
-  });
-  evidenceSpotKey = "default";
-  renderEvidence(currentEvidence, "Example");
-  setStatus("Select a spot or generate evidence for the current selection.");
+  currentEvidence = null;
+  evidenceSpotKey = "";
+  if (tissueImage.getAttribute("src") === sourceUrl && tissueImage.complete) {
+    onImageReady();
+  } else {
+    tissueImage.src = sourceUrl;
+  }
+  clearEvidenceForSelection();
+  setStatus("Select any real 55 µm Visium spot, then generate its evidence.");
 }
 
 function onImageReady() {
   const dimensions = `${tissueImage.naturalWidth.toLocaleString()} × ${tissueImage.naturalHeight.toLocaleString()} px`;
   imageMeta.textContent = `${dimensions} · ${Number(mppInput.value).toFixed(2)} µm/px`;
-  createSpots(isDefaultExample);
-  if (isDefaultExample && currentEvidence) {
-    currentEvidence.spot = {
-      ...currentEvidence.spot,
-      id: selectedSpot?.id || currentEvidence.spot?.id,
-      x: selectedSpot ? Math.round(selectedSpot.x) : currentEvidence.spot?.x,
-      y: selectedSpot ? Math.round(selectedSpot.y) : currentEvidence.spot?.y
-    };
-    currentEvidence.spatial_context.selected_spot =
-      selectedSpot?.id || currentEvidence.spatial_context.selected_spot;
-    evidenceSpotKey = selectedSpot?.id || "default";
-    renderEvidence(currentEvidence, "Example");
-  }
+  createSpots(false);
 }
 
 fileInput.addEventListener("change", () => setSourceImage(fileInput.files?.[0]));
@@ -672,7 +661,9 @@ fileInput.addEventListener("change", () => setSourceImage(fileInput.files?.[0]))
   });
 });
 uploadZone.addEventListener("drop", (event) => setSourceImage(event.dataTransfer?.files?.[0]));
-exampleButton.addEventListener("click", resetExample);
+exampleButton.addEventListener("click", () => {
+  resetExample().catch((error) => setStatus(error.message, true));
+});
 tissueImage.addEventListener("load", onImageReady);
 mppInput.addEventListener("input", () => {
   imageMeta.textContent =
@@ -709,4 +700,4 @@ document.querySelectorAll("#histagent-suggestions button").forEach((button) => {
   });
 });
 
-if (tissueImage.complete && tissueImage.naturalWidth) onImageReady();
+resetExample().catch((error) => setStatus(error.message, true));

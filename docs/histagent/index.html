@@ -107,7 +107,7 @@
               <label for="histagent-mpp">
                 <span>Image scale</span>
                 <span class="histagent-unit-input">
-                  <input id="histagent-mpp" type="number" min="0.05" max="20" step="0.01" value="1.00" inputmode="decimal">
+                  <input id="histagent-mpp" type="number" min="0.05" max="20" step="0.0001" value="3.3157" inputmode="decimal" readonly>
                   <small>µm/px</small>
                 </span>
               </label>
@@ -120,7 +120,7 @@
             <section class="histagent-selected-spot" aria-labelledby="selected-spot-title">
               <div class="histagent-control-heading">
                 <span id="selected-spot-title">Selected spot</span>
-                <b id="selected-spot-id">S112</b>
+                <b id="selected-spot-id">Loading…</b>
               </div>
               <div class="histagent-crop-pair">
                 <figure>
@@ -132,7 +132,7 @@
                   <figcaption>Context · 220 µm</figcaption>
                 </figure>
               </div>
-              <p id="histagent-selected-coordinates">Center 759, 875 px</p>
+              <p id="histagent-selected-coordinates">Loading official Visium coordinates…</p>
             </section>
 
             <p class="histagent-run-status" id="histagent-run-status" role="status" aria-live="polite">
@@ -150,11 +150,11 @@
                   <span><i class="histagent-context"></i>Context field</span>
                 </div>
               </div>
-              <span id="histagent-spot-count">224 spots</span>
+              <span id="histagent-spot-count">Loading Visium spots…</span>
             </header>
 
             <div class="histagent-tissue-stage" id="histagent-tissue-stage">
-              <img id="histagent-tissue-image" src="/assets/rcc-tissue.jpg" alt="Uploaded H&E tissue image divided into selectable spots">
+              <img id="histagent-tissue-image" src="/assets/gsm5924036.jpg" alt="GSM5924036 H&E tissue image with selectable 55 micrometre Visium spots">
               <div class="histagent-spot-grid" id="histagent-spot-grid"></div>
               <div class="histagent-context-ring" id="histagent-context-ring" aria-hidden="true"></div>
               <div class="atlas-map-tools" aria-hidden="true">
@@ -170,8 +170,8 @@
 
             <div class="atlas-retrieved-summary histagent-selection-summary">
               <div>
-                <strong id="histagent-image-name">RCC tissue example · GSM5924038</strong>
-                <span id="histagent-image-meta">1,517 × 1,749 px · 1.00 µm/px</span>
+                <strong id="histagent-image-name">Human clear-cell renal cell carcinoma · GSM5924036</strong>
+                <span id="histagent-image-meta">2,000 × 1,988 px · 3.32 µm/px</span>
               </div>
               <span class="atlas-status-badge live" id="histagent-selection-badge">Spot selected</span>
             </div>
@@ -181,46 +181,19 @@
             <section class="atlas-ranked-section histagent-evidence-section">
               <header class="atlas-results-header">
                 <h2>Spot evidence card</h2>
-                <span id="histagent-evidence-badge">Example</span>
+                <span id="histagent-evidence-badge">Not generated</span>
               </header>
 
               <div class="histagent-readout">
                 <div class="histagent-evidence-heading">
                   <strong>Ranked molecular readout</strong>
-                  <span id="histagent-gene-count">Top 12 of 50</span>
+                  <span id="histagent-gene-count">Awaiting HistAgent</span>
                 </div>
-                <ol class="histagent-gene-list" id="histagent-gene-list">
-                  <li><em>IGKC</em></li>
-                  <li><em>IGHG1</em></li>
-                  <li><em>COL1A1</em></li>
-                  <li><em>UBC</em></li>
-                  <li><em>TMSB4X</em></li>
-                  <li><em>COL1A2</em></li>
-                  <li><em>IGFBP7</em></li>
-                  <li><em>COL3A1</em></li>
-                  <li><em>ACTB</em></li>
-                  <li><em>B2M</em></li>
-                  <li><em>MT2A</em></li>
-                  <li><em>IGLC1</em></li>
-                </ol>
+                <ol class="histagent-gene-list" id="histagent-gene-list"></ol>
               </div>
 
               <div class="histagent-evidence-fields" id="histagent-evidence-fields">
-                <article>
-                  <span>Cell evidence</span>
-                  <strong>Stromal cell · Plasma cell · B cell</strong>
-                  <p><em>COL1A1</em>, <em>COL1A2</em>, <em>COL3A1</em>, <em>LUM</em>, <em>DCN</em>, <em>IGHG1</em>, <em>IGHA1</em>, <em>JCHAIN</em>, <em>IGKC</em>, <em>CD74</em></p>
-                </article>
-                <article>
-                  <span>Program evidence</span>
-                  <strong>Extracellular matrix organization · Immunoglobulin production · Antigen presentation</strong>
-                  <p><em>COL1A1</em>, <em>COL1A2</em>, <em>COL3A1</em>, <em>LUM</em>, <em>DCN</em>, <em>IGKC</em>, <em>IGHG1</em>, <em>IGHG2</em>, <em>IGHA1</em>, <em>JCHAIN</em>, <em>B2M</em>, <em>CD74</em>, <em>HLA-DRA</em></p>
-                </article>
-                <article>
-                  <span>Spatial context</span>
-                  <strong>Selected spot with surrounding tissue context</strong>
-                  <p>Selected 55 µm spot interpreted with its 220 µm surrounding context.</p>
-                </article>
+                <div class="histagent-evidence-empty">Select a real 55 µm Visium spot and generate its evidence.</div>
               </div>
             </section>
 
@@ -231,7 +204,7 @@
               <div class="atlas-chat" id="histagent-chat-log" aria-live="polite">
                 <div class="atlas-message assistant">
                   <span>HistAgent</span>
-                  <p>The selected spot is ready. Ask about its ranked genes, inferred cellular states, functional programs or surrounding tissue context.</p>
+                  <p>Generate evidence for the selected spot before starting the analysis.</p>
                 </div>
               </div>
               <div class="histagent-suggestions" id="histagent-suggestions">
@@ -240,8 +213,8 @@
               </div>
               <form class="atlas-chat-form" id="histagent-chat-form">
                 <label class="sr-only" for="histagent-chat-input">Ask about the selected spot evidence</label>
-                <textarea id="histagent-chat-input" rows="2" placeholder="Ask about the selected spot"></textarea>
-                <button type="submit" aria-label="Send question">↑</button>
+                <textarea id="histagent-chat-input" rows="2" placeholder="Ask about the selected spot" disabled></textarea>
+                <button type="submit" aria-label="Send question" disabled>↑</button>
               </form>
             </section>
           </aside>
@@ -250,6 +223,6 @@
     </main>
 
     <script src="/assets/site.js?v=20260729bio1"></script>
-    <script type="module" src="/assets/histagent-workbench.js?v=20260801a"></script>
+    <script type="module" src="/assets/histagent-workbench.js?v=20260801c"></script>
   </body>
 </html>
