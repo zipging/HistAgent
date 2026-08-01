@@ -10,7 +10,7 @@
     <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
     <link rel="stylesheet" href="/assets/site.css?v=20260801brand1">
     <link rel="stylesheet" href="/assets/atlas-workbench.css?v=20260801canvas1">
-    <link rel="stylesheet" href="/assets/histagent-workbench.css?v=20260801canvas1">
+    <link rel="stylesheet" href="/assets/histagent-workbench.css?v=20260801canvas2">
   </head>
   <body class="atlas-page histagent-page">
     <a class="skip-link" href="#histagent-workbench">Skip to HistAgent</a>
@@ -117,6 +117,24 @@
               </div>
             </div>
 
+            <section class="histagent-selected-spot" aria-labelledby="selected-spot-title">
+              <div class="histagent-control-heading">
+                <span id="selected-spot-title">Selected spot views</span>
+                <b id="selected-spot-id">Loading…</b>
+              </div>
+              <div class="histagent-crop-pair">
+                <figure>
+                  <img id="histagent-local-preview" alt="Local H&amp;E view for the selected spot">
+                  <figcaption>Local · 55 µm</figcaption>
+                </figure>
+                <figure>
+                  <img id="histagent-context-preview" alt="Contextual H&amp;E view around the selected spot">
+                  <figcaption>Context · 220 µm</figcaption>
+                </figure>
+              </div>
+              <p id="histagent-selected-coordinates">Loading official Visium coordinates…</p>
+            </section>
+
           </aside>
 
           <section class="histagent-tissue-panel" aria-labelledby="tissue-map-title">
@@ -158,24 +176,6 @@
               </div>
               <span class="atlas-status-badge live" id="histagent-selection-badge">Spot selected</span>
             </div>
-
-            <section class="histagent-selected-spot" aria-labelledby="selected-spot-title">
-              <div class="histagent-control-heading">
-                <span id="selected-spot-title">Selected spot views</span>
-                <b id="selected-spot-id">Loading…</b>
-              </div>
-              <div class="histagent-crop-pair">
-                <figure>
-                  <img id="histagent-local-preview" alt="Local H&E view for the selected spot">
-                  <figcaption>Local · 55 µm</figcaption>
-                </figure>
-                <figure>
-                  <img id="histagent-context-preview" alt="Contextual H&E view around the selected spot">
-                  <figcaption>Context · 220 µm</figcaption>
-                </figure>
-              </div>
-              <p id="histagent-selected-coordinates">Loading official Visium coordinates…</p>
-            </section>
 
             <p class="histagent-run-status" id="histagent-run-status" role="status" aria-live="polite">
               Select a spot or generate evidence for the current selection.
@@ -228,6 +228,6 @@
     </main>
 
     <script src="/assets/site.js?v=20260729bio1"></script>
-    <script type="module" src="/assets/histagent-workbench.js?v=20260801canvas1"></script>
+    <script type="module" src="/assets/histagent-workbench.js?v=20260801canvas2"></script>
   </body>
 </html>
