@@ -8,8 +8,12 @@ const EXAMPLE_MANIFEST_URL = "/assets/gsm5924036-spots.json";
 
 const tissueImage = document.querySelector("#histagent-tissue-image");
 const tissueStage = document.querySelector("#histagent-tissue-stage");
+const tissueLayer = document.querySelector("#histagent-tissue-layer");
 const spotGrid = document.querySelector("#histagent-spot-grid");
 const contextRing = document.querySelector("#histagent-context-ring");
+const zoomInButton = document.querySelector("#histagent-zoom-in");
+const zoomOutButton = document.querySelector("#histagent-zoom-out");
+const zoomResetButton = document.querySelector("#histagent-zoom-reset");
 const fileInput = document.querySelector("#histagent-file");
 const uploadZone = document.querySelector("#histagent-upload-zone");
 const exampleButton = document.querySelector("#histagent-example");
@@ -74,6 +78,53 @@ let chatHistory = [];
 let evidenceSpotKey = "";
 let isDefaultExample = true;
 let exampleManifest = null;
+let viewerZoom = 1;
+let viewerPanX = 0;
+let viewerPanY = 0;
+let dragState = null;
+
+const MIN_VIEWER_ZOOM = 1;
+const MAX_VIEWER_ZOOM = 8;
+
+function clampViewerPan() {
+  if (viewerZoom <= MIN_VIEWER_ZOOM) {
+    viewerPanX = 0;
+    viewerPanY = 0;
+    return;
+  }
+  const maximumX = tissueStage.clientWidth * (viewerZoom - 1) / 2;
+  const maximumY = tissueStage.clientHeight * (viewerZoom - 1) / 2;
+  viewerPanX = Math.max(-maximumX, Math.min(maximumX, viewerPanX));
+  viewerPanY = Math.max(-maximumY, Math.min(maximumY, viewerPanY));
+}
+
+function applyViewerTransform() {
+  clampViewerPan();
+  tissueLayer.style.transform = `translate3d(${viewerPanX}px, ${viewerPanY}px, 0) scale(${viewerZoom})`;
+  zoomInButton.disabled = viewerZoom >= MAX_VIEWER_ZOOM;
+  zoomOutButton.disabled = viewerZoom <= MIN_VIEWER_ZOOM;
+  zoomResetButton.disabled = viewerZoom <= MIN_VIEWER_ZOOM && viewerPanX === 0 && viewerPanY === 0;
+  tissueStage.dataset.zoom = viewerZoom.toFixed(2);
+}
+
+function setViewerZoom(nextZoom, anchorX = tissueStage.clientWidth / 2, anchorY = tissueStage.clientHeight / 2) {
+  const clampedZoom = Math.max(MIN_VIEWER_ZOOM, Math.min(MAX_VIEWER_ZOOM, nextZoom));
+  if (Math.abs(clampedZoom - viewerZoom) < 0.001) return;
+  const centerX = tissueStage.clientWidth / 2;
+  const centerY = tissueStage.clientHeight / 2;
+  const ratio = clampedZoom / viewerZoom;
+  viewerPanX = anchorX - centerX - (anchorX - centerX - viewerPanX) * ratio;
+  viewerPanY = anchorY - centerY - (anchorY - centerY - viewerPanY) * ratio;
+  viewerZoom = clampedZoom;
+  applyViewerTransform();
+}
+
+function resetViewer() {
+  viewerZoom = MIN_VIEWER_ZOOM;
+  viewerPanX = 0;
+  viewerPanY = 0;
+  applyViewerTransform();
+}
 
 function escapeHtml(value = "") {
   return String(value)
@@ -644,6 +695,11 @@ async function resetExample() {
 function onImageReady() {
   const dimensions = `${tissueImage.naturalWidth.toLocaleString()} × ${tissueImage.naturalHeight.toLocaleString()} px`;
   imageMeta.textContent = `${dimensions} · ${Number(mppInput.value).toFixed(2)} µm/px`;
+  tissueStage.style.setProperty(
+    "--histagent-image-ratio",
+    `${tissueImage.naturalWidth} / ${tissueImage.naturalHeight}`
+  );
+  resetViewer();
   createSpots(false);
 }
 
@@ -680,7 +736,67 @@ organInput.addEventListener("change", () => {
   clearEvidenceForSelection();
   setStatus("Organ changed. Regenerate evidence for the selected spot.");
 });
+
+zoomInButton.addEventListener("click", () => setViewerZoom(viewerZoom * 1.5));
+zoomOutButton.addEventListener("click", () => setViewerZoom(viewerZoom / 1.5));
+zoomResetButton.addEventListener("click", resetViewer);
+
+tissueStage.addEventListener("wheel", (event) => {
+  event.preventDefault();
+  const bounds = tissueStage.getBoundingClientRect();
+  const factor = Math.exp(-event.deltaY * 0.0015);
+  setViewerZoom(
+    viewerZoom * factor,
+    event.clientX - bounds.left,
+    event.clientY - bounds.top
+  );
+}, { passive: false });
+
+tissueStage.addEventListener("dblclick", (event) => {
+  if (event.target.closest(".histagent-map-tools")) return;
+  const bounds = tissueStage.getBoundingClientRect();
+  setViewerZoom(
+    viewerZoom >= 4 ? MIN_VIEWER_ZOOM : viewerZoom * 1.75,
+    event.clientX - bounds.left,
+    event.clientY - bounds.top
+  );
+});
+
+tissueStage.addEventListener("pointerdown", (event) => {
+  if (viewerZoom <= MIN_VIEWER_ZOOM || event.button !== 0) return;
+  if (event.target.closest(".histagent-map-tools") || event.target.closest(".histagent-spot")) return;
+  dragState = {
+    pointerId: event.pointerId,
+    startX: event.clientX,
+    startY: event.clientY,
+    panX: viewerPanX,
+    panY: viewerPanY
+  };
+  tissueStage.setPointerCapture(event.pointerId);
+  tissueStage.dataset.dragging = "true";
+});
+
+tissueStage.addEventListener("pointermove", (event) => {
+  if (!dragState || dragState.pointerId !== event.pointerId) return;
+  viewerPanX = dragState.panX + event.clientX - dragState.startX;
+  viewerPanY = dragState.panY + event.clientY - dragState.startY;
+  applyViewerTransform();
+});
+
+function finishViewerDrag(event) {
+  if (!dragState || dragState.pointerId !== event.pointerId) return;
+  if (tissueStage.hasPointerCapture(event.pointerId)) {
+    tissueStage.releasePointerCapture(event.pointerId);
+  }
+  dragState = null;
+  tissueStage.removeAttribute("data-dragging");
+}
+
+tissueStage.addEventListener("pointerup", finishViewerDrag);
+tissueStage.addEventListener("pointercancel", finishViewerDrag);
+
 window.addEventListener("resize", () => {
+  applyViewerTransform();
   renderSpots();
   positionContextRing();
 });

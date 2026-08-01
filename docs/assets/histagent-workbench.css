@@ -298,9 +298,9 @@
 
 .histagent-tissue-panel {
   display: grid;
-  grid-template-rows: auto minmax(470px, 1fr) auto;
+  grid-template-rows: auto auto auto;
   min-width: 0;
-  padding: 14px;
+  padding: 8px;
   background: #fff;
 }
 
@@ -322,10 +322,11 @@
 
 .histagent-tissue-stage {
   position: relative;
-  min-height: 470px;
+  min-height: 0;
+  aspect-ratio: var(--histagent-image-ratio, 1 / 1);
   overflow: hidden;
   border: 1px solid var(--atlas-line-dark);
-  border-radius: 10px;
+  border-radius: 7px;
   background:
     linear-gradient(45deg, #e9eeeb 25%, transparent 25%),
     linear-gradient(-45deg, #e9eeeb 25%, transparent 25%),
@@ -334,14 +335,30 @@
     #f3f6f4;
   background-position: 0 0, 0 8px, 8px -8px, -8px 0;
   background-size: 16px 16px;
+  cursor: grab;
+  touch-action: none;
 }
 
-.histagent-tissue-stage > img {
+.histagent-tissue-stage[data-dragging="true"] {
+  cursor: grabbing;
+}
+
+.histagent-tissue-layer {
+  position: absolute;
+  inset: 0;
+  transform: translate3d(0, 0, 0) scale(1);
+  transform-origin: center center;
+  will-change: transform;
+}
+
+.histagent-tissue-layer > img {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   object-fit: contain;
+  user-select: none;
+  -webkit-user-drag: none;
 }
 
 .histagent-spot-grid {
@@ -355,10 +372,10 @@
   width: 11px;
   height: 11px;
   padding: 0;
-  border: 1.5px solid rgba(255,255,255,0.9);
+  border: 0.75px solid rgba(24, 119, 101, 0.76);
   border-radius: 50%;
-  background: rgba(31, 157, 136, 0.56);
-  box-shadow: 0 0 0 1px rgba(20, 118, 100, 0.5);
+  background: rgba(31, 157, 136, 0.08);
+  box-shadow: none;
   cursor: pointer;
   transform: translate(-50%, -50%);
   transition: width 120ms ease, height 120ms ease, background 120ms ease, box-shadow 120ms ease;
@@ -369,15 +386,16 @@
   width: 14px;
   height: 14px;
   outline: 0;
-  background: rgba(31, 157, 136, 0.88);
-  box-shadow: 0 0 0 3px rgba(31, 157, 136, 0.19);
+  border-color: rgba(19, 112, 94, 0.94);
+  background: rgba(31, 157, 136, 0.28);
+  box-shadow: 0 0 0 2px rgba(255,255,255,0.72);
 }
 
 .histagent-spot[aria-selected="true"] {
   z-index: 5;
   width: 16px;
   height: 16px;
-  border-width: 2px;
+  border: 1.5px solid #fff;
   background: var(--atlas-orange);
   box-shadow: 0 0 0 3px rgba(239, 163, 58, 0.24), 0 2px 7px rgba(71, 45, 10, 0.28);
 }
@@ -390,6 +408,40 @@
   background: rgba(239, 163, 58, 0.05);
   pointer-events: none;
   transform: translate(-50%, -50%);
+}
+
+.histagent-map-tools {
+  z-index: 12;
+}
+
+.histagent-map-tools button {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  place-items: center;
+  border: 1px solid var(--atlas-line-dark);
+  border-radius: 6px;
+  background: rgba(255,255,255,0.95);
+  color: #40564c;
+  box-shadow: 0 1px 4px rgba(27, 50, 40, 0.12);
+  cursor: pointer;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.histagent-map-tools button:hover,
+.histagent-map-tools button:focus-visible {
+  border-color: var(--atlas-teal);
+  color: var(--atlas-teal-dark);
+  outline: none;
+}
+
+.histagent-map-tools button:disabled {
+  cursor: default;
+  opacity: 0.42;
 }
 
 .histagent-stage-loading {
@@ -658,7 +710,8 @@
   }
 
   .histagent-tissue-panel {
-    grid-template-rows: auto 460px auto;
+    grid-template-rows: auto auto auto;
+    padding: 6px;
   }
 
   .histagent-results {

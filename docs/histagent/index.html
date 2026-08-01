@@ -10,7 +10,7 @@
     <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
     <link rel="stylesheet" href="/assets/site.css?v=20260729paper2">
     <link rel="stylesheet" href="/assets/atlas-workbench.css?v=20260729c">
-    <link rel="stylesheet" href="/assets/histagent-workbench.css?v=20260729a">
+    <link rel="stylesheet" href="/assets/histagent-workbench.css?v=20260801b">
   </head>
   <body class="atlas-page histagent-page">
     <a class="skip-link" href="#histagent-workbench">Skip to HistAgent</a>
@@ -154,11 +154,15 @@
             </header>
 
             <div class="histagent-tissue-stage" id="histagent-tissue-stage">
-              <img id="histagent-tissue-image" src="/assets/gsm5924036.jpg" alt="GSM5924036 H&E tissue image with selectable 55 micrometre Visium spots">
-              <div class="histagent-spot-grid" id="histagent-spot-grid"></div>
-              <div class="histagent-context-ring" id="histagent-context-ring" aria-hidden="true"></div>
-              <div class="atlas-map-tools" aria-hidden="true">
-                <span>+</span><span>−</span><span>⌂</span>
+              <div class="histagent-tissue-layer" id="histagent-tissue-layer">
+                <img id="histagent-tissue-image" src="/assets/gsm5924036.jpg" alt="GSM5924036 H&E tissue image with selectable 55 micrometre Visium spots">
+                <div class="histagent-spot-grid" id="histagent-spot-grid"></div>
+                <div class="histagent-context-ring" id="histagent-context-ring" aria-hidden="true"></div>
+              </div>
+              <div class="atlas-map-tools histagent-map-tools" aria-label="Tissue image zoom controls">
+                <button id="histagent-zoom-in" type="button" aria-label="Zoom in" title="Zoom in">+</button>
+                <button id="histagent-zoom-out" type="button" aria-label="Zoom out" title="Zoom out">−</button>
+                <button id="histagent-zoom-reset" type="button" aria-label="Reset zoom" title="Reset zoom">⌂</button>
               </div>
               <div class="atlas-scale"><span></span>1 mm</div>
               <div class="histagent-stage-loading" id="histagent-stage-loading" hidden>
@@ -223,6 +227,6 @@
     </main>
 
     <script src="/assets/site.js?v=20260729bio1"></script>
-    <script type="module" src="/assets/histagent-workbench.js?v=20260801c"></script>
+    <script type="module" src="/assets/histagent-workbench.js?v=20260801d"></script>
   </body>
 </html>
