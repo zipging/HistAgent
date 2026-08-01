@@ -97,7 +97,7 @@ button,
 .brand {
   display: inline-flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
   color: var(--ink);
   text-decoration: none;
 }
@@ -121,16 +121,16 @@ button,
 .brand-mark::before {
   width: 10px;
   height: 10px;
-  left: 7px;
-  top: 8px;
+  left: 6px;
+  top: 6px;
   background: var(--plum);
 }
 
 .brand-mark::after {
   width: 12px;
   height: 12px;
-  right: 6px;
-  bottom: 6px;
+  right: 5px;
+  bottom: 5px;
   background: var(--green);
 }
 
@@ -143,7 +143,7 @@ button,
   font-family: var(--serif);
   font-size: 22px;
   font-weight: 600;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.01em;
 }
 
 .brand-copy small {
