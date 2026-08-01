@@ -890,7 +890,11 @@ function finishViewerDrag(event) {
 tissueStage.addEventListener("pointerup", finishViewerDrag);
 tissueStage.addEventListener("pointercancel", finishViewerDrag);
 
-spotGrid.addEventListener("click", (event) => {
+// Pointer capture moves the click target to the stage while the viewer is
+// zoomed. Listen on the stage so spot selection remains available after zoom,
+// while still ignoring toolbar clicks and completed pan gestures.
+tissueStage.addEventListener("click", (event) => {
+  if (event.target.closest(".histagent-map-tools")) return;
   if (suppressNextSpotClick) return;
   const spot = nearestSpotAtPoint(eventPointOnSpotCanvas(event));
   if (spot) selectSpot(spot);
