@@ -486,7 +486,7 @@
 }
 
 .histagent-results {
-  grid-template-rows: minmax(410px, 1.18fr) minmax(300px, 0.82fr);
+  grid-template-rows: minmax(370px, 0.92fr) minmax(390px, 1.08fr);
 }
 
 .histagent-evidence-section {
@@ -603,7 +603,7 @@
 }
 
 .histagent-chat-section {
-  grid-template-rows: auto minmax(105px, 1fr) auto auto;
+  grid-template-rows: auto minmax(165px, 1fr) auto auto;
 }
 
 .histagent-suggestions {
@@ -724,6 +724,6 @@
   }
 
   .histagent-chat-section {
-    min-height: 380px;
+    min-height: 480px;
   }
 }

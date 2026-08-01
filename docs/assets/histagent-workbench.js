@@ -585,6 +585,7 @@ function appendMessage(role, content) {
   `;
   chatLog.append(message);
   chatLog.scrollTop = chatLog.scrollHeight;
+  return message;
 }
 
 function localEvidenceAnswer(message, evidence) {
@@ -613,6 +614,11 @@ function localEvidenceAnswer(message, evidence) {
 async function submitChat(message) {
   if (!currentEvidence) return;
   appendMessage("user", message);
+  const pendingMessage = appendMessage(
+    "assistant",
+    "Analyzing the selected molecular and spatial evidence…"
+  );
+  pendingMessage.classList.add("pending");
   chatInput.value = "";
   chatButton.disabled = true;
   try {
@@ -626,10 +632,13 @@ async function submitChat(message) {
     const answer = typeof last?.content === "string"
       ? last.content
       : localEvidenceAnswer(message, currentEvidence);
-    appendMessage("assistant", answer);
+    pendingMessage.querySelector("p").innerHTML = escapeHtml(answer).replaceAll("\n", "<br>");
+    pendingMessage.classList.remove("pending");
   } catch (error) {
     console.error(error);
-    appendMessage("assistant", localEvidenceAnswer(message, currentEvidence));
+    const fallback = localEvidenceAnswer(message, currentEvidence);
+    pendingMessage.querySelector("p").innerHTML = escapeHtml(fallback).replaceAll("\n", "<br>");
+    pendingMessage.classList.remove("pending");
   } finally {
     chatButton.disabled = false;
   }
