@@ -20,7 +20,7 @@ from pydantic import BaseModel, Field
 
 HF_TOKEN = os.environ.get("WLI14_HF_TOKEN", "").strip()
 INFERENCE_SPACE = os.environ.get(
-    "HISTAGENT_INFERENCE_SPACE", "https://wli13-histagent-demo.hf.space"
+    "HISTAGENT_INFERENCE_SPACE", "https://wli14-histagent-agent.hf.space"
 ).rstrip("/")
 REASONING_SPACE = os.environ.get(
     "HISTAGENT_REASONING_SPACE", "https://wli14-histagent-agent.hf.space"
