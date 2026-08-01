@@ -9,8 +9,8 @@
     <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
     <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
     <link rel="stylesheet" href="/assets/site.css?v=20260801brand1">
-    <link rel="stylesheet" href="/assets/atlas-workbench.css?v=20260729c">
-    <link rel="stylesheet" href="/assets/histagent-workbench.css?v=20260801b">
+    <link rel="stylesheet" href="/assets/atlas-workbench.css?v=20260801canvas1">
+    <link rel="stylesheet" href="/assets/histagent-workbench.css?v=20260801canvas1">
   </head>
   <body class="atlas-page histagent-page">
     <a class="skip-link" href="#histagent-workbench">Skip to HistAgent</a>
@@ -117,27 +117,6 @@
               </div>
             </div>
 
-            <section class="histagent-selected-spot" aria-labelledby="selected-spot-title">
-              <div class="histagent-control-heading">
-                <span id="selected-spot-title">Selected spot</span>
-                <b id="selected-spot-id">Loading…</b>
-              </div>
-              <div class="histagent-crop-pair">
-                <figure>
-                  <img id="histagent-local-preview" alt="Local H&E view for the selected spot">
-                  <figcaption>Local · 55 µm</figcaption>
-                </figure>
-                <figure>
-                  <img id="histagent-context-preview" alt="Contextual H&E view around the selected spot">
-                  <figcaption>Context · 220 µm</figcaption>
-                </figure>
-              </div>
-              <p id="histagent-selected-coordinates">Loading official Visium coordinates…</p>
-            </section>
-
-            <p class="histagent-run-status" id="histagent-run-status" role="status" aria-live="polite">
-              Select a spot or generate evidence for the current selection.
-            </p>
           </aside>
 
           <section class="histagent-tissue-panel" aria-labelledby="tissue-map-title">
@@ -156,7 +135,7 @@
             <div class="histagent-tissue-stage" id="histagent-tissue-stage">
               <div class="histagent-tissue-layer" id="histagent-tissue-layer">
                 <img id="histagent-tissue-image" src="/assets/gsm5924036.jpg" alt="GSM5924036 H&E tissue image with selectable 55 micrometre Visium spots">
-                <div class="histagent-spot-grid" id="histagent-spot-grid"></div>
+                <canvas class="histagent-spot-grid" id="histagent-spot-grid" tabindex="0" aria-label="Selectable Visium spots. Click, tap or use the arrow keys to choose a spot."></canvas>
                 <div class="histagent-context-ring" id="histagent-context-ring" aria-hidden="true"></div>
               </div>
               <div class="atlas-map-tools histagent-map-tools" aria-label="Tissue image zoom controls">
@@ -179,6 +158,28 @@
               </div>
               <span class="atlas-status-badge live" id="histagent-selection-badge">Spot selected</span>
             </div>
+
+            <section class="histagent-selected-spot" aria-labelledby="selected-spot-title">
+              <div class="histagent-control-heading">
+                <span id="selected-spot-title">Selected spot views</span>
+                <b id="selected-spot-id">Loading…</b>
+              </div>
+              <div class="histagent-crop-pair">
+                <figure>
+                  <img id="histagent-local-preview" alt="Local H&E view for the selected spot">
+                  <figcaption>Local · 55 µm</figcaption>
+                </figure>
+                <figure>
+                  <img id="histagent-context-preview" alt="Contextual H&E view around the selected spot">
+                  <figcaption>Context · 220 µm</figcaption>
+                </figure>
+              </div>
+              <p id="histagent-selected-coordinates">Loading official Visium coordinates…</p>
+            </section>
+
+            <p class="histagent-run-status" id="histagent-run-status" role="status" aria-live="polite">
+              Select a spot or generate evidence for the current selection.
+            </p>
           </section>
 
           <aside class="atlas-results histagent-results" aria-label="Spot evidence and analysis">
@@ -227,6 +228,6 @@
     </main>
 
     <script src="/assets/site.js?v=20260729bio1"></script>
-    <script type="module" src="/assets/histagent-workbench.js?v=20260801d"></script>
+    <script type="module" src="/assets/histagent-workbench.js?v=20260801canvas1"></script>
   </body>
 </html>

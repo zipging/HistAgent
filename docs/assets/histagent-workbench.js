@@ -10,6 +10,7 @@ const tissueImage = document.querySelector("#histagent-tissue-image");
 const tissueStage = document.querySelector("#histagent-tissue-stage");
 const tissueLayer = document.querySelector("#histagent-tissue-layer");
 const spotGrid = document.querySelector("#histagent-spot-grid");
+const spotCanvasContext = spotGrid.getContext("2d");
 const contextRing = document.querySelector("#histagent-context-ring");
 const zoomInButton = document.querySelector("#histagent-zoom-in");
 const zoomOutButton = document.querySelector("#histagent-zoom-out");
@@ -82,6 +83,7 @@ let viewerZoom = 1;
 let viewerPanX = 0;
 let viewerPanY = 0;
 let dragState = null;
+let suppressNextSpotClick = false;
 
 const MIN_VIEWER_ZOOM = 1;
 const MAX_VIEWER_ZOOM = 8;
@@ -220,7 +222,6 @@ function createSpots(preserveEvidence = false) {
     const defaultSpot = spots.find(
       (spot) => spot.barcode === exampleManifest.default_barcode
     ) || spots[0];
-    renderSpots();
     selectSpot(defaultSpot, { preserveEvidence });
     spotCount.textContent = `${spots.length.toLocaleString()} Visium spots · 55 µm`;
     return;
@@ -261,7 +262,6 @@ function createSpots(preserveEvidence = false) {
     const distance = (spot.xNorm - 0.5) ** 2 + (spot.yNorm - 0.5) ** 2;
     return !best || distance < best.distance ? { spot, distance } : best;
   }, null)?.spot || spots[0];
-  renderSpots();
   selectSpot(center, { preserveEvidence });
   spotCount.textContent = `${spots.length.toLocaleString()} 55 µm sampling spots`;
 }
@@ -269,27 +269,106 @@ function createSpots(preserveEvidence = false) {
 function renderSpots() {
   const box = displayBox();
   if (!box) return;
+  const width = tissueStage.clientWidth;
+  const height = tissueStage.clientHeight;
+  const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+  const renderWidth = Math.max(1, Math.round(width * pixelRatio));
+  const renderHeight = Math.max(1, Math.round(height * pixelRatio));
+  if (spotGrid.width !== renderWidth || spotGrid.height !== renderHeight) {
+    spotGrid.width = renderWidth;
+    spotGrid.height = renderHeight;
+  }
+  spotCanvasContext.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+  spotCanvasContext.clearRect(0, 0, width, height);
+
   const spotDiameter = Math.max(
     isDefaultExample ? 4 : 8,
     Math.min(12, (LOCAL_DIAMETER_UM / Number(mppInput.value)) * box.scale)
   );
-  const fragment = document.createDocumentFragment();
+  const radius = spotDiameter / 2;
+  spotCanvasContext.beginPath();
   spots.forEach((spot) => {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = "histagent-spot";
-    button.dataset.spotId = spot.id;
-    button.setAttribute("aria-label", `Select spot ${spot.id}`);
-    button.setAttribute("aria-selected", String(selectedSpot?.id === spot.id));
-    button.style.left = `${box.left + spot.xNorm * box.width}px`;
-    button.style.top = `${box.top + spot.yNorm * box.height}px`;
-    button.style.width = `${spotDiameter}px`;
-    button.style.height = `${spotDiameter}px`;
-    button.addEventListener("click", () => selectSpot(spot));
-    fragment.append(button);
+    if (spot.id === selectedSpot?.id) return;
+    const x = box.left + spot.xNorm * box.width;
+    const y = box.top + spot.yNorm * box.height;
+    spotCanvasContext.moveTo(x + radius, y);
+    spotCanvasContext.arc(x, y, radius, 0, Math.PI * 2);
   });
-  spotGrid.replaceChildren(fragment);
+  spotCanvasContext.fillStyle = "rgba(255, 255, 255, 0.20)";
+  spotCanvasContext.strokeStyle = "rgba(24, 119, 101, 0.70)";
+  spotCanvasContext.lineWidth = 0.75;
+  spotCanvasContext.fill();
+  spotCanvasContext.stroke();
+
+  if (selectedSpot) {
+    const x = box.left + selectedSpot.xNorm * box.width;
+    const y = box.top + selectedSpot.yNorm * box.height;
+    const selectedRadius = Math.max(4, radius * 1.8);
+    spotCanvasContext.save();
+    spotCanvasContext.beginPath();
+    spotCanvasContext.arc(x, y, selectedRadius + 2.5, 0, Math.PI * 2);
+    spotCanvasContext.fillStyle = "rgba(239, 163, 58, 0.28)";
+    spotCanvasContext.fill();
+    spotCanvasContext.beginPath();
+    spotCanvasContext.arc(x, y, selectedRadius, 0, Math.PI * 2);
+    spotCanvasContext.fillStyle = "#efa33a";
+    spotCanvasContext.strokeStyle = "#ffffff";
+    spotCanvasContext.lineWidth = 1.5;
+    spotCanvasContext.fill();
+    spotCanvasContext.stroke();
+    spotCanvasContext.restore();
+  }
   positionContextRing();
+}
+
+function eventPointOnSpotCanvas(event) {
+  const bounds = spotGrid.getBoundingClientRect();
+  if (!bounds.width || !bounds.height) return null;
+  return {
+    x: (event.clientX - bounds.left) * tissueStage.clientWidth / bounds.width,
+    y: (event.clientY - bounds.top) * tissueStage.clientHeight / bounds.height
+  };
+}
+
+function nearestSpotAtPoint(point) {
+  const box = displayBox();
+  if (!box || !point) return null;
+  if (
+    point.x < box.left || point.x > box.left + box.width ||
+    point.y < box.top || point.y > box.top + box.height
+  ) return null;
+  let nearest = null;
+  let nearestDistance = Number.POSITIVE_INFINITY;
+  spots.forEach((spot) => {
+    const x = box.left + spot.xNorm * box.width;
+    const y = box.top + spot.yNorm * box.height;
+    const distance = (point.x - x) ** 2 + (point.y - y) ** 2;
+    if (distance < nearestDistance) {
+      nearest = spot;
+      nearestDistance = distance;
+    }
+  });
+  return nearest;
+}
+
+function directionalSpot(horizontal, vertical) {
+  if (!selectedSpot) return spots[0] || null;
+  let nearest = null;
+  let nearestScore = Number.POSITIVE_INFINITY;
+  spots.forEach((spot) => {
+    if (spot.id === selectedSpot.id) return;
+    const dx = spot.xNorm - selectedSpot.xNorm;
+    const dy = spot.yNorm - selectedSpot.yNorm;
+    const forward = dx * horizontal + dy * vertical;
+    if (forward <= 0) return;
+    const sideways = Math.abs(dx * vertical - dy * horizontal);
+    const score = forward + sideways * 3;
+    if (score < nearestScore) {
+      nearest = spot;
+      nearestScore = score;
+    }
+  });
+  return nearest;
 }
 
 function positionContextRing() {
@@ -381,10 +460,7 @@ function selectSpot(spot, options = {}) {
   const changed = selectedSpot?.id !== spot.id;
   selectedSpot = spot;
   spotId.textContent = spot.id;
-  document.querySelectorAll(".histagent-spot").forEach((button) => {
-    button.setAttribute("aria-selected", String(button.dataset.spotId === spot.id));
-  });
-  positionContextRing();
+  renderSpots();
   updateCropPreviews();
   selectionBadge.className = "atlas-status-badge live";
   selectionBadge.textContent = "Spot selected";
@@ -751,6 +827,7 @@ zoomOutButton.addEventListener("click", () => setViewerZoom(viewerZoom / 1.5));
 zoomResetButton.addEventListener("click", resetViewer);
 
 tissueStage.addEventListener("wheel", (event) => {
+  if (!event.ctrlKey && !event.metaKey) return;
   event.preventDefault();
   const bounds = tissueStage.getBoundingClientRect();
   const factor = Math.exp(-event.deltaY * 0.0015);
@@ -773,13 +850,14 @@ tissueStage.addEventListener("dblclick", (event) => {
 
 tissueStage.addEventListener("pointerdown", (event) => {
   if (viewerZoom <= MIN_VIEWER_ZOOM || event.button !== 0) return;
-  if (event.target.closest(".histagent-map-tools") || event.target.closest(".histagent-spot")) return;
+  if (event.target.closest(".histagent-map-tools")) return;
   dragState = {
     pointerId: event.pointerId,
     startX: event.clientX,
     startY: event.clientY,
     panX: viewerPanX,
-    panY: viewerPanY
+    panY: viewerPanY,
+    moved: false
   };
   tissueStage.setPointerCapture(event.pointerId);
   tissueStage.dataset.dragging = "true";
@@ -787,6 +865,9 @@ tissueStage.addEventListener("pointerdown", (event) => {
 
 tissueStage.addEventListener("pointermove", (event) => {
   if (!dragState || dragState.pointerId !== event.pointerId) return;
+  if (Math.abs(event.clientX - dragState.startX) + Math.abs(event.clientY - dragState.startY) > 4) {
+    dragState.moved = true;
+  }
   viewerPanX = dragState.panX + event.clientX - dragState.startX;
   viewerPanY = dragState.panY + event.clientY - dragState.startY;
   applyViewerTransform();
@@ -797,17 +878,41 @@ function finishViewerDrag(event) {
   if (tissueStage.hasPointerCapture(event.pointerId)) {
     tissueStage.releasePointerCapture(event.pointerId);
   }
+  const moved = dragState.moved;
   dragState = null;
   tissueStage.removeAttribute("data-dragging");
+  if (moved) {
+    suppressNextSpotClick = true;
+    window.setTimeout(() => { suppressNextSpotClick = false; }, 0);
+  }
 }
 
 tissueStage.addEventListener("pointerup", finishViewerDrag);
 tissueStage.addEventListener("pointercancel", finishViewerDrag);
 
+spotGrid.addEventListener("click", (event) => {
+  if (suppressNextSpotClick) return;
+  const spot = nearestSpotAtPoint(eventPointOnSpotCanvas(event));
+  if (spot) selectSpot(spot);
+});
+
+spotGrid.addEventListener("keydown", (event) => {
+  const directions = {
+    ArrowLeft: [-1, 0],
+    ArrowRight: [1, 0],
+    ArrowUp: [0, -1],
+    ArrowDown: [0, 1]
+  };
+  const direction = directions[event.key];
+  if (!direction) return;
+  event.preventDefault();
+  const spot = directionalSpot(direction[0], direction[1]);
+  if (spot) selectSpot(spot);
+});
+
 window.addEventListener("resize", () => {
   applyViewerTransform();
   renderSpots();
-  positionContextRing();
 });
 generateButton.addEventListener("click", generateEvidence);
 

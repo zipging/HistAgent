@@ -2,6 +2,11 @@
   grid-template-columns: 210px minmax(420px, 1fr) auto;
 }
 
+.histagent-product-bar .atlas-product-brand {
+  gap: 12px;
+  letter-spacing: 0;
+}
+
 .histagent-steps {
   display: flex;
   align-items: center;
@@ -222,6 +227,7 @@
 }
 
 .histagent-selected-spot {
+  margin-top: 10px;
   padding-top: 13px;
   border-top: 1px solid var(--atlas-line);
 }
@@ -298,7 +304,7 @@
 
 .histagent-tissue-panel {
   display: grid;
-  grid-template-rows: auto auto auto;
+  grid-template-rows: auto auto auto auto auto;
   min-width: 0;
   padding: 8px;
   background: #fff;
@@ -336,6 +342,10 @@
   background-position: 0 0, 0 8px, 8px -8px, -8px 0;
   background-size: 16px 16px;
   cursor: grab;
+  touch-action: pan-y pinch-zoom;
+}
+
+.histagent-tissue-stage[data-zoom]:not([data-zoom="1.00"]) {
   touch-action: none;
 }
 
@@ -365,39 +375,19 @@
   position: absolute;
   inset: 0;
   z-index: 3;
+  width: 100%;
+  height: 100%;
+  cursor: crosshair;
+  touch-action: inherit;
 }
 
-.histagent-spot {
-  position: absolute;
-  width: 11px;
-  height: 11px;
-  padding: 0;
-  border: 0.75px solid rgba(24, 119, 101, 0.76);
-  border-radius: 50%;
-  background: rgba(31, 157, 136, 0.08);
-  box-shadow: none;
-  cursor: pointer;
-  transform: translate(-50%, -50%);
-  transition: width 120ms ease, height 120ms ease, background 120ms ease, box-shadow 120ms ease;
+.histagent-spot-grid:focus-visible {
+  outline: 2px solid var(--atlas-teal);
+  outline-offset: -3px;
 }
 
-.histagent-spot:hover,
-.histagent-spot:focus-visible {
-  width: 14px;
-  height: 14px;
-  outline: 0;
-  border-color: rgba(19, 112, 94, 0.94);
-  background: rgba(31, 157, 136, 0.28);
-  box-shadow: 0 0 0 2px rgba(255,255,255,0.72);
-}
-
-.histagent-spot[aria-selected="true"] {
-  z-index: 5;
-  width: 16px;
-  height: 16px;
-  border: 1.5px solid #fff;
-  background: var(--atlas-orange);
-  box-shadow: 0 0 0 3px rgba(239, 163, 58, 0.24), 0 2px 7px rgba(71, 45, 10, 0.28);
+.histagent-tissue-stage[data-dragging="true"] .histagent-spot-grid {
+  cursor: grabbing;
 }
 
 .histagent-context-ring {
@@ -683,13 +673,24 @@
     grid-template-columns: 1fr;
   }
 
+  .histagent-product-bar .atlas-product-brand {
+    display: none;
+  }
+
   .histagent-generate {
     width: 100%;
   }
 
   .histagent-steps {
+    grid-column: 1;
+    grid-row: auto;
+    order: 0;
     justify-content: flex-start;
     overflow-x: auto;
+  }
+
+  .histagent-generate {
+    order: 1;
   }
 
   .histagent-steps li {
@@ -710,7 +711,7 @@
   }
 
   .histagent-tissue-panel {
-    grid-template-rows: auto auto auto;
+    grid-template-rows: auto auto auto auto auto;
     padding: 6px;
   }
 
@@ -724,6 +725,6 @@
   }
 
   .histagent-chat-section {
-    min-height: 480px;
+    min-height: 420px;
   }
 }

@@ -71,6 +71,20 @@ body.atlas-page {
   flex: 0 0 28px;
 }
 
+.atlas-product-brand .brand-mark::before {
+  width: 8px;
+  height: 8px;
+  left: 4px;
+  top: 4px;
+}
+
+.atlas-product-brand .brand-mark::after {
+  width: 9px;
+  height: 9px;
+  right: 4px;
+  bottom: 4px;
+}
+
 .atlas-search {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto auto;
