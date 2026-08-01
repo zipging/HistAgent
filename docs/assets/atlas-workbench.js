@@ -1,4 +1,4 @@
-const SPACE_URL = "https://wli13-histagent-chat.hf.space";
+import { callHistAgentService } from "./histagent-services.js";
 
 const form = document.querySelector("#atlas-search-form");
 const searchButton = document.querySelector("#atlas-search-button");
@@ -52,43 +52,6 @@ const manuscriptExampleEvidence = {
 let topEvidence = manuscriptExampleEvidence;
 let chatHistory = [];
 let activeMode = "text";
-
-async function callGradio(apiName, data) {
-  const endpoint = `${SPACE_URL}/gradio_api/call/${apiName}`;
-  const submission = await fetch(endpoint, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ data })
-  });
-  if (!submission.ok) throw new Error(`Retrieval request failed (${submission.status})`);
-  const { event_id: eventId } = await submission.json();
-  if (!eventId) throw new Error("The retrieval worker did not return an event identifier");
-
-  const stream = await fetch(`${endpoint}/${eventId}`);
-  if (!stream.ok || !stream.body) throw new Error(`Retrieval stream failed (${stream.status})`);
-  const reader = stream.body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = "";
-  let currentEvent = "";
-
-  while (true) {
-    const { value, done } = await reader.read();
-    buffer += decoder.decode(value || new Uint8Array(), { stream: !done });
-    const lines = buffer.split(/\r?\n/);
-    buffer = lines.pop() || "";
-    for (const line of lines) {
-      if (line.startsWith("event:")) {
-        currentEvent = line.slice(6).trim();
-      } else if (line.startsWith("data:")) {
-        const payload = line.slice(5).trim();
-        if (currentEvent === "complete") return JSON.parse(payload);
-        if (currentEvent === "error") throw new Error("The retrieval worker is temporarily unavailable");
-      }
-    }
-    if (done) break;
-  }
-  throw new Error("The retrieval stream ended before returning results");
-}
 
 function escapeHtml(value = "") {
   return String(value)
@@ -236,7 +199,7 @@ async function runRetrieval(query) {
   setBusy(true);
   updateChips(query);
   try {
-    const data = await callGradio("retrieve_atlas", [
+    const data = await callHistAgentService("reasoning", "retrieve_atlas", [
       query,
       speciesInput.value,
       organInput.value,
@@ -334,7 +297,7 @@ chatForm?.addEventListener("submit", async (event) => {
     return;
   }
   try {
-    const data = await callGradio("answer_atlas_question", [
+    const data = await callHistAgentService("reasoning", "answer_atlas_question", [
       message,
       chatHistory,
       topEvidence

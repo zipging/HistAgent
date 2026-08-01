@@ -1,5 +1,8 @@
-const INFERENCE_SPACE = "https://wli13-histagent-demo.hf.space";
-const CHAT_SPACE = "https://wli13-histagent-chat.hf.space";
+import {
+  callGradioAt,
+  callHistAgentService,
+  withHistAgentService
+} from "./histagent-services.js";
 const LOCAL_DIAMETER_UM = 55;
 const CONTEXT_DIAMETER_UM = 220;
 
@@ -464,10 +467,10 @@ function canvasBlob(canvas) {
   });
 }
 
-async function uploadGradioFiles(files) {
+async function uploadGradioFiles(space, files) {
   const form = new FormData();
   files.forEach(({ blob, name }) => form.append("files", blob, name));
-  const response = await fetch(`${INFERENCE_SPACE}/gradio_api/upload`, {
+  const response = await fetch(`${space}/gradio_api/upload`, {
     method: "POST",
     body: form
   });
@@ -479,41 +482,6 @@ async function uploadGradioFiles(files) {
     mime_type: "image/png",
     meta: { _type: "gradio.FileData" }
   }));
-}
-
-async function callGradio(space, apiName, data) {
-  const endpoint = `${space}/gradio_api/call/${apiName}`;
-  const submission = await fetch(endpoint, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ data })
-  });
-  if (!submission.ok) throw new Error(`Request failed (${submission.status})`);
-  const { event_id: eventId } = await submission.json();
-  if (!eventId) throw new Error("The model service did not return an event identifier");
-  const stream = await fetch(`${endpoint}/${eventId}`);
-  if (!stream.ok || !stream.body) throw new Error(`Model stream failed (${stream.status})`);
-  const reader = stream.body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = "";
-  let eventName = "";
-  while (true) {
-    const { value, done } = await reader.read();
-    buffer += decoder.decode(value || new Uint8Array(), { stream: !done });
-    const lines = buffer.split(/\r?\n/);
-    buffer = lines.pop() || "";
-    for (const line of lines) {
-      if (line.startsWith("event:")) {
-        eventName = line.slice(6).trim();
-      } else if (line.startsWith("data:")) {
-        const payload = line.slice(5).trim();
-        if (eventName === "complete") return JSON.parse(payload);
-        if (eventName === "error") throw new Error("The public model worker is temporarily unavailable");
-      }
-    }
-    if (done) break;
-  }
-  throw new Error("The model stream ended before returning a result");
 }
 
 async function generateEvidence() {
@@ -535,17 +503,19 @@ async function generateEvidence() {
       canvasBlob(localCanvas),
       canvasBlob(contextCanvas)
     ]);
-    const [localFile, contextFile] = await uploadGradioFiles([
-      { blob: localBlob, name: `${selectedSpot.id}_local.png` },
-      { blob: contextBlob, name: `${selectedSpot.id}_context.png` }
-    ]);
-    const outputs = await callGradio(INFERENCE_SPACE, "generate_ranked_readout", [
-      localFile,
-      contextFile,
-      speciesInput.value,
-      organInput.value,
-      50
-    ]);
+    const outputs = await withHistAgentService("inference", async (space) => {
+      const [localFile, contextFile] = await uploadGradioFiles(space, [
+        { blob: localBlob, name: `${selectedSpot.id}_local.png` },
+        { blob: contextBlob, name: `${selectedSpot.id}_context.png` }
+      ]);
+      return callGradioAt(space, "generate_ranked_readout", [
+        localFile,
+        contextFile,
+        speciesInput.value,
+        organInput.value,
+        50
+      ]);
+    });
     const genes = parseGenes(outputs?.[0], outputs?.[1]);
     if (!genes.length) throw new Error("HistAgent returned no ranked genes for this spot");
     const evidence = buildEvidence(genes, {
@@ -608,7 +578,7 @@ async function submitChat(message) {
   chatInput.value = "";
   chatButton.disabled = true;
   try {
-    const outputs = await callGradio(CHAT_SPACE, "answer_atlas_question", [
+    const outputs = await callHistAgentService("reasoning", "answer_atlas_question", [
       message,
       chatHistory,
       currentEvidence
