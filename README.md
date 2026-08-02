@@ -4,7 +4,8 @@
 
 <p align="center">
   <a href="https://github.com/zipging/HistAgent"><img src="https://img.shields.io/badge/GitHub-HistAgent-181717?logo=github" alt="GitHub"></a>
-  <a href="https://huggingface.co/wli13/HistAgent"><img src="https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-checkpoint-FFD21E" alt="Hugging Face"></a>
+  <a href="https://huggingface.co/wli13/HistAgent"><img src="https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-visual%20model-FFD21E" alt="Hugging Face visual model"></a>
+  <a href="https://huggingface.co/wli14/HistAgent-Qwen3-8B-LoRA"><img src="https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-language%20adapter-FFD21E" alt="Hugging Face language adapter"></a>
   <a href="https://huggingface.co/datasets/wli13/HistAgent-data"><img src="https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-data-FFD21E" alt="Hugging Face data"></a>
   <img src="https://img.shields.io/badge/Python-%E2%89%A53.10-3776AB?logo=python&logoColor=white" alt="Python 3.10 or newer">
   <img src="https://img.shields.io/badge/PyTorch-%E2%89%A52.2-EE4C2C?logo=pytorch&logoColor=white" alt="PyTorch 2.2 or newer">
@@ -14,7 +15,7 @@
 
 **HistAgent** connects spatial molecular inference from routine H&E images with evidence-grounded reasoning about local tissue states. Its visual-omics foundation model uses a spot-centred view together with surrounding tissue context to autoregressively generate a ranked molecular readout. Rank-derived analyses can then organise these readouts into molecular and spatial evidence for biological interpretation.
 
-This repository provides the GigaPath-backed visual-omics model used by HistAgent, including model code, preprocessing, ranked-gene inference and the trained checkpoint.
+This repository provides the GigaPath-backed visual-omics model and spatial agentic module used by HistAgent, including model code, preprocessing, ranked-gene inference and interactive analysis.
 
 ## Framework
 
@@ -31,11 +32,12 @@ HistAgent combines:
 
 ## Model release
 
-| Model | Base encoder | Output | Checkpoint |
+| Component | Base model | Output | Checkpoint |
 |---|---|---|---|
-| HistAgent | [Prov-GigaPath](https://huggingface.co/prov-gigapath/prov-gigapath) with LoRA | Ranked top-50 genes | [Hugging Face](https://huggingface.co/wli13/HistAgent) |
+| Visual-omics foundation model | [Prov-GigaPath](https://huggingface.co/prov-gigapath/prov-gigapath) with LoRA | Ranked top-50 genes | [Hugging Face](https://huggingface.co/wli13/HistAgent) |
+| Spatial agentic module | [Qwen3-8B](https://huggingface.co/Qwen/Qwen3-8B) with LoRA | Evidence-grounded multi-turn answers | [Hugging Face](https://huggingface.co/wli14/HistAgent-Qwen3-8B-LoRA) |
 
-The released checkpoint contains HistAgent's trained LoRA parameters and all non-GigaPath modules. The original GigaPath parameters are loaded from the official model repository and are not redistributed.
+The visual-model checkpoint contains HistAgent's trained LoRA parameters and all non-GigaPath modules. The original GigaPath parameters are loaded from the official model repository and are not redistributed. The language-model adapter is loaded on top of Qwen3-8B.
 
 ## Installation
 
