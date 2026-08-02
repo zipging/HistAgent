@@ -91,7 +91,7 @@
 
 .histagent-workspace {
   display: grid;
-  grid-template-columns: 250px minmax(460px, 1fr) minmax(350px, 410px);
+  grid-template-columns: 250px minmax(420px, 480px) minmax(420px, 1fr);
   min-height: calc(100vh - 186px);
 }
 
@@ -634,7 +634,7 @@
   }
 
   .histagent-workspace {
-    grid-template-columns: 230px minmax(420px, 1fr) 350px;
+    grid-template-columns: 230px minmax(400px, 460px) minmax(350px, 1fr);
   }
 }
 
@@ -650,7 +650,8 @@
   }
 
   .histagent-workspace {
-    grid-template-columns: 220px minmax(0, 1fr);
+    grid-template-columns: 220px minmax(0, 480px);
+    justify-content: center;
   }
 
   .histagent-results {
