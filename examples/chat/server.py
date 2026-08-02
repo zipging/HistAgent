@@ -863,7 +863,7 @@ class HistAgentChatService:
         self.input_jsonl = os.getenv("HISTAGENT_INPUT_JSONL", DEFAULT_INPUT_JSONL)
         self.atlas_sqlite = os.getenv("HISTAGENT_ATLAS_SQLITE", DEFAULT_ATLAS_SQLITE)
         self.api_base_url = os.getenv("HISTAGENT_API_BASE_URL", "http://127.0.0.1:8001/v1")
-        self.model = os.getenv("HISTAGENT_MODEL", "Qwen3-8B-local")
+        self.model = os.getenv("HISTAGENT_MODEL", "HistAgent-Qwen3-8B-LoRA")
         self.api_key = os.getenv("HISTAGENT_API_KEY", os.getenv("SILRA_API_KEY", "local-empty-key"))
         self.max_history_turns = int(os.getenv("HISTAGENT_MAX_HISTORY_TURNS", "6"))
         self.temperature = float(os.getenv("HISTAGENT_TEMPERATURE", "0.2"))

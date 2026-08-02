@@ -31,21 +31,22 @@ the language model used for Spot Chat and natural-language atlas queries.
 
 The Agent Module and the language model run as separate processes.
 
-### Local Qwen3-8B
+### Local HistAgent Qwen3-8B adapter
 
 In the first terminal:
 
 ```bash
 source .venv/bin/activate
 python -m pip install -r examples/chat/requirements-llm.txt
-HISTAGENT_QWEN_PATH=Qwen/Qwen3-8B \
+HISTAGENT_QWEN_BASE=Qwen/Qwen3-8B \
+HISTAGENT_QWEN_ADAPTER=wli14/HistAgent-Qwen3-8B-LoRA \
 python examples/chat/llm_server.py
 ```
 
 The local server listens at `http://127.0.0.1:8001/v1`, which matches
-`.env.example`. It loads Qwen3-8B in bfloat16. A CUDA GPU with about 20 GB of
-available memory is recommended. Use an external endpoint if that hardware is
-not available.
+`.env.example`. It loads the HistAgent LoRA adapter with Qwen3-8B in bfloat16.
+A CUDA GPU with about 20 GB of available memory is recommended. Use an external
+endpoint if that hardware is not available.
 
 ### External OpenAI-compatible endpoint
 

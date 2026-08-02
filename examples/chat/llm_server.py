@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Small OpenAI-compatible server for the local Qwen3-8B checkpoint."""
+"""Small OpenAI-compatible server for the HistAgent Qwen3-8B adapter."""
 
 from __future__ import annotations
 
@@ -14,12 +14,17 @@ from typing import Any
 import torch
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import StreamingResponse
+from peft import PeftModel
 from pydantic import BaseModel, Field
 from transformers import AutoModelForCausalLM, AutoTokenizer, TextIteratorStreamer
 
 
-MODEL_PATH = os.getenv("HISTAGENT_QWEN_PATH", "Qwen/Qwen3-8B")
-SERVED_MODEL = os.getenv("HISTAGENT_MODEL", "Qwen3-8B-local")
+BASE_MODEL_PATH = os.getenv("HISTAGENT_QWEN_BASE", "Qwen/Qwen3-8B")
+ADAPTER_PATH = os.getenv(
+    "HISTAGENT_QWEN_ADAPTER",
+    "wli14/HistAgent-Qwen3-8B-LoRA",
+)
+SERVED_MODEL = os.getenv("HISTAGENT_MODEL", "HistAgent-Qwen3-8B-LoRA")
 HOST = os.getenv("HOST", "127.0.0.1")
 PORT = int(os.getenv("PORT", "8001"))
 
@@ -40,14 +45,15 @@ class ChatRequest(BaseModel):
 
 def load_model() -> None:
     global tokenizer, model, loaded_at
-    tokenizer = AutoTokenizer.from_pretrained(MODEL_PATH)
-    model = AutoModelForCausalLM.from_pretrained(
-        MODEL_PATH,
+    tokenizer = AutoTokenizer.from_pretrained(ADAPTER_PATH)
+    base_model = AutoModelForCausalLM.from_pretrained(
+        BASE_MODEL_PATH,
         torch_dtype=torch.bfloat16,
         device_map="auto",
         low_cpu_mem_usage=True,
         attn_implementation="sdpa",
     )
+    model = PeftModel.from_pretrained(base_model, ADAPTER_PATH)
     model.eval()
     loaded_at = time.time()
 
@@ -147,7 +153,8 @@ def health():
     return {
         "status": "ok" if model is not None else "loading",
         "model": SERVED_MODEL,
-        "model_path": MODEL_PATH,
+        "base_model": BASE_MODEL_PATH,
+        "adapter": ADAPTER_PATH,
         "loaded_at": loaded_at,
         "cuda": torch.cuda.is_available(),
     }
