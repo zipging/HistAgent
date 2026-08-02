@@ -41,15 +41,12 @@ The visual-model checkpoint contains HistAgent's trained LoRA parameters and all
 
 ## Results at a glance
 
-Across 135 held-out human and mouse ST slides from 15 organ cohorts, HistAgent more accurately recovered local molecular composition and gene-specific spatial variation than STPath and OmiCLIP.
+Across 135 held-out human and mouse ST slides from 15 organ cohorts, HistAgent more accurately recovered local molecular composition than STPath and OmiCLIP.
 
 | Evaluation | HistAgent | STPath | OmiCLIP |
 |---|---:|---:|---:|
 | Mean HitRate@50 | **0.699** | 0.292 | 0.410 |
 | Mean mAP@50 | **0.655** | 0.167 | 0.311 |
-| Mean spatial PCC, top 50 highly variable genes | **0.440** | 0.157 | 0.064 |
-
-Spatial PCC for HistAgent was calculated from reference-guided expression estimates derived from its ranked molecular readouts.
 
 ## Installation
 
