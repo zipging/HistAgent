@@ -167,7 +167,7 @@ The HistAgent manuscript and citation will be added here when publicly available
 
 ## Acknowledgements
 
-HistAgent builds on [Prov-GigaPath](https://github.com/prov-gigapath/prov-gigapath). Users must comply with the access conditions and license of the original GigaPath model.
+HistAgent builds on [Prov-GigaPath](https://github.com/prov-gigapath/prov-gigapath) and [Qwen3-8B](https://huggingface.co/Qwen/Qwen3-8B). Users must comply with their respective access conditions and licenses.
 
 ## Intended use
 
