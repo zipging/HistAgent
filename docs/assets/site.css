@@ -331,7 +331,7 @@ p {
   font-weight: 600;
 }
 
-.rank-line {
+.capability-line {
   display: flex;
   flex-wrap: wrap;
   gap: 7px 14px;
@@ -341,8 +341,8 @@ p {
   font-size: 12px;
 }
 
-.rank-line span::before {
-  content: attr(data-rank) " ";
+.capability-line span + span::before {
+  content: "· ";
   color: var(--muted);
 }
 

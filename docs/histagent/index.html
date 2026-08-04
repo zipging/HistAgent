@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="Select a tissue spot, generate its ranked molecular readout and analyze its evidence with HistAgent.">
+    <meta name="description" content="Select a tissue location in an H&amp;E image and use HistAgent for interactive analysis of its molecular and spatial context.">
     <meta name="theme-color" content="#f4f7f5">
     <title>HistAgent Workbench</title>
     <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
@@ -18,7 +18,7 @@
       <div class="header-inner">
         <a class="brand" href="/">
           <span class="brand-mark" aria-hidden="true"></span>
-          <span class="brand-copy"><strong>HistAgent</strong><small>Project website</small></span>
+          <span class="brand-copy"><strong>HistAgent</strong></span>
         </a>
         <button class="nav-toggle" type="button" data-nav-toggle aria-expanded="false" aria-controls="primary-nav">Menu</button>
         <nav class="primary-nav" id="primary-nav" data-primary-nav aria-label="Primary navigation">
@@ -41,10 +41,10 @@
           <ol class="histagent-steps" aria-label="Analysis workflow">
             <li class="complete" data-step="image"><span>1</span><strong>Tissue image</strong></li>
             <li class="active" data-step="spot"><span>2</span><strong>Select spot</strong></li>
-            <li data-step="evidence"><span>3</span><strong>Generate evidence</strong></li>
+            <li data-step="evidence"><span>3</span><strong>Analyze spot</strong></li>
           </ol>
           <button class="histagent-generate" id="histagent-generate" type="button">
-            Generate spot evidence
+            Analyze selected spot
           </button>
         </header>
 
@@ -152,7 +152,7 @@
 
             <div class="histagent-tissue-stage" id="histagent-tissue-stage">
               <div class="histagent-tissue-layer" id="histagent-tissue-layer">
-                <img id="histagent-tissue-image" src="/assets/gsm5924036.jpg" alt="GSM5924036 H&E tissue image with selectable 55 micrometre Visium spots">
+                <img id="histagent-tissue-image" src="/assets/gsm5924036.jpg" alt="GSM5924036 H&amp;E tissue image with selectable 55 micrometre Visium spots">
                 <canvas class="histagent-spot-grid" id="histagent-spot-grid" tabindex="0" aria-label="Selectable Visium spots. Click, tap or use the arrow keys to choose a spot."></canvas>
                 <div class="histagent-context-ring" id="histagent-context-ring" aria-hidden="true"></div>
               </div>
@@ -164,7 +164,7 @@
               <div class="atlas-scale"><span></span>1 mm</div>
               <div class="histagent-stage-loading" id="histagent-stage-loading" hidden>
                 <span></span>
-                <strong>Generating ranked molecular readout</strong>
+                <strong>Analyzing selected spot</strong>
                 <small>HistAgent is processing the local and contextual H&amp;E views.</small>
               </div>
             </div>
@@ -178,7 +178,7 @@
             </div>
 
             <p class="histagent-run-status" id="histagent-run-status" role="status" aria-live="polite">
-              Select a spot or generate evidence for the current selection.
+              Select a spot, then analyze it with HistAgent.
             </p>
           </section>
 
@@ -198,7 +198,7 @@
               </div>
 
               <div class="histagent-evidence-fields" id="histagent-evidence-fields">
-                <div class="histagent-evidence-empty">Select a real 55 µm Visium spot and generate its evidence.</div>
+                <div class="histagent-evidence-empty">Select a real 55 µm Visium spot and analyze it with HistAgent.</div>
               </div>
             </section>
 
@@ -209,7 +209,7 @@
               <div class="atlas-chat" id="histagent-chat-log" aria-live="polite">
                 <div class="atlas-message assistant">
                   <span>HistAgent</span>
-                  <p>Generate evidence for the selected spot before starting the analysis.</p>
+                  <p>Analyze the selected spot before starting the conversation.</p>
                 </div>
               </div>
               <div class="histagent-suggestions" id="histagent-suggestions">
@@ -228,6 +228,6 @@
     </main>
 
     <script src="/assets/site.js?v=20260729bio1"></script>
-    <script type="module" src="/assets/histagent-workbench.js?v=20260801canvas3"></script>
+    <script type="module" src="/assets/histagent-workbench.js?v=20260804copy1"></script>
   </body>
 </html>

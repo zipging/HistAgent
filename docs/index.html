@@ -3,12 +3,12 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="HistAgent turns routine H&amp;E histology into ranked molecular readouts, spatial evidence and atlas retrieval.">
+    <meta name="description" content="HistAgent supports spatial molecular analysis, interactive biological interpretation, whole-slide clinical prediction and atlas-scale retrieval from routine H&amp;E histology.">
     <meta name="theme-color" content="#17362f">
-    <title>HistAgent | Spatial molecular evidence from histology</title>
+    <title>HistAgent | Spatial molecular reasoning from routine histology</title>
     <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
     <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
-    <link rel="stylesheet" href="/assets/site.css?v=20260729paper2">
+    <link rel="stylesheet" href="/assets/site.css?v=20260804copy1">
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
@@ -16,7 +16,7 @@
       <div class="header-inner">
         <a class="brand" href="/">
           <span class="brand-mark" aria-hidden="true"></span>
-          <span class="brand-copy"><strong>HistAgent</strong><small>Project website</small></span>
+          <span class="brand-copy"><strong>HistAgent</strong></span>
         </a>
         <button class="nav-toggle" type="button" data-nav-toggle aria-expanded="false" aria-controls="primary-nav">Menu</button>
         <nav class="primary-nav" id="primary-nav" data-primary-nav aria-label="Primary navigation">
@@ -33,11 +33,11 @@
       <div class="page-shell">
         <section class="hero" aria-labelledby="hero-title">
           <div class="hero-copy">
-            <p class="eyebrow">Visual omics · spatial evidence · atlas retrieval</p>
-            <h1 id="hero-title">From routine histology to spatial molecular evidence</h1>
-            <p class="lede">HistAgent reads local and contextual H&amp;E morphology and predicts an ordered list of genes for each tissue location. The rankings support spatial analysis, atlas search and tissue-specific questions.</p>
+            <p class="eyebrow">Spot · whole-slide · atlas</p>
+            <h1 id="hero-title">Spatial molecular reasoning from routine histology</h1>
+            <p class="lede">HistAgent combines a visual-omics foundation model with a spatial agentic module to support spatial molecular analysis, interactive biological analysis, whole-slide clinical prediction and atlas-scale retrieval.</p>
             <div class="hero-actions">
-              <a class="button primary" href="/tutorials/ranked-molecular-readouts/">Run the quick start</a>
+              <a class="button primary" href="/tutorials/">Explore tutorials</a>
               <a class="button" href="/histagent/">Try HistAgent</a>
             </div>
           </div>
@@ -45,49 +45,48 @@
             <img src="/assets/rcc-tissue.jpg" alt="Renal cell carcinoma tissue section used in the HistAgent TLS case study">
             <figcaption class="figure-note">
               <strong>Renal cell carcinoma TLS example</strong>
-              <span class="caption">A tissue section and ranked genes from the TLS tutorial.</span>
-              <span class="rank-line" aria-label="Example ranked genes">
-                <span data-rank="01">IGKC</span>
-                <span data-rank="02">IGHG1</span>
-                <span data-rank="03">COL1A1</span>
-                <span data-rank="04">CD74</span>
+              <span class="caption">HistAgent localizes and interprets a TLS-like immune niche.</span>
+              <span class="capability-line" aria-label="TLS analysis capabilities">
+                <span>Localization</span>
+                <span>Molecular evidence</span>
+                <span>Multi-turn analysis</span>
               </span>
             </figcaption>
           </figure>
         </section>
 
         <section class="stat-strip" aria-label="HistAgent corpus and model summary">
-          <div class="stat"><strong>2.23M</strong><span>paired H&amp;E and ST tissue locations</span></div>
+          <div class="stat"><strong>2.23M</strong><span>paired H&amp;E–ST spots</span></div>
           <div class="stat"><strong>936</strong><span>human and mouse slides</span></div>
-          <div class="stat"><strong>32</strong><span>canonical tissue categories</span></div>
-          <div class="stat"><strong>Top 50</strong><span>genes generated per location</span></div>
+          <div class="stat"><strong>32</strong><span>tissue categories</span></div>
+          <div class="stat"><strong>50,000</strong><span>evidence-reasoning traces</span></div>
         </section>
 
         <section class="section" aria-labelledby="modes-heading">
           <div class="section-intro">
             <div>
               <p class="eyebrow">Three ways to use HistAgent</p>
-              <h2 id="modes-heading">Learn, analyze and retrieve</h2>
+              <h2 id="modes-heading">Reproduce, analyze and retrieve</h2>
             </div>
-            <p>Follow the runnable tutorials, generate ranked molecular readouts and discuss measured evidence, or retrieve related spatial molecular states from the reference evidence bank.</p>
+            <p>Reproduce the manuscript analyses with the tutorials, analyze selected tissue locations with HistAgent, or retrieve related molecular states from the measured ST evidence bank.</p>
           </div>
           <div class="route-grid">
             <a class="route-card" href="/tutorials/">
               <span class="route-number">01 / Tutorials</span>
-              <h3>Work through five applied notebooks</h3>
-              <p>The notebooks cover gene ranking, spatial findings, standard ST analysis, clinical prediction and atlas retrieval.</p>
+              <h3>Reproduce the manuscript analyses</h3>
+              <p>Five notebooks cover spatial biological findings, molecular recovery and ST analyses, clinical prediction and atlas retrieval.</p>
               <span class="route-link">Open tutorials →</span>
             </a>
             <a class="route-card" href="/histagent/">
               <span class="route-number">02 / HistAgent</span>
-              <h3>Generate ranked readouts and analyze the evidence</h3>
-              <p>Follow the HistAgent workflow from paired H&amp;E views to a ranked molecular readout, spot-level evidence card and evidence-grounded reasoning.</p>
+              <h3>Analyze selected tissue locations</h3>
+              <p>Use local and contextual H&amp;E views to examine a selected tissue location through interactive, multi-turn analysis.</p>
               <span class="route-link">Try HistAgent →</span>
             </a>
             <a class="route-card" href="/atlas-explorer/">
               <span class="route-number">03 / Atlas Explorer</span>
-              <h3>Retrieve measured ST evidence</h3>
-              <p>Search the measured ST evidence bank, inspect retrieved spots in tissue space and continue with retrieval-grounded analysis.</p>
+              <h3>Explore measured ST atlases</h3>
+              <p>Use natural-language or H&amp;E image queries to retrieve related molecular states and continue with retrieval-grounded analysis.</p>
               <span class="route-link">Open Atlas Explorer →</span>
             </a>
           </div>
@@ -101,13 +100,13 @@
             </figure>
             <div class="framework-copy">
               <p class="eyebrow">Method at a glance</p>
-              <h2 id="framework-heading">From ranked molecular readout to spatial analysis</h2>
-              <p>HistAgent receives a spot-centered H&amp;E crop, a larger contextual crop and tissue metadata, then connects its ranked molecular readout to structured molecular and spatial evidence.</p>
+              <h2 id="framework-heading">A unified framework for spatial molecular analysis</h2>
+              <p>HistAgent couples a visual-omics foundation model with a spatial agentic module to connect local and contextual H&amp;E morphology with question-driven analysis of local tissue states.</p>
               <ul class="plain-list">
-                <li><strong>Dual-scale morphology</strong>Local and contextual views share a GigaPath encoder and retain distinct spatial roles.</li>
-                <li><strong>Autoregressive generation</strong>The decoder produces up to 50 non-repeating gene symbols in rank order.</li>
-                <li><strong>Evidence construction</strong>Ranked genes, inferred cell composition, functional programs and spatial context form a spot-level evidence card.</li>
-                <li><strong>Evidence-grounded reasoning</strong>The spatial agentic module uses the evidence card to answer successive region-specific questions.</li>
+                <li><strong>Local and contextual H&amp;E</strong>The foundation model jointly encodes a selected tissue location and its surrounding tissue context.</li>
+                <li><strong>Spatial molecular analysis</strong>HistAgent recovers spatial biological findings and supports standard ST analyses from routine histology.</li>
+                <li><strong>Interactive biological analysis</strong>The spatial agentic module selects and integrates question-relevant molecular and spatial evidence across multiple turns.</li>
+                <li><strong>Cross-scale applications</strong>HistAgent extends from spot-level analysis to whole-slide clinical prediction and retrieval from a measured ST evidence bank.</li>
               </ul>
             </div>
           </div>
@@ -125,7 +124,7 @@
             <a class="tutorial-row" href="/tutorials/ranked-molecular-readouts/">
               <span class="index">T01</span>
               <span><h3>Generate and evaluate ranked molecular readouts</h3><p>Calculate spot-level gene-ranking recovery and gene-level spatial recovery across five held-out slides.</p></span>
-              <span class="time">Hit Rate@50 · mAP@50 · PCC</span>
+              <span class="time">HitRate@50 · mAP@50 · PCC</span>
             </a>
             <a class="tutorial-row" href="/tutorials/spatial-biological-findings/">
               <span class="index">T02</span>

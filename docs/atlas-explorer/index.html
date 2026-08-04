@@ -17,7 +17,7 @@
       <div class="header-inner">
         <a class="brand" href="/">
           <span class="brand-mark" aria-hidden="true"></span>
-          <span class="brand-copy"><strong>HistAgent</strong><small>Project website</small></span>
+          <span class="brand-copy"><strong>HistAgent</strong></span>
         </a>
         <button class="nav-toggle" type="button" data-nav-toggle aria-expanded="false" aria-controls="primary-nav">Menu</button>
         <nav class="primary-nav" id="primary-nav" data-primary-nav aria-label="Primary navigation">
@@ -72,10 +72,10 @@
                 <input id="atlas-image-input" type="file" accept="image/*">
                 <span class="atlas-upload-icon" aria-hidden="true">+</span>
                 <strong>Upload H&amp;E query</strong>
-                <small>Preview the image, then generate its molecular readout in HistAgent.</small>
+                <small>Analyze the image in HistAgent, then use the resulting evidence card for retrieval.</small>
               </label>
-              <img id="atlas-image-preview" alt="Uploaded H&E query preview" hidden>
-              <a class="atlas-secondary-action" href="/histagent/">Open image inference</a>
+              <img id="atlas-image-preview" alt="Uploaded H&amp;E query preview" hidden>
+              <a class="atlas-secondary-action" href="/histagent/">Analyze image in HistAgent</a>
             </div>
 
             <div id="atlas-text-filters">
@@ -184,7 +184,7 @@
 
             <div class="atlas-map-stage" id="atlas-map-stage" aria-live="polite">
               <div class="atlas-tissue-example" id="atlas-tissue-example">
-                <img src="/assets/rcc-tissue.jpg" alt="H&E tissue section with retrieved atlas spots">
+                <img src="/assets/rcc-tissue.jpg" alt="H&amp;E tissue section with retrieved atlas spots">
                 <div class="atlas-dot-layer" id="atlas-dot-layer" aria-hidden="true"></div>
                 <div class="atlas-map-tools" aria-hidden="true">
                   <span>+</span><span>−</span><span>⌂</span>
@@ -235,7 +235,7 @@
 
             <section class="atlas-chat-section">
               <header class="atlas-results-header">
-                <h2>Grounded analysis</h2>
+                <h2>Retrieval-grounded analysis</h2>
               </header>
               <div class="atlas-chat" id="atlas-chat-log" aria-live="polite">
                 <div class="atlas-message user">

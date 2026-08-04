@@ -144,7 +144,7 @@ function setStatus(message, error = false) {
 
 function setBusy(value) {
   generateButton.disabled = value;
-  generateButton.textContent = value ? "Generating…" : "Generate spot evidence";
+  generateButton.textContent = value ? "Analyzing…" : "Analyze selected spot";
   stageLoading.hidden = !value;
 }
 
@@ -441,14 +441,14 @@ function clearEvidenceForSelection() {
   geneList.replaceChildren();
   evidenceFields.innerHTML = `
     <div class="histagent-evidence-empty">
-      Generate the ranked molecular readout and evidence card for ${escapeHtml(selectedSpot?.id || "the selected spot")}.
+      Analyze ${escapeHtml(selectedSpot?.id || "the selected spot")} with HistAgent.
     </div>
   `;
   chatHistory = [];
   chatLog.innerHTML = `
     <div class="atlas-message assistant">
       <span>HistAgent</span>
-      <p>Generate evidence for the selected spot before starting the analysis.</p>
+      <p>Analyze the selected spot before starting the conversation.</p>
     </div>
   `;
   chatInput.disabled = true;
@@ -615,7 +615,7 @@ async function generateEvidence() {
     return;
   }
   setBusy(true);
-  setStatus(`Generating the ranked molecular readout for ${selectedSpot.id}.`);
+  setStatus(`Analyzing ${selectedSpot.id} with HistAgent.`);
   try {
     const localCanvas = canvasCrop(selectedSpot.x, selectedSpot.y, LOCAL_DIAMETER_UM);
     // Training stored the four-times context field at 256 px; the released
@@ -774,7 +774,7 @@ async function resetExample() {
     tissueImage.src = sourceUrl;
   }
   clearEvidenceForSelection();
-  setStatus("Select any real 55 µm Visium spot, then generate its evidence.");
+  setStatus("Select any real 55 µm Visium spot, then analyze it with HistAgent.");
 }
 
 function onImageReady() {
