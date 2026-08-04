@@ -258,6 +258,9 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 6px;
+  width: 100%;
+  max-width: 300px;
+  margin-inline: auto;
 }
 
 .histagent-crop-pair figure {
