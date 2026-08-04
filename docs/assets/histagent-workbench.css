@@ -91,7 +91,7 @@
 
 .histagent-workspace {
   display: grid;
-  grid-template-columns: 250px minmax(420px, 480px) minmax(420px, 1fr);
+  grid-template-columns: 230px minmax(340px, 400px) minmax(420px, 1fr);
   min-height: calc(100vh - 186px);
 }
 
@@ -476,7 +476,7 @@
 }
 
 .histagent-results {
-  grid-template-rows: minmax(410px, 1.18fr) minmax(300px, 0.82fr);
+  grid-template-rows: minmax(0, 1fr) minmax(220px, 0.78fr);
 }
 
 .histagent-evidence-section {
@@ -619,6 +619,63 @@
   color: var(--atlas-teal-dark);
 }
 
+@media (min-width: 961px) {
+  .histagent-page {
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  .histagent-page .atlas-main {
+    box-sizing: border-box;
+    height: calc(100vh - 72px);
+    padding: 12px 16px;
+  }
+
+  .histagent-product {
+    display: grid;
+    height: 100%;
+    min-height: 0;
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  .histagent-product-bar {
+    min-height: 60px;
+    padding-block: 8px;
+  }
+
+  .histagent-workspace {
+    height: auto;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .histagent-controls,
+  .histagent-tissue-panel,
+  .histagent-results {
+    min-height: 0;
+  }
+
+  .histagent-controls {
+    overflow-y: auto;
+  }
+
+  .histagent-tissue-panel {
+    grid-template-rows: auto minmax(0, 1fr) auto auto;
+    overflow: hidden;
+  }
+
+  .histagent-tissue-stage {
+    width: min(100%, calc(100vh - 330px));
+    max-height: 100%;
+    align-self: center;
+    justify-self: center;
+  }
+
+  .histagent-results {
+    overflow: hidden;
+  }
+}
+
 @media (max-width: 1240px) {
   .histagent-product-bar {
     grid-template-columns: 180px minmax(360px, 1fr) auto;
@@ -634,11 +691,11 @@
   }
 
   .histagent-workspace {
-    grid-template-columns: 230px minmax(400px, 460px) minmax(350px, 1fr);
+    grid-template-columns: 210px minmax(320px, 370px) minmax(340px, 1fr);
   }
 }
 
-@media (max-width: 1020px) {
+@media (max-width: 960px) {
   .histagent-product-bar {
     grid-template-columns: 1fr auto;
   }
