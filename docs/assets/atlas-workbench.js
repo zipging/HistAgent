@@ -55,6 +55,7 @@ let chatHistory = [];
 let activeMode = "text";
 let exampleZoom = 1;
 let liveMapHome = null;
+let liveMapView = null;
 
 function escapeHtml(value = "") {
   return String(value)
@@ -181,6 +182,10 @@ function renderPlot(plotValue) {
     x: Array.isArray(layout.xaxis?.range) ? [...layout.xaxis.range] : null,
     y: Array.isArray(layout.yaxis?.range) ? [...layout.yaxis.range] : null
   };
+  liveMapView = {
+    x: liveMapHome.x ? [...liveMapHome.x] : null,
+    y: liveMapHome.y ? [...liveMapHome.y] : null
+  };
   window.Plotly.react(plotTarget, plot.data, layout, {
     responsive: true,
     scrollZoom: true,
@@ -192,8 +197,8 @@ function renderPlot(plotValue) {
 }
 
 function zoomLivePlot(factor) {
-  const xRange = plotTarget?._fullLayout?.xaxis?.range;
-  const yRange = plotTarget?._fullLayout?.yaxis?.range;
+  const xRange = liveMapView?.x || liveMapHome?.x;
+  const yRange = liveMapView?.y || liveMapHome?.y;
   if (!Array.isArray(xRange) || !Array.isArray(yRange)) return;
   const scaled = (range) => {
     const center = (Number(range[0]) + Number(range[1])) / 2;
@@ -202,9 +207,10 @@ function zoomLivePlot(factor) {
       ? [center - half, center + half]
       : [center + half, center - half];
   };
+  liveMapView = { x: scaled(xRange), y: scaled(yRange) };
   window.Plotly.relayout(plotTarget, {
-    "xaxis.range": scaled(xRange),
-    "yaxis.range": scaled(yRange)
+    "xaxis.range": liveMapView.x,
+    "yaxis.range": liveMapView.y
   });
 }
 
@@ -216,6 +222,10 @@ function controlMap(action) {
       const resetLayout = liveMapHome?.x && liveMapHome?.y
         ? { "xaxis.range": liveMapHome.x, "yaxis.range": liveMapHome.y }
         : { "xaxis.autorange": true, "yaxis.autorange": "reversed" };
+      liveMapView = {
+        x: liveMapHome?.x ? [...liveMapHome.x] : null,
+        y: liveMapHome?.y ? [...liveMapHome.y] : null
+      };
       window.Plotly.relayout(plotTarget, resetLayout);
     }
     return;
