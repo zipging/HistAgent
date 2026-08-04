@@ -36,6 +36,56 @@ def test_reservation_stops_at_included_quota(monkeypatch):
     assert caught.value.status_code == 429
 
 
+def test_refund_returns_failed_reservation(monkeypatch):
+    now = datetime.now(timezone.utc)
+    state = {
+        "window_started_at": now.isoformat(),
+        "used_seconds": 300,
+        "calls": 2,
+        "updated_at": now.isoformat(),
+    }
+    saved = []
+    monkeypatch.setattr(gateway, "_load_quota_state", lambda _: state.copy())
+    monkeypatch.setattr(gateway, "_save_quota_state", lambda value: saved.append(value))
+
+    refunded = gateway._refund_gpu_seconds("generate_ranked_readout")
+    assert refunded["used_seconds"] == 120
+    assert refunded["calls"] == 1
+    assert saved[-1]["used_seconds"] == 120
+
+
+@pytest.mark.anyio
+async def test_backend_failure_refunds_reservation(monkeypatch):
+    calls = []
+
+    monkeypatch.setattr(
+        gateway,
+        "_reserve_gpu_seconds",
+        lambda api_name: calls.append(("reserve", api_name)),
+    )
+    monkeypatch.setattr(
+        gateway,
+        "_refund_gpu_seconds",
+        lambda api_name: calls.append(("refund", api_name)),
+    )
+
+    async def fail_call(*_args, **_kwargs):
+        raise gateway.HTTPException(status_code=502, detail="backend failed")
+
+    monkeypatch.setattr(gateway, "_call_gradio", fail_call)
+    with pytest.raises(gateway.HTTPException):
+        await gateway._call_with_reservation(
+            "https://example.invalid",
+            "retrieve_atlas",
+            ["query"],
+        )
+
+    assert calls == [
+        ("reserve", "retrieve_atlas"),
+        ("refund", "retrieve_atlas"),
+    ]
+
+
 def test_quota_window_resets_after_safety_window(monkeypatch):
     now = datetime.now(timezone.utc)
     stale = {

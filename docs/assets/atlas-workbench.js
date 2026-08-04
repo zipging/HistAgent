@@ -22,6 +22,7 @@ const imagePanel = document.querySelector("#atlas-image-query");
 const imageInput = document.querySelector("#atlas-image-input");
 const imagePreview = document.querySelector("#atlas-image-preview");
 const evidenceChips = document.querySelector("#query-evidence-chips");
+const mapControls = [...document.querySelectorAll("[data-map-action]")];
 const evidenceFilterInputs = [
   document.querySelector("#atlas-cell-filter"),
   document.querySelector("#atlas-pathway-filter"),
@@ -52,6 +53,8 @@ const manuscriptExampleEvidence = {
 let topEvidence = manuscriptExampleEvidence;
 let chatHistory = [];
 let activeMode = "text";
+let exampleZoom = 1;
+let liveMapHome = null;
 
 function escapeHtml(value = "") {
   return String(value)
@@ -170,15 +173,62 @@ function renderPlot(plotValue) {
     margin: { l: 20, r: 20, t: 44, b: 20 },
     paper_bgcolor: "#fbfdfc",
     plot_bgcolor: "#f4f8f6",
-    font: { ...(plot.layout.font || {}), family: "Inter, ui-sans-serif, system-ui, sans-serif" }
+    dragmode: "pan",
+    font: { ...(plot.layout.font || {}), family: "Inter, ui-sans-serif, system-ui, sans-serif" },
+    uirevision: "atlas-live-map"
+  };
+  liveMapHome = {
+    x: Array.isArray(layout.xaxis?.range) ? [...layout.xaxis.range] : null,
+    y: Array.isArray(layout.yaxis?.range) ? [...layout.yaxis.range] : null
   };
   window.Plotly.react(plotTarget, plot.data, layout, {
     responsive: true,
+    scrollZoom: true,
+    doubleClick: "reset",
     displaylogo: false,
-    modeBarButtonsToRemove: ["lasso2d", "select2d"]
+    displayModeBar: false
   });
   return true;
 }
+
+function zoomLivePlot(factor) {
+  const xRange = plotTarget?._fullLayout?.xaxis?.range;
+  const yRange = plotTarget?._fullLayout?.yaxis?.range;
+  if (!Array.isArray(xRange) || !Array.isArray(yRange)) return;
+  const scaled = (range) => {
+    const center = (Number(range[0]) + Number(range[1])) / 2;
+    const half = Math.abs(Number(range[1]) - Number(range[0])) * factor / 2;
+    return Number(range[0]) <= Number(range[1])
+      ? [center - half, center + half]
+      : [center + half, center - half];
+  };
+  window.Plotly.relayout(plotTarget, {
+    "xaxis.range": scaled(xRange),
+    "yaxis.range": scaled(yRange)
+  });
+}
+
+function controlMap(action) {
+  if (!plotTarget.hidden && window.Plotly) {
+    if (action === "zoom-in") zoomLivePlot(0.72);
+    if (action === "zoom-out") zoomLivePlot(1.38);
+    if (action === "reset") {
+      const resetLayout = liveMapHome?.x && liveMapHome?.y
+        ? { "xaxis.range": liveMapHome.x, "yaxis.range": liveMapHome.y }
+        : { "xaxis.autorange": true, "yaxis.autorange": "reversed" };
+      window.Plotly.relayout(plotTarget, resetLayout);
+    }
+    return;
+  }
+  if (action === "zoom-in") exampleZoom = Math.min(3, exampleZoom * 1.25);
+  if (action === "zoom-out") exampleZoom = Math.max(1, exampleZoom / 1.25);
+  if (action === "reset") exampleZoom = 1;
+  mapExample.style.transform = `scale(${exampleZoom})`;
+}
+
+mapControls.forEach((button) => {
+  button.addEventListener("click", () => controlMap(button.dataset.mapAction));
+});
 
 function setBusy(value) {
   searchButton.disabled = value;

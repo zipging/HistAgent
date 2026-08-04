@@ -1,0 +1,9 @@
+gradio==5.44.1
+huggingface-hub>=0.34
+spaces>=0.40
+torch==2.8.0
+torchvision==0.23.0
+peft>=0.13,<0.14
+pillow>=10
+safetensors>=0.4
+timm>=1.0.3

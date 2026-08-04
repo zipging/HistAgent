@@ -186,12 +186,15 @@
               <div class="atlas-tissue-example" id="atlas-tissue-example">
                 <img src="/assets/rcc-tissue.jpg" alt="H&amp;E tissue section with retrieved atlas spots">
                 <div class="atlas-dot-layer" id="atlas-dot-layer" aria-hidden="true"></div>
-                <div class="atlas-map-tools" aria-hidden="true">
-                  <span>+</span><span>−</span><span>⌂</span>
-                </div>
                 <div class="atlas-scale"><span></span>1 mm</div>
               </div>
               <div class="atlas-plot" id="atlas-live-plot" hidden></div>
+              <div class="atlas-map-tools" aria-label="Map controls">
+                <button type="button" data-map-action="zoom-in" aria-label="Zoom in" title="Zoom in">+</button>
+                <button type="button" data-map-action="zoom-out" aria-label="Zoom out" title="Zoom out">−</button>
+                <button type="button" data-map-action="reset" aria-label="Reset map" title="Reset map">⌂</button>
+              </div>
+              <div class="atlas-map-hint">Scroll to zoom · drag to pan</div>
               <div class="atlas-loading" id="atlas-loading" hidden>
                 <span></span>
                 <strong>Searching measured ST evidence</strong>

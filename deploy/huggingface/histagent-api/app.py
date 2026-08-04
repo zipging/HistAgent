@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import io
 import json
+import logging
 import os
 import time
 from collections import defaultdict, deque
@@ -18,7 +19,9 @@ from huggingface_hub.errors import EntryNotFoundError, HfHubHTTPError
 from pydantic import BaseModel, Field
 
 
-HF_TOKEN = os.environ.get("WLI14_HF_TOKEN", "").strip()
+HF_TOKEN = (
+    os.environ.get("HF_TOKEN") or os.environ.get("WLI14_HF_TOKEN", "")
+).strip()
 INFERENCE_SPACE = os.environ.get(
     "HISTAGENT_INFERENCE_SPACE", "https://wli14-histagent-agent.hf.space"
 ).rstrip("/")
@@ -67,6 +70,7 @@ _gpu_lock = asyncio.Lock()
 _rate_lock = asyncio.Lock()
 _recent_calls: dict[str, deque[float]] = defaultdict(deque)
 _hf_api = HfApi(token=HF_TOKEN or None)
+logger = logging.getLogger("histagent.gateway")
 
 
 class GradioCall(BaseModel):
@@ -184,6 +188,38 @@ def _reserve_gpu_seconds(api_name: str) -> dict[str, Any]:
     state["updated_at"] = now.isoformat()
     _save_quota_state(state)
     return state
+
+
+def _refund_gpu_seconds(api_name: str) -> dict[str, Any]:
+    """Return a reservation when the backend fails before producing output."""
+
+    now = datetime.now(timezone.utc)
+    state = _load_quota_state(now)
+    reservation = GPU_RESERVATIONS[api_name]
+    state["used_seconds"] = max(
+        0,
+        int(state.get("used_seconds", 0)) - reservation,
+    )
+    state["calls"] = max(0, int(state.get("calls", 0)) - 1)
+    state["updated_at"] = now.isoformat()
+    _save_quota_state(state)
+    return state
+
+
+async def _call_with_reservation(
+    space: str,
+    api_name: str,
+    data: list[Any],
+) -> list[Any]:
+    await asyncio.to_thread(_reserve_gpu_seconds, api_name)
+    try:
+        return await _call_gradio(space, api_name, data)
+    except BaseException:
+        try:
+            await asyncio.to_thread(_refund_gpu_seconds, api_name)
+        except Exception:
+            logger.exception("Could not return the failed %s reservation", api_name)
+        raise
 
 
 def _backend_headers() -> dict[str, str]:
@@ -308,8 +344,7 @@ async def generate(
                 (context_image.filename or "context.png", context_bytes, context_image.content_type),
             ]
         )
-        await asyncio.to_thread(_reserve_gpu_seconds, "generate_ranked_readout")
-        outputs = await _call_gradio(
+        outputs = await _call_with_reservation(
             INFERENCE_SPACE,
             "generate_ranked_readout",
             [uploaded[0], uploaded[1], species, organ, min(50, max(10, top_k))],
@@ -322,8 +357,7 @@ async def call(request: Request, payload: GradioCall) -> dict[str, Any]:
     _require_token()
     await _enforce_rate_limit(request)
     async with _gpu_lock:
-        await asyncio.to_thread(_reserve_gpu_seconds, payload.api_name)
-        outputs = await _call_gradio(
+        outputs = await _call_with_reservation(
             REASONING_SPACE,
             payload.api_name,
             payload.data,
