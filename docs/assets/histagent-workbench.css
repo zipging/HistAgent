@@ -91,7 +91,7 @@
 
 .histagent-workspace {
   display: grid;
-  grid-template-columns: 230px minmax(370px, 450px) minmax(420px, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   min-height: calc(100vh - 186px);
 }
 
@@ -691,7 +691,7 @@
   }
 
   .histagent-workspace {
-    grid-template-columns: 210px minmax(350px, 410px) minmax(340px, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
