@@ -249,6 +249,13 @@ The released model was trained for 30 epochs on 2.23 million paired H&E–ST loc
 
 The HistAgent manuscript and citation will be added here when publicly available.
 
+## License
+
+HistAgent source code is released under the
+[Apache License 2.0](LICENSE). Third-party models and datasets are not
+relicensed by this repository and remain subject to their original licenses,
+access conditions and terms of use.
+
 ## Acknowledgements
 
 HistAgent builds on [Prov-GigaPath](https://github.com/prov-gigapath/prov-gigapath) and [Qwen3-8B](https://huggingface.co/Qwen/Qwen3-8B). Users must comply with their respective access conditions and licenses.
