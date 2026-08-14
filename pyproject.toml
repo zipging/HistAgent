@@ -7,6 +7,7 @@ name = "histagent"
 version = "0.1.0"
 description = "Ranked spatial molecular inference from H&E histology"
 readme = "README.md"
+license = {file = "LICENSE"}
 requires-python = ">=3.10"
 authors = [{name = "HistAgent authors"}]
 dependencies = [
