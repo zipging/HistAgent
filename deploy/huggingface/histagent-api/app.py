@@ -4,7 +4,9 @@ import asyncio
 import io
 import json
 import logging
+import math
 import os
+import re
 import time
 from collections import defaultdict, deque
 from datetime import datetime, timedelta, timezone
@@ -36,10 +38,18 @@ GPU_QUOTA_SECONDS = int(os.environ.get("HISTAGENT_GPU_QUOTA_SECONDS", "2400"))
 QUOTA_WINDOW_SECONDS = int(
     os.environ.get("HISTAGENT_QUOTA_WINDOW_SECONDS", "90000")
 )
-RATE_LIMIT_CALLS = int(os.environ.get("HISTAGENT_RATE_LIMIT_CALLS", "6"))
 RATE_LIMIT_WINDOW_SECONDS = int(
     os.environ.get("HISTAGENT_RATE_LIMIT_WINDOW_SECONDS", "3600")
 )
+RATE_LIMITS = {
+    "generate_ranked_readout": int(
+        os.environ.get("HISTAGENT_GENERATE_RATE_LIMIT", "12")
+    ),
+    "retrieve_atlas": int(os.environ.get("HISTAGENT_RETRIEVE_RATE_LIMIT", "60")),
+    "answer_atlas_question": int(
+        os.environ.get("HISTAGENT_CHAT_RATE_LIMIT", "120")
+    ),
+}
 
 # Reserve each call at the maximum duration declared by the corresponding
 # @spaces.GPU function. This deliberately stops before Hugging Face can draw
@@ -47,8 +57,14 @@ RATE_LIMIT_WINDOW_SECONDS = int(
 GPU_RESERVATIONS = {
     "generate_ranked_readout": 180,
     "retrieve_atlas": 120,
-    "answer_atlas_question": 120,
+    "answer_atlas_question": 60,
 }
+GPU_MINIMUM_CHARGES = {
+    "generate_ranked_readout": 15,
+    "retrieve_atlas": 10,
+    "answer_atlas_question": 10,
+}
+GPU_CHARGE_BUFFER_SECONDS = 5
 
 ALLOWED_ORIGINS = [
     "https://histagent.bio",
@@ -63,7 +79,7 @@ app.add_middleware(
     allow_origins=ALLOWED_ORIGINS,
     allow_credentials=False,
     allow_methods=["GET", "POST", "OPTIONS"],
-    allow_headers=["Content-Type"],
+    allow_headers=["Content-Type", "X-HistAgent-Session"],
 )
 
 _gpu_lock = asyncio.Lock()
@@ -91,20 +107,50 @@ def _client_ip(request: Request) -> str:
     return request.client.host if request.client else "unknown"
 
 
-async def _enforce_rate_limit(request: Request) -> None:
+def _client_identity(request: Request) -> str:
+    session_id = request.headers.get("x-histagent-session", "").strip()
+    if 8 <= len(session_id) <= 96 and re.fullmatch(r"[A-Za-z0-9._-]+", session_id):
+        return f"session:{session_id}"
+    return f"ip:{_client_ip(request)}"
+
+
+async def _reserve_rate_limit(
+    request: Request,
+    api_name: str,
+) -> tuple[str, float]:
     now = time.time()
-    key = _client_ip(request)
+    key = f"{api_name}:{_client_identity(request)}"
+    limit = RATE_LIMITS[api_name]
     async with _rate_lock:
         calls = _recent_calls[key]
         while calls and calls[0] <= now - RATE_LIMIT_WINDOW_SECONDS:
             calls.popleft()
-        if len(calls) >= RATE_LIMIT_CALLS:
+        if len(calls) >= limit:
+            retry_after = max(1, math.ceil(calls[0] + RATE_LIMIT_WINDOW_SECONDS - now))
             raise HTTPException(
                 status_code=429,
-                detail="请求过于频繁，请稍后再试。",
-                headers={"Retry-After": str(RATE_LIMIT_WINDOW_SECONDS)},
+                detail={
+                    "message": "This public demo has reached its request limit. Please retry later.",
+                    "retry_after_seconds": retry_after,
+                },
+                headers={"Retry-After": str(retry_after)},
             )
         calls.append(now)
+    return key, now
+
+
+async def _release_rate_limit(ticket: tuple[str, float]) -> None:
+    key, timestamp = ticket
+    async with _rate_lock:
+        calls = _recent_calls.get(key)
+        if not calls:
+            return
+        try:
+            calls.remove(timestamp)
+        except ValueError:
+            return
+        if not calls:
+            _recent_calls.pop(key, None)
 
 
 def _default_quota_state(now: datetime) -> dict[str, Any]:
@@ -206,20 +252,54 @@ def _refund_gpu_seconds(api_name: str) -> dict[str, Any]:
     return state
 
 
+def _reconcile_gpu_seconds(api_name: str, elapsed_seconds: float) -> dict[str, Any]:
+    """Replace the conservative reservation with measured GPU-call time."""
+
+    now = datetime.now(timezone.utc)
+    state = _load_quota_state(now)
+    reservation = GPU_RESERVATIONS[api_name]
+    charged = min(
+        reservation,
+        max(
+            GPU_MINIMUM_CHARGES[api_name],
+            math.ceil(elapsed_seconds) + GPU_CHARGE_BUFFER_SECONDS,
+        ),
+    )
+    state["used_seconds"] = max(
+        0,
+        int(state.get("used_seconds", 0)) - reservation + charged,
+    )
+    state["updated_at"] = now.isoformat()
+    _save_quota_state(state)
+    return state
+
+
 async def _call_with_reservation(
     space: str,
     api_name: str,
     data: list[Any],
 ) -> list[Any]:
     await asyncio.to_thread(_reserve_gpu_seconds, api_name)
+    started = time.monotonic()
     try:
-        return await _call_gradio(space, api_name, data)
+        outputs = await _call_gradio(space, api_name, data)
     except BaseException:
         try:
             await asyncio.to_thread(_refund_gpu_seconds, api_name)
         except Exception:
             logger.exception("Could not return the failed %s reservation", api_name)
         raise
+    try:
+        await asyncio.to_thread(
+            _reconcile_gpu_seconds,
+            api_name,
+            time.monotonic() - started,
+        )
+    except Exception:
+        # Keeping the full reservation is conservative and prevents overage if
+        # accounting reconciliation is temporarily unavailable.
+        logger.exception("Could not reconcile the %s reservation", api_name)
+    return outputs
 
 
 def _backend_headers() -> dict[str, str]:
@@ -268,7 +348,19 @@ async def _call_gradio(space: str, api_name: str, data: list[Any]) -> list[Any]:
             detail = submission.text[:500]
             if _is_quota_error(detail):
                 raise HTTPException(status_code=429, detail="今日 GPU 额度已用完，请稍后再试。")
-            raise HTTPException(status_code=502, detail="The model service rejected the request.")
+            logger.error(
+                "Backend submission failed api=%s status=%s body=%s",
+                api_name,
+                submission.status_code,
+                detail,
+            )
+            raise HTTPException(
+                status_code=502,
+                detail={
+                    "message": "The model service could not start this request. Please retry.",
+                    "code": "backend_submission_error",
+                },
+            )
         event_id = submission.json().get("event_id")
         if not event_id:
             raise HTTPException(status_code=502, detail="The model service returned no event identifier.")
@@ -293,7 +385,18 @@ async def _call_gradio(space: str, api_name: str, data: list[Any]) -> list[Any]:
                                 status_code=429,
                                 detail="今日 GPU 额度已用完，请稍后再试。",
                             )
-                        raise HTTPException(status_code=502, detail="The GPU worker returned an error.")
+                        logger.error(
+                            "Backend generation failed api=%s payload=%s",
+                            api_name,
+                            payload[:1000],
+                        )
+                        raise HTTPException(
+                            status_code=502,
+                            detail={
+                                "message": "The model could not complete this request. Please retry.",
+                                "code": "backend_generation_error",
+                            },
+                        )
     raise HTTPException(status_code=502, detail="The model response ended unexpectedly.")
 
 
@@ -326,7 +429,6 @@ async def generate(
     top_k: int = Form(50),
 ) -> dict[str, Any]:
     _require_token()
-    await _enforce_rate_limit(request)
     if local_image.content_type not in {"image/png", "image/jpeg", "image/webp"}:
         raise HTTPException(status_code=415, detail="Unsupported local image type.")
     if context_image.content_type not in {"image/png", "image/jpeg", "image/webp"}:
@@ -337,29 +439,38 @@ async def generate(
     if max(len(local_bytes), len(context_bytes)) > 10 * 1024 * 1024:
         raise HTTPException(status_code=413, detail="Each image must be smaller than 10 MB.")
 
-    async with _gpu_lock:
-        uploaded = await _upload_images(
-            [
-                (local_image.filename or "local.png", local_bytes, local_image.content_type),
-                (context_image.filename or "context.png", context_bytes, context_image.content_type),
-            ]
-        )
-        outputs = await _call_with_reservation(
-            INFERENCE_SPACE,
-            "generate_ranked_readout",
-            [uploaded[0], uploaded[1], species, organ, min(50, max(10, top_k))],
-        )
+    rate_ticket = await _reserve_rate_limit(request, "generate_ranked_readout")
+    try:
+        async with _gpu_lock:
+            uploaded = await _upload_images(
+                [
+                    (local_image.filename or "local.png", local_bytes, local_image.content_type),
+                    (context_image.filename or "context.png", context_bytes, context_image.content_type),
+                ]
+            )
+            outputs = await _call_with_reservation(
+                INFERENCE_SPACE,
+                "generate_ranked_readout",
+                [uploaded[0], uploaded[1], species, organ, min(50, max(10, top_k))],
+            )
+    except BaseException:
+        await _release_rate_limit(rate_ticket)
+        raise
     return {"data": outputs}
 
 
 @app.post("/api/call")
 async def call(request: Request, payload: GradioCall) -> dict[str, Any]:
     _require_token()
-    await _enforce_rate_limit(request)
-    async with _gpu_lock:
-        outputs = await _call_with_reservation(
-            REASONING_SPACE,
-            payload.api_name,
-            payload.data,
-        )
+    rate_ticket = await _reserve_rate_limit(request, payload.api_name)
+    try:
+        async with _gpu_lock:
+            outputs = await _call_with_reservation(
+                REASONING_SPACE,
+                payload.api_name,
+                payload.data,
+            )
+    except BaseException:
+        await _release_rate_limit(rate_ticket)
+        raise
     return {"data": outputs}

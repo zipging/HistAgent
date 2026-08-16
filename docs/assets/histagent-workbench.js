@@ -1,7 +1,7 @@
 import {
   callHistAgentService,
   generateHistAgentReadout
-} from "./histagent-services.js";
+} from "./histagent-services.js?v=20260816service1";
 const LOCAL_DIAMETER_UM = 55;
 const CONTEXT_DIAMETER_UM = 220;
 const EXAMPLE_MANIFEST_URL = "/assets/gsm5924036-spots.json";
@@ -664,32 +664,17 @@ function appendMessage(role, content) {
   return message;
 }
 
-function localEvidenceAnswer(message, evidence) {
-  const prompt = message.toLowerCase();
-  const genes = (evidence.ranked_genes || []).slice(0, 12);
-  const cells = evidence.display?.cells || evidence.cell_type_composition || [];
-  const programs = evidence.display?.programs || Object.entries(evidence.pathway_evidence || {})
-    .map(([label, support]) => ({ label, genes: support }));
-  if (/gene|marker|evidence/.test(prompt)) {
-    return `The leading ranked molecular evidence is ${genes.join(", ")}. The evidence card links each cellular or functional interpretation only to supporting genes present in this list.`;
+function chatServiceError(error) {
+  const message = String(error?.message || "").trim();
+  if (/额度|quota/i.test(message)) {
+    return "The public GPU allowance is temporarily unavailable. Your evidence card is preserved; please retry after the allowance resets.";
   }
-  if (/cell|composition|type/.test(prompt)) {
-    if (!cells.length) return "No predefined cell-type marker group is supported strongly enough by the current ranked genes.";
-    return cells.map((item) => `${item.label}: ${(item.genes || []).join(", ")}`).join(". ") + ".";
-  }
-  if (/pathway|program|process|function/.test(prompt)) {
-    if (!programs.length) return "No predefined functional-program marker group is supported strongly enough by the current ranked genes.";
-    return programs.map((item) => `${item.label}: ${(item.genes || []).join(", ")}`).join(". ") + ".";
-  }
-  if (/spatial|surround|context|where|location/.test(prompt)) {
-    return `This evidence corresponds to ${evidence.spot?.id || "the selected spot"} at image coordinates ${evidence.spot?.x}, ${evidence.spot?.y}. HistAgent used the 55 µm local view together with the 220 µm surrounding context.`;
-  }
-  return `The selected spot is supported by the ranked genes ${genes.slice(0, 8).join(", ")}. Ask about genes, cell evidence, functional programs or spatial context for a more specific evidence-grounded answer.`;
+  return message || "The reasoning service could not answer this question. Please retry.";
 }
 
-async function submitChat(message) {
+async function submitChat(message, appendUser = true) {
   if (!currentEvidence) return;
-  appendMessage("user", message);
+  if (appendUser) appendMessage("user", message);
   const pendingMessage = appendMessage(
     "assistant",
     "Analyzing the selected molecular and spatial evidence…"
@@ -703,18 +688,31 @@ async function submitChat(message) {
       chatHistory,
       currentEvidence
     ]);
-    chatHistory = outputs?.[1] || chatHistory;
+    if (!Array.isArray(outputs?.[1])) {
+      throw new Error("The reasoning service returned an invalid response. Please retry.");
+    }
+    chatHistory = outputs[1];
     const last = Array.isArray(chatHistory) ? chatHistory.at(-1) : null;
-    const answer = typeof last?.content === "string"
-      ? last.content
-      : localEvidenceAnswer(message, currentEvidence);
+    if (last?.role !== "assistant" || typeof last?.content !== "string" || !last.content.trim()) {
+      throw new Error("The reasoning service returned no answer. Please retry.");
+    }
+    const answer = last.content.trim();
     pendingMessage.querySelector("p").innerHTML = escapeHtml(answer).replaceAll("\n", "<br>");
     pendingMessage.classList.remove("pending");
   } catch (error) {
     console.error(error);
-    const fallback = localEvidenceAnswer(message, currentEvidence);
-    pendingMessage.querySelector("p").innerHTML = escapeHtml(fallback).replaceAll("\n", "<br>");
+    pendingMessage.querySelector("p").textContent = chatServiceError(error);
     pendingMessage.classList.remove("pending");
+    pendingMessage.classList.add("error");
+    const retry = document.createElement("button");
+    retry.type = "button";
+    retry.className = "histagent-chat-retry";
+    retry.textContent = "Retry";
+    retry.addEventListener("click", () => {
+      pendingMessage.remove();
+      submitChat(message, false);
+    }, { once: true });
+    pendingMessage.append(retry);
   } finally {
     chatButton.disabled = false;
   }

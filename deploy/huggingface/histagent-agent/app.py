@@ -41,11 +41,13 @@ ATLAS_TISSUE_BASE = (
     f"{ATLAS_TISSUE_REPO}/resolve/main"
 )
 
-SYSTEM_POLICY = """You are HistAgent, a molecular reasoning assistant for histology images.
-Use only the supplied evidence card to answer questions about the selected tissue spot.
-Do not fabricate genes, pathways, cell types or spatial conclusions that are absent from
-the evidence. State uncertainty when the evidence is limited or ambiguous. Answer in the
-same language as the user. Do not expose chain-of-thought, hidden reasoning or <think> tags."""
+SYSTEM_POLICY = """You are HistAgent, an assistant for evidence-grounded analysis of
+histology-derived molecular and spatial evidence. Answer identity and capability questions
+briefly and directly. For questions about the selected tissue spot, use only the supplied
+evidence card and explain how the available genes, cell states, functional programs and
+spatial context support the answer. Do not fabricate evidence that is absent from the card.
+State uncertainty when the evidence is limited or ambiguous. Answer in the same language as
+the user. Do not expose chain-of-thought, hidden reasoning or <think> tags."""
 
 
 def _compact_evidence(row: dict[str, Any]) -> dict[str, Any]:
@@ -184,7 +186,10 @@ def _tissue_image(slide_id: str) -> dict[str, Any] | None:
 
 @lru_cache(maxsize=1)
 def _load_qwen() -> tuple[Any, Any]:
-    tokenizer = AutoTokenizer.from_pretrained(QWEN_ADAPTER_REPO)
+    # The LoRA repository contains adapter weights, not a separate tokenizer.
+    # Loading the canonical base tokenizer also avoids version-specific parsing
+    # of tokenizer metadata saved by the fine-tuning environment.
+    tokenizer = AutoTokenizer.from_pretrained(QWEN_REPO)
     base_model = AutoModelForCausalLM.from_pretrained(
         QWEN_REPO,
         dtype=torch.bfloat16,

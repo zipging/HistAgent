@@ -599,6 +599,25 @@
   grid-template-rows: auto minmax(105px, 1fr) auto auto;
 }
 
+.atlas-message.error p {
+  border: 1px solid #d9b58a;
+  background: #fff7ec;
+  color: #65451f;
+}
+
+.histagent-chat-retry {
+  margin-top: 6px;
+  padding: 5px 9px;
+  border: 1px solid var(--atlas-teal);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--atlas-teal-dark);
+  cursor: pointer;
+  font: inherit;
+  font-size: 9px;
+  font-weight: 750;
+}
+
 .histagent-suggestions {
   display: flex;
   flex-wrap: wrap;

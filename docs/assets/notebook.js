@@ -54,13 +54,17 @@
         const naturalWidth = Number(image.naturalWidth || 0);
         if (!naturalWidth) return;
 
-        // Notebook PNGs are exported at high DPI. Preserve their relative
-        // figure sizes while avoiding both full-column stretching and upscale.
-        const targetWidth = Math.min(1100, Math.round(naturalWidth * 0.62));
-        image.style.width = `${Math.min(naturalWidth, targetWidth)}px`;
+        const naturalHeight = Number(image.naturalHeight || 0);
+        if (!naturalHeight) return;
+
+        // Notebook PNGs are exported at high DPI. Bound both dimensions so a
+        // multi-panel result remains legible without occupying an entire view.
+        const scale = Math.min(1, 1180 / naturalWidth, 720 / naturalHeight);
+        const targetWidth = Math.round(naturalWidth * scale);
+        image.style.width = `${targetWidth}px`;
         image.style.maxWidth = "100%";
         image.style.height = "auto";
-        image.dataset.figureWidth = targetWidth < 1100 ? "compact" : "wide";
+        image.dataset.figureWidth = targetWidth < 880 ? "compact" : "wide";
       };
 
       if (image.complete) {

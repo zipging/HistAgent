@@ -4,6 +4,7 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 from fastapi.testclient import TestClient
+from starlette.requests import Request
 
 import app as gateway
 
@@ -54,6 +55,24 @@ def test_refund_returns_failed_reservation(monkeypatch):
     assert saved[-1]["used_seconds"] == 120
 
 
+def test_reconcile_charges_measured_time_with_safety_floor(monkeypatch):
+    now = datetime.now(timezone.utc)
+    state = {
+        "window_started_at": now.isoformat(),
+        "used_seconds": 180,
+        "calls": 1,
+        "updated_at": now.isoformat(),
+    }
+    saved = []
+    monkeypatch.setattr(gateway, "_load_quota_state", lambda _: state.copy())
+    monkeypatch.setattr(gateway, "_save_quota_state", lambda value: saved.append(value))
+
+    reconciled = gateway._reconcile_gpu_seconds("generate_ranked_readout", 7.2)
+    assert reconciled["used_seconds"] == 15
+    assert reconciled["calls"] == 1
+    assert saved[-1]["used_seconds"] == 15
+
+
 @pytest.mark.anyio
 async def test_backend_failure_refunds_reservation(monkeypatch):
     calls = []
@@ -86,6 +105,19 @@ async def test_backend_failure_refunds_reservation(monkeypatch):
     ]
 
 
+@pytest.mark.anyio
+async def test_rate_limits_are_session_and_endpoint_specific(monkeypatch):
+    monkeypatch.setitem(gateway.RATE_LIMITS, "answer_atlas_question", 1)
+    headers = [(b"x-histagent-session", b"browser-session-123")]
+    request = Request({"type": "http", "headers": headers, "client": ("127.0.0.1", 1)})
+
+    await gateway._reserve_rate_limit(request, "answer_atlas_question")
+    with pytest.raises(gateway.HTTPException) as caught:
+        await gateway._reserve_rate_limit(request, "answer_atlas_question")
+    assert caught.value.status_code == 429
+    await gateway._reserve_rate_limit(request, "retrieve_atlas")
+
+
 def test_quota_window_resets_after_safety_window(monkeypatch):
     now = datetime.now(timezone.utc)
     stale = {
@@ -113,6 +145,7 @@ def test_reasoning_proxy_returns_backend_outputs(monkeypatch):
 
     monkeypatch.setattr(gateway, "_call_gradio", fake_call)
     monkeypatch.setattr(gateway, "_reserve_gpu_seconds", lambda _api: {})
+    monkeypatch.setattr(gateway, "_reconcile_gpu_seconds", lambda _api, _elapsed: {})
 
     response = TestClient(gateway.app).post(
         "/api/call",
@@ -142,6 +175,7 @@ def test_generate_proxy_accepts_two_images(monkeypatch):
     monkeypatch.setattr(gateway, "_upload_images", fake_upload)
     monkeypatch.setattr(gateway, "_call_gradio", fake_call)
     monkeypatch.setattr(gateway, "_reserve_gpu_seconds", lambda _api: {})
+    monkeypatch.setattr(gateway, "_reconcile_gpu_seconds", lambda _api, _elapsed: {})
 
     files = {
         "local_image": ("local.png", b"png", "image/png"),
