@@ -211,10 +211,11 @@ data_root = snapshot_download(
 )
 ```
 
-Download the executed notebooks from the
-[HistAgent tutorials](https://zipging.github.io/HistAgent/tutorials/). Each
-notebook contains its installation cell and downloads only the files needed for
-that workflow. To run a downloaded notebook locally:
+The five executed notebooks are available in
+[`docs/notebooks`](docs/notebooks) and as rendered
+[HistAgent tutorials](https://histagent.bio/tutorials/). Each notebook contains
+its installation cell and downloads only the files needed for that workflow.
+To run a notebook locally:
 
 ```bash
 python -m pip install jupyter
