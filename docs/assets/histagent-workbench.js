@@ -924,6 +924,13 @@ chatForm.addEventListener("submit", (event) => {
   if (message && currentEvidence) submitChat(message);
 });
 
+chatInput.addEventListener("keydown", (event) => {
+  if (event.key !== "Enter" || event.shiftKey) return;
+  if (event.isComposing || event.keyCode === 229) return;
+  event.preventDefault();
+  if (!chatButton.disabled) chatForm.requestSubmit();
+});
+
 document.querySelectorAll("#histagent-suggestions button").forEach((button) => {
   button.addEventListener("click", () => {
     if (!currentEvidence) return;
