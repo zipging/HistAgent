@@ -10,6 +10,7 @@ const queryInput = document.querySelector("#atlas-query");
 const speciesInput = document.querySelector("#atlas-species");
 const organInput = document.querySelector("#atlas-organ");
 const slideInput = document.querySelector("#atlas-slide");
+const mapStage = document.querySelector("#atlas-map-stage");
 const mapExample = document.querySelector("#atlas-tissue-example");
 const exampleCanvas = document.querySelector(".atlas-tissue-canvas");
 const plotTarget = document.querySelector("#atlas-live-plot");
@@ -60,8 +61,8 @@ let topEvidence = manuscriptExampleEvidence;
 let chatHistory = [];
 let activeMode = "text";
 let exampleZoom = 1;
-let liveMapHome = null;
-let liveMapView = null;
+let examplePan = { x: 0, y: 0 };
+let liveMapState = null;
 let stagedImagePayload = null;
 
 function escapeHtml(value = "") {
@@ -99,6 +100,11 @@ function fitExampleCanvas() {
   const scale = Math.min(mapExample.clientWidth / width, mapExample.clientHeight / height);
   exampleCanvas.style.width = `${width * scale}px`;
   exampleCanvas.style.height = `${height * scale}px`;
+}
+
+function applyExampleTransform() {
+  if (!exampleCanvas) return;
+  exampleCanvas.style.transform = `translate3d(${examplePan.x}px, ${examplePan.y}px, 0) scale(${exampleZoom})`;
 }
 
 function seedDots() {
@@ -246,7 +252,7 @@ function renderCards(rows) {
 }
 
 function renderPlot(plotValue) {
-  if (!plotValue || !window.Plotly) return false;
+  if (!plotValue || !plotTarget) return false;
   let plot = plotValue.plot ?? plotValue;
   if (typeof plot === "string") {
     try {
@@ -256,80 +262,127 @@ function renderPlot(plotValue) {
     }
   }
   if (!plot?.data || !plot?.layout) return false;
+  const imageSpec = (plot.layout.images || [])[0];
+  const width = Number(imageSpec?.sizex);
+  const height = Number(imageSpec?.sizey);
+  if (!imageSpec?.source || !Number.isFinite(width) || !Number.isFinite(height)) return false;
+
+  const canvas = document.createElement("div");
+  canvas.className = "atlas-live-canvas";
+  const image = document.createElement("img");
+  image.src = imageSpec.source;
+  image.alt = "H&E tissue section with retrieved evidence-bank spots";
+  image.draggable = false;
+  const layer = document.createElement("div");
+  layer.className = "atlas-dot-layer";
+
+  plot.data.forEach((trace) => {
+    const isOther = String(trace.name || "").toLowerCase().includes("other");
+    const xs = Array.isArray(trace.x) ? trace.x : [];
+    const ys = Array.isArray(trace.y) ? trace.y : [];
+    xs.forEach((xValue, index) => {
+      const x = Number(xValue);
+      const y = Number(ys[index]);
+      if (!Number.isFinite(x) || !Number.isFinite(y) || x < 0 || y < 0 || x > width || y > height) return;
+      const rank = Number(Array.isArray(trace.text) ? trace.text[index] : NaN);
+      const dot = document.createElement("span");
+      dot.className = isOther
+        ? "atlas-map-dot other"
+        : `atlas-map-dot ${rank === 1 ? "top" : "matched"}`;
+      dot.style.left = `${(x / width) * 100}%`;
+      dot.style.top = `${(y / height) * 100}%`;
+      if (!isOther && Number.isFinite(rank)) dot.textContent = String(rank);
+      const hover = Array.isArray(trace.hovertext) ? trace.hovertext[index] : "";
+      if (hover) dot.title = String(hover).replaceAll("<br>", " · ");
+      layer.append(dot);
+    });
+  });
+
+  canvas.append(image, layer);
+  plotTarget.replaceChildren(canvas);
   mapExample.hidden = true;
   plotTarget.hidden = false;
-  const layout = {
-    ...plot.layout,
-    autosize: true,
-    height: undefined,
-    margin: { l: 20, r: 20, t: 44, b: 20 },
-    paper_bgcolor: "#edf2ef",
-    plot_bgcolor: "#edf2ef",
-    dragmode: "pan",
-    font: { ...(plot.layout.font || {}), family: "Inter, ui-sans-serif, system-ui, sans-serif" },
-    uirevision: "atlas-live-map"
-  };
-  liveMapHome = {
-    x: Array.isArray(layout.xaxis?.range) ? [...layout.xaxis.range] : null,
-    y: Array.isArray(layout.yaxis?.range) ? [...layout.yaxis.range] : null
-  };
-  liveMapView = {
-    x: liveMapHome.x ? [...liveMapHome.x] : null,
-    y: liveMapHome.y ? [...liveMapHome.y] : null
-  };
-  window.Plotly.react(plotTarget, plot.data, layout, {
-    responsive: true,
-    scrollZoom: true,
-    doubleClick: "reset",
-    displaylogo: false,
-    displayModeBar: false
-  });
+  liveMapState = { canvas, width, height, zoom: 1, panX: 0, panY: 0 };
+  image.addEventListener("load", fitLiveCanvas, { once: true });
+  fitLiveCanvas();
   return true;
 }
 
-function zoomLivePlot(factor) {
-  const xRange = liveMapView?.x || liveMapHome?.x;
-  const yRange = liveMapView?.y || liveMapHome?.y;
-  if (!Array.isArray(xRange) || !Array.isArray(yRange)) return;
-  const scaled = (range) => {
-    const center = (Number(range[0]) + Number(range[1])) / 2;
-    const half = Math.abs(Number(range[1]) - Number(range[0])) * factor / 2;
-    return Number(range[0]) <= Number(range[1])
-      ? [center - half, center + half]
-      : [center + half, center - half];
-  };
-  liveMapView = { x: scaled(xRange), y: scaled(yRange) };
-  window.Plotly.relayout(plotTarget, {
-    "xaxis.range": liveMapView.x,
-    "yaxis.range": liveMapView.y
-  });
+function fitLiveCanvas() {
+  if (!liveMapState || !plotTarget || plotTarget.hidden) return;
+  const scale = Math.min(
+    plotTarget.clientWidth / liveMapState.width,
+    plotTarget.clientHeight / liveMapState.height
+  );
+  liveMapState.canvas.style.width = `${liveMapState.width * scale}px`;
+  liveMapState.canvas.style.height = `${liveMapState.height * scale}px`;
+  applyLiveTransform();
+}
+
+function applyLiveTransform() {
+  if (!liveMapState) return;
+  liveMapState.canvas.style.transform = `translate3d(${liveMapState.panX}px, ${liveMapState.panY}px, 0) scale(${liveMapState.zoom})`;
 }
 
 function controlMap(action) {
-  if (!plotTarget.hidden && window.Plotly) {
-    if (action === "zoom-in") zoomLivePlot(0.72);
-    if (action === "zoom-out") zoomLivePlot(1.38);
+  if (!plotTarget.hidden && liveMapState) {
+    if (action === "zoom-in") liveMapState.zoom = Math.min(4, liveMapState.zoom * 1.25);
+    if (action === "zoom-out") liveMapState.zoom = Math.max(1, liveMapState.zoom / 1.25);
     if (action === "reset") {
-      const resetLayout = liveMapHome?.x && liveMapHome?.y
-        ? { "xaxis.range": liveMapHome.x, "yaxis.range": liveMapHome.y }
-        : { "xaxis.autorange": true, "yaxis.autorange": "reversed" };
-      liveMapView = {
-        x: liveMapHome?.x ? [...liveMapHome.x] : null,
-        y: liveMapHome?.y ? [...liveMapHome.y] : null
-      };
-      window.Plotly.relayout(plotTarget, resetLayout);
+      liveMapState.zoom = 1;
+      liveMapState.panX = 0;
+      liveMapState.panY = 0;
     }
+    applyLiveTransform();
     return;
   }
   if (action === "zoom-in") exampleZoom = Math.min(3, exampleZoom * 1.25);
   if (action === "zoom-out") exampleZoom = Math.max(1, exampleZoom / 1.25);
-  if (action === "reset") exampleZoom = 1;
-  mapExample.style.transform = `scale(${exampleZoom})`;
+  if (action === "reset") {
+    exampleZoom = 1;
+    examplePan = { x: 0, y: 0 };
+  }
+  applyExampleTransform();
 }
 
 mapControls.forEach((button) => {
   button.addEventListener("click", () => controlMap(button.dataset.mapAction));
 });
+
+mapStage?.addEventListener("wheel", (event) => {
+  event.preventDefault();
+  controlMap(event.deltaY < 0 ? "zoom-in" : "zoom-out");
+}, { passive: false });
+
+let mapDrag = null;
+plotTarget?.addEventListener("pointerdown", (event) => {
+  if (!liveMapState || liveMapState.zoom <= 1) return;
+  mapDrag = {
+    pointerId: event.pointerId,
+    x: event.clientX,
+    y: event.clientY,
+    panX: liveMapState.panX,
+    panY: liveMapState.panY
+  };
+  plotTarget.setPointerCapture(event.pointerId);
+  plotTarget.classList.add("is-dragging");
+});
+
+plotTarget?.addEventListener("pointermove", (event) => {
+  if (!mapDrag || !liveMapState || event.pointerId !== mapDrag.pointerId) return;
+  liveMapState.panX = mapDrag.panX + event.clientX - mapDrag.x;
+  liveMapState.panY = mapDrag.panY + event.clientY - mapDrag.y;
+  applyLiveTransform();
+});
+
+function endMapDrag(event) {
+  if (!mapDrag || event.pointerId !== mapDrag.pointerId) return;
+  mapDrag = null;
+  plotTarget?.classList.remove("is-dragging");
+}
+
+plotTarget?.addEventListener("pointerup", endMapDrag);
+plotTarget?.addEventListener("pointercancel", endMapDrag);
 
 function setBusy(value) {
   searchButton.disabled = value;
@@ -567,10 +620,16 @@ evidenceFilterInputs.forEach((input) => {
 seedDots();
 fitExampleCanvas();
 loadReadySlides();
-if (typeof ResizeObserver !== "undefined" && mapExample) {
-  new ResizeObserver(fitExampleCanvas).observe(mapExample);
+if (typeof ResizeObserver !== "undefined" && mapStage) {
+  new ResizeObserver(() => {
+    fitExampleCanvas();
+    fitLiveCanvas();
+  }).observe(mapStage);
 } else {
-  window.addEventListener("resize", fitExampleCanvas);
+  window.addEventListener("resize", () => {
+    fitExampleCanvas();
+    fitLiveCanvas();
+  });
 }
 
 let transferredEvidence = null;

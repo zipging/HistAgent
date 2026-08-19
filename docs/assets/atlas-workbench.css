@@ -477,21 +477,45 @@ body.atlas-page {
 .atlas-tissue-example {
   display: grid;
   place-items: center;
-  transform-origin: center;
-  transition: transform 180ms ease;
   background: #edf2ef;
 }
 
-.atlas-tissue-canvas {
-  position: relative;
-  flex: 0 0 auto;
+.atlas-plot {
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: #edf2ef;
+  cursor: grab;
+  touch-action: none;
 }
 
-.atlas-tissue-canvas img {
+.atlas-plot[hidden] {
+  display: none;
+}
+
+.atlas-plot.is-dragging {
+  cursor: grabbing;
+}
+
+.atlas-tissue-canvas,
+.atlas-live-canvas {
+  position: relative;
+  flex: 0 0 auto;
+  transform-origin: center;
+  transition: transform 160ms ease;
+}
+
+.atlas-plot.is-dragging .atlas-live-canvas {
+  transition: none;
+}
+
+.atlas-tissue-canvas img,
+.atlas-live-canvas img {
   display: block;
   width: 100%;
   height: 100%;
   object-fit: fill;
+  user-select: none;
   filter: saturate(0.84) brightness(1.04);
 }
 

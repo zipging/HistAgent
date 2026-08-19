@@ -192,6 +192,34 @@ def _ready_tissue_slides() -> list[str]:
 
 
 @lru_cache(maxsize=1)
+def _coordinate_aligned_tissue_slides() -> frozenset[str]:
+    _, metadata = _load_atlas_index()
+    manifest = _load_tissue_manifest()
+    ready = set(_ready_tissue_slides())
+    bounds: dict[str, list[float]] = {}
+    for record in metadata:
+        slide_id = str(record.get("slice_id") or "")
+        if slide_id not in ready or record.get("x") is None or record.get("y") is None:
+            continue
+        x = float(record["x"])
+        y = float(record["y"])
+        current = bounds.setdefault(slide_id, [x, x, y, y])
+        current[0] = min(current[0], x)
+        current[1] = max(current[1], x)
+        current[2] = min(current[2], y)
+        current[3] = max(current[3], y)
+    aligned = {
+        slide_id
+        for slide_id, (min_x, max_x, min_y, max_y) in bounds.items()
+        if min_x >= 0
+        and min_y >= 0
+        and max_x <= float(manifest[slide_id]["coordinate_width"]) * 1.02
+        and max_y <= float(manifest[slide_id]["coordinate_height"]) * 1.02
+    }
+    return frozenset(aligned)
+
+
+@lru_cache(maxsize=1)
 def _load_qwen() -> tuple[Any, Any]:
     # The LoRA repository contains adapter weights, not a separate tokenizer.
     # Loading the canonical base tokenizer also avoids version-specific parsing
@@ -648,7 +676,7 @@ def retrieve_atlas(
         "all indexed slides",
         "all image-ready slides",
     }:
-        ready_slides = set(_ready_tissue_slides())
+        ready_slides = _coordinate_aligned_tissue_slides()
         candidate_indices = np.asarray(
             [
                 index
@@ -657,7 +685,7 @@ def retrieve_atlas(
             ],
             dtype=np.int64,
         )
-    else:
+    elif normalized_slide in _coordinate_aligned_tissue_slides():
         candidate_indices = np.asarray(
             [
                 index
@@ -666,6 +694,8 @@ def retrieve_atlas(
             ],
             dtype=np.int64,
         )
+    else:
+        candidate_indices = np.empty(0, dtype=np.int64)
     if candidate_indices.size == 0:
         return (
             [],
