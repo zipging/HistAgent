@@ -2,12 +2,14 @@ import { callHistAgentService } from "./histagent-services.js";
 
 const ATLAS_IMAGE_QUERY_KEY = "histagent-atlas-image-query";
 const ATLAS_EVIDENCE_QUERY_KEY = "histagent-atlas-evidence-query";
+const ATLAS_TISSUE_MANIFEST = "https://huggingface.co/datasets/wli14/HistAgent-atlas-images/resolve/main/manifest.json";
 
 const form = document.querySelector("#atlas-search-form");
 const searchButton = document.querySelector("#atlas-search-button");
 const queryInput = document.querySelector("#atlas-query");
 const speciesInput = document.querySelector("#atlas-species");
 const organInput = document.querySelector("#atlas-organ");
+const slideInput = document.querySelector("#atlas-slide");
 const mapExample = document.querySelector("#atlas-tissue-example");
 const exampleCanvas = document.querySelector(".atlas-tissue-canvas");
 const plotTarget = document.querySelector("#atlas-live-plot");
@@ -36,20 +38,20 @@ const evidenceFilterInputs = [
 
 const manuscriptExampleEvidence = {
   spot: {
-    slice_id: "GSE212526_GSM6534010",
+    slice_id: "GSE203612_GSM6177603",
     species: "human",
-    organ: "undifferentiated pleomorphic sarcoma"
+    organ: "breast"
   },
-  ranked_genes: ["TMSB10", "S100A6", "FTL", "S100A4", "B2M", "HLA-B", "SH3BGRL3", "CD74"],
-  cell_type_composition: ["Regulatory T cell", "Mononuclear phagocyte", "Stromal cell"],
+  ranked_genes: ["SCGB2A2", "SCGB2A1", "TFF3", "TMSB10", "EEF1A1", "KRT19", "FTL", "CD74"],
+  cell_type_composition: ["Cancer cell", "CD8 T cell", "Fibroblast", "Epithelial cell"],
   pathway_evidence: {
-    antigen_presentation: ["B2M", "HLA-B", "CD74"],
-    extracellular_matrix_organization: ["S100A4"]
+    innate_immune_system: ["CD74", "HLA-B"],
+    antigen_processing_and_cross_presentation: ["CD74", "HLA-B"]
   },
   spatial_context: {
     available: true,
     neighborhood_consensus: {
-      label: "tumor-adjacent immune-stromal interface"
+      label: "tumor-associated epithelial and immune context"
     }
   }
 };
@@ -82,19 +84,21 @@ function formatGenes(value = "") {
     .join("");
 }
 
-const exampleSpotCoordinates = [[97.18,75.97],[42.15,45.79],[75.69,71.3],[62.96,53.93],[79.72,75.94],[64.27,70.12],[56.27,37.72],[81.04,82.88],[82.44,55.11],[58.3,25.0],[76.35,79.4],[62.98,44.67],[50.89,37.71],[58.19,89.77],[79.08,56.26],[75.01,79.39],[47.51,52.74],[65.6,77.07],[79.08,53.95],[64.94,73.59],[75.03,63.2],[93.17,69.02],[97.2,66.71],[56.24,56.22],[84.46,53.96],[63.6,68.97],[54.21,64.32],[60.32,26.16],[48.87,43.49],[85.8,53.96],[68.99,62.03],[96.52,65.55],[60.28,46.98],[55.57,55.07],[91.83,62.07],[58.24,59.7],[38.78,51.57],[71.69,50.47],[51.53,59.69],[37.42,56.19],[58.9,74.73],[53.57,46.97],[60.91,75.9],[48.17,58.53],[48.21,37.71],[48.8,82.81],[42.15,43.48],[89.12,71.32],[62.25,73.59],[73.7,58.58],[68.26,90.95],[70.99,72.44],[53.54,60.85],[54.16,92.09],[83.73,85.19],[62.95,60.87],[88.46,67.85],[35.42,52.72],[74.37,62.04],[50.19,59.69],[62.98,42.36],[68.34,51.62],[73.0,75.92],[79.06,67.84],[64.29,60.87],[73.04,50.48],[85.07,82.89],[48.15,70.1],[72.36,56.25],[78.41,55.11],[46.86,40.01],[54.25,41.19],[84.4,86.35],[91.81,73.64],[56.89,71.27],[64.27,67.81],[50.16,73.56],[89.81,65.53],[61.61,58.55],[70.36,48.15],[64.28,65.49],[77.71,65.51],[63.6,73.59],[71.67,64.35],[59.61,48.13],[56.94,43.51],[71.66,71.29],[79.07,58.58],[41.43,72.39],[65.65,49.3]];
+const exampleSpotCoordinates = [[22.9,22.68],[37.09,34.65],[28.56,76.14],[25.35,16.13],[41.42,44.46],[48.18,36.81],[46.95,36.81],[19.82,21.6],[22.96,48.87],[33.98,18.29],[24.23,66.33],[51.36,85.91],[24.14,27.05],[35.21,20.47],[18.61,32.51],[11.89,55.44],[59.32,60.79],[16.77,33.61],[58.07,52.06],[35.22,24.84],[37.18,73.94],[54.96,37.88],[24.82,54.32],[20.5,53.24],[49.49,71.72],[54.98,46.61]];
 
 const exampleRetrievedCoordinates = [
-  { x: 59.54, y: 89.78, rank: 1, kind: "top" },
-  { x: 73.05, y: 43.53, rank: 2, kind: "matched" },
-  { x: 58.30, y: 25.00, rank: 4, kind: "matched" }
+  { x: 24.14, y: 27.05, rank: 1, kind: "top" },
+  { x: 16.77, y: 33.61, rank: 2, kind: "matched" }
 ];
 
 function fitExampleCanvas() {
   if (!mapExample || !exampleCanvas) return;
-  const scale = Math.min(mapExample.clientWidth / 1712, mapExample.clientHeight / 1730);
-  exampleCanvas.style.width = `${1712 * scale}px`;
-  exampleCanvas.style.height = `${1730 * scale}px`;
+  const image = exampleCanvas.querySelector("img");
+  const width = image?.naturalWidth || 600;
+  const height = image?.naturalHeight || 589;
+  const scale = Math.min(mapExample.clientWidth / width, mapExample.clientHeight / height);
+  exampleCanvas.style.width = `${width * scale}px`;
+  exampleCanvas.style.height = `${height * scale}px`;
 }
 
 function seedDots() {
@@ -350,6 +354,7 @@ async function runRetrieval(query, chipText = query) {
       query,
       speciesInput.value,
       organInput.value,
+      slideInput.value,
       5
     ]);
     const outputs = Array.isArray(data) ? data : [];
@@ -381,6 +386,23 @@ async function runRetrieval(query, chipText = query) {
     showSearchError(error);
   } finally {
     setBusy(false);
+  }
+}
+
+async function loadReadySlides() {
+  if (!slideInput) return;
+  try {
+    const response = await fetch(ATLAS_TISSUE_MANIFEST, { cache: "no-store" });
+    if (!response.ok) throw new Error(`Atlas slide manifest failed (${response.status})`);
+    const payload = await response.json();
+    const slides = Object.entries(payload?.slides || {})
+      .filter(([, record]) => record?.source !== "sampled_contextual_h_and_e_patches")
+      .map(([slideId]) => slideId)
+      .sort((left, right) => left.localeCompare(right));
+    slideInput.replaceChildren(new Option(`All image-ready slides (${slides.length})`, "__ready__"));
+    slides.forEach((slideId) => slideInput.add(new Option(slideId, slideId)));
+  } catch (error) {
+    console.error(error);
   }
 }
 
@@ -544,6 +566,7 @@ evidenceFilterInputs.forEach((input) => {
 
 seedDots();
 fitExampleCanvas();
+loadReadySlides();
 if (typeof ResizeObserver !== "undefined" && mapExample) {
   new ResizeObserver(fitExampleCanvas).observe(mapExample);
 } else {

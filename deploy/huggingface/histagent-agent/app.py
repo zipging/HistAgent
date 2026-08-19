@@ -183,6 +183,14 @@ def _tissue_image(slide_id: str) -> dict[str, Any] | None:
     }
 
 
+def _ready_tissue_slides() -> list[str]:
+    return sorted(
+        slide_id
+        for slide_id, record in _load_tissue_manifest().items()
+        if record.get("source") != "sampled_contextual_h_and_e_patches"
+    )
+
+
 @lru_cache(maxsize=1)
 def _load_qwen() -> tuple[Any, Any]:
     # The LoRA repository contains adapter weights, not a separate tokenizer.
@@ -577,6 +585,7 @@ def retrieve_atlas(
     query: str,
     species: str,
     organ: str,
+    slide_id: str,
     top_k: int,
     progress=gr.Progress(),
 ) -> tuple[
@@ -605,6 +614,7 @@ def retrieve_atlas(
     candidate_indices = np.arange(len(metadata), dtype=np.int64)
     normalized_species = str(species or "").strip().lower()
     normalized_organ = str(organ or "").strip().lower()
+    normalized_slide = str(slide_id or "").strip()
     if normalized_species and normalized_species != "any":
         candidate_indices = np.asarray(
             [
@@ -622,6 +632,25 @@ def retrieve_atlas(
                 for index in candidate_indices
                 if str(metadata[int(index)].get("organ") or "").lower()
                 == normalized_organ
+            ],
+            dtype=np.int64,
+        )
+    if normalized_slide == "__ready__":
+        ready_slides = set(_ready_tissue_slides())
+        candidate_indices = np.asarray(
+            [
+                index
+                for index in candidate_indices
+                if str(metadata[int(index)].get("slice_id") or "") in ready_slides
+            ],
+            dtype=np.int64,
+        )
+    elif normalized_slide and normalized_slide.lower() != "any":
+        candidate_indices = np.asarray(
+            [
+                index
+                for index in candidate_indices
+                if str(metadata[int(index)].get("slice_id") or "") == normalized_slide
             ],
             dtype=np.int64,
         )
@@ -789,6 +818,12 @@ with gr.Blocks(
                         label="Organ",
                         placeholder="Any or an organ name",
                     )
+                atlas_slide = gr.Dropdown(
+                    choices=[("All image-ready slides", "__ready__")]
+                    + [(slide_id, slide_id) for slide_id in _ready_tissue_slides()],
+                    value="__ready__",
+                    label="Atlas slide",
+                )
                 atlas_top_k = gr.Slider(
                     minimum=3,
                     maximum=10,
@@ -808,25 +843,28 @@ with gr.Blocks(
                 gr.Examples(
                     examples=[
                         [
-                            "tumor-adjacent tertiary lymphoid structure-like immune niches",
+                            "tumor-adjacent immune-stromal interface regions",
                             "human",
                             "Any",
+                            "__ready__",
                             5,
                         ],
                         [
                             "heart spots with active muscle-contraction pathways",
                             "Any",
                             "heart",
+                            "__ready__",
                             5,
                         ],
                         [
                             "myelination and oligodendrocyte programs",
                             "Any",
                             "brain",
+                            "__ready__",
                             5,
                         ],
                     ],
-                    inputs=[atlas_query, atlas_species, atlas_organ, atlas_top_k],
+                    inputs=[atlas_query, atlas_species, atlas_organ, atlas_slide, atlas_top_k],
                     cache_examples=False,
                     label="Queries from the manuscript workflow",
                 )
@@ -898,7 +936,7 @@ with gr.Blocks(
 
         atlas_submit.click(
             fn=retrieve_atlas,
-            inputs=[atlas_query, atlas_species, atlas_organ, atlas_top_k],
+            inputs=[atlas_query, atlas_species, atlas_organ, atlas_slide, atlas_top_k],
             outputs=[
                 atlas_results,
                 atlas_evidence,

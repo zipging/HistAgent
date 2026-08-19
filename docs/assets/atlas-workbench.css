@@ -479,7 +479,7 @@ body.atlas-page {
   place-items: center;
   transform-origin: center;
   transition: transform 180ms ease;
-  background: #fff;
+  background: #edf2ef;
 }
 
 .atlas-tissue-canvas {
