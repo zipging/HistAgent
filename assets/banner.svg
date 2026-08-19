@@ -3,7 +3,7 @@
   <desc id="desc">An evidence-grounded agent for spatial molecular reasoning from routine histology</desc>
   <defs>
     <clipPath id="tissue-panel">
-      <path d="M1000 6H1400V254H934L1000 6Z"/>
+      <path d="M980 6H1400V254H980Z"/>
     </clipPath>
   </defs>
 
@@ -23,7 +23,7 @@
     <rect x="934" y="6" width="466" height="248" fill="#17302e" opacity="0.04"/>
   </g>
 
-  <path d="M1000 6L934 254" fill="none" stroke="#ffffff" stroke-width="12"/>
+  <path d="M980 6V254" fill="none" stroke="#ffffff" stroke-width="8"/>
   <circle cx="1187" cy="132" r="30" fill="#ffffff" fill-opacity="0.12" stroke="#ffffff" stroke-width="3"/>
   <circle cx="1187" cy="132" r="6" fill="#ffffff"/>
   <path d="M1217 132H1285" fill="none" stroke="#ffffff" stroke-width="2"/>
