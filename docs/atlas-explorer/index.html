@@ -9,7 +9,7 @@
     <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
     <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
     <link rel="stylesheet" href="/assets/site.css?v=20260729paper2">
-    <link rel="stylesheet" href="/assets/atlas-workbench.css?v=20260819a">
+  <link rel="stylesheet" href="/assets/atlas-workbench.css?v=20260819b">
   </head>
   <body class="atlas-page">
     <a class="skip-link" href="#atlas-workbench">Skip to Atlas Explorer</a>
@@ -184,8 +184,10 @@
 
             <div class="atlas-map-stage" id="atlas-map-stage" aria-live="polite">
               <div class="atlas-tissue-example" id="atlas-tissue-example">
-                <img src="https://huggingface.co/datasets/wli14/HistAgent-atlas-images/resolve/main/images/GSE212526_GSM6534010.webp" alt="H&amp;E tissue section with retrieved atlas spots">
-                <div class="atlas-dot-layer" id="atlas-dot-layer" aria-hidden="true"></div>
+                <div class="atlas-tissue-canvas">
+                  <img src="https://huggingface.co/datasets/wli14/HistAgent-atlas-images/resolve/main/images/GSE212526_GSM6534010.webp" alt="H&amp;E tissue section with retrieved atlas spots">
+                  <div class="atlas-dot-layer" id="atlas-dot-layer" aria-hidden="true"></div>
+                </div>
                 <div class="atlas-scale"><span></span>1 mm</div>
               </div>
               <div class="atlas-plot" id="atlas-live-plot" hidden></div>
@@ -263,6 +265,6 @@
 
     <script src="/assets/site.js?v=20260729bio1"></script>
     <script src="../assets/plotly-basic-2.35.2.min.js"></script>
-    <script type="module" src="/assets/atlas-workbench.js?v=20260819a"></script>
+  <script type="module" src="/assets/atlas-workbench.js?v=20260819b"></script>
   </body>
 </html>

@@ -436,7 +436,7 @@ def _atlas_tissue_map(
         )
     if slide_rows:
         figure.add_trace(
-            go.Scattergl(
+            go.Scatter(
                 x=[float(record["x"]) for record in slide_rows],
                 y=[float(record["y"]) for record in slide_rows],
                 mode="markers",
@@ -461,12 +461,13 @@ def _atlas_tissue_map(
                 y=[float(record["y"]) for _, _, record in retrieved],
                 mode="markers+text",
                 text=[str(rank) for rank, _, _ in retrieved],
-                textposition="middle center",
-                textfont=dict(size=10, color="white"),
+                textposition="top center",
+                textfont=dict(size=10, color="#233c35"),
                 marker=dict(
-                    size=[18 if rank == 1 else 15 for rank, _, _ in retrieved],
-                    color=["#176f63" if rank == 1 else "#df7b57" for rank, _, _ in retrieved],
-                    line=dict(width=2, color="white"),
+                    size=[20 if rank == 1 else 17 for rank, _, _ in retrieved],
+                    symbol="circle-open",
+                    color=["#df7b57" if rank == 1 else "#176f63" for rank, _, _ in retrieved],
+                    line=dict(width=3),
                 ),
                 hovertext=[
                     (

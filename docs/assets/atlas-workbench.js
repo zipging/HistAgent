@@ -9,6 +9,7 @@ const queryInput = document.querySelector("#atlas-query");
 const speciesInput = document.querySelector("#atlas-species");
 const organInput = document.querySelector("#atlas-organ");
 const mapExample = document.querySelector("#atlas-tissue-example");
+const exampleCanvas = document.querySelector(".atlas-tissue-canvas");
 const plotTarget = document.querySelector("#atlas-live-plot");
 const loading = document.querySelector("#atlas-loading");
 const resultSummary = document.querySelector("#atlas-result-summary");
@@ -81,23 +82,39 @@ function formatGenes(value = "") {
     .join("");
 }
 
+const exampleSpotCoordinates = [[97.18,75.97],[42.15,45.79],[75.69,71.3],[62.96,53.93],[79.72,75.94],[64.27,70.12],[56.27,37.72],[81.04,82.88],[82.44,55.11],[58.3,25.0],[76.35,79.4],[62.98,44.67],[50.89,37.71],[58.19,89.77],[79.08,56.26],[75.01,79.39],[47.51,52.74],[65.6,77.07],[79.08,53.95],[64.94,73.59],[75.03,63.2],[93.17,69.02],[97.2,66.71],[56.24,56.22],[84.46,53.96],[63.6,68.97],[54.21,64.32],[60.32,26.16],[48.87,43.49],[85.8,53.96],[68.99,62.03],[96.52,65.55],[60.28,46.98],[55.57,55.07],[91.83,62.07],[58.24,59.7],[38.78,51.57],[71.69,50.47],[51.53,59.69],[37.42,56.19],[58.9,74.73],[53.57,46.97],[60.91,75.9],[48.17,58.53],[48.21,37.71],[48.8,82.81],[42.15,43.48],[89.12,71.32],[62.25,73.59],[73.7,58.58],[68.26,90.95],[70.99,72.44],[53.54,60.85],[54.16,92.09],[83.73,85.19],[62.95,60.87],[88.46,67.85],[35.42,52.72],[74.37,62.04],[50.19,59.69],[62.98,42.36],[68.34,51.62],[73.0,75.92],[79.06,67.84],[64.29,60.87],[73.04,50.48],[85.07,82.89],[48.15,70.1],[72.36,56.25],[78.41,55.11],[46.86,40.01],[54.25,41.19],[84.4,86.35],[91.81,73.64],[56.89,71.27],[64.27,67.81],[50.16,73.56],[89.81,65.53],[61.61,58.55],[70.36,48.15],[64.28,65.49],[77.71,65.51],[63.6,73.59],[71.67,64.35],[59.61,48.13],[56.94,43.51],[71.66,71.29],[79.07,58.58],[41.43,72.39],[65.65,49.3]];
+
+const exampleRetrievedCoordinates = [
+  { x: 59.54, y: 89.78, rank: 1, kind: "top" },
+  { x: 73.05, y: 43.53, rank: 2, kind: "matched" },
+  { x: 58.30, y: 25.00, rank: 4, kind: "matched" }
+];
+
+function fitExampleCanvas() {
+  if (!mapExample || !exampleCanvas) return;
+  const scale = Math.min(mapExample.clientWidth / 1712, mapExample.clientHeight / 1730);
+  exampleCanvas.style.width = `${1712 * scale}px`;
+  exampleCanvas.style.height = `${1730 * scale}px`;
+}
+
 function seedDots() {
   const layer = document.querySelector("#atlas-dot-layer");
   if (!layer || layer.childElementCount) return;
-  let seed = 19;
-  const random = () => {
-    seed = (seed * 9301 + 49297) % 233280;
-    return seed / 233280;
-  };
-  const dots = [];
-  for (let index = 0; index < 150; index += 1) {
+  const dots = exampleSpotCoordinates.map(([x, y]) => {
     const dot = document.createElement("span");
-    const kind = index < 18 ? "top" : index < 122 ? "" : "other";
-    dot.className = `atlas-map-dot ${kind}`.trim();
-    dot.style.left = `${7 + random() * 86}%`;
-    dot.style.top = `${6 + random() * 87}%`;
+    dot.className = "atlas-map-dot other";
+    dot.style.left = `${x}%`;
+    dot.style.top = `${y}%`;
+    return dot;
+  });
+  exampleRetrievedCoordinates.forEach(({ x, y, rank, kind }) => {
+    const dot = document.createElement("span");
+    dot.className = `atlas-map-dot ${kind}`;
+    dot.style.left = `${x}%`;
+    dot.style.top = `${y}%`;
+    dot.textContent = String(rank);
     dots.push(dot);
-  }
+  });
   layer.append(...dots);
 }
 
@@ -526,6 +543,12 @@ evidenceFilterInputs.forEach((input) => {
 });
 
 seedDots();
+fitExampleCanvas();
+if (typeof ResizeObserver !== "undefined" && mapExample) {
+  new ResizeObserver(fitExampleCanvas).observe(mapExample);
+} else {
+  window.addEventListener("resize", fitExampleCanvas);
+}
 
 let transferredEvidence = null;
 try {
