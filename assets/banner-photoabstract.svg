@@ -7,7 +7,7 @@
     </clipPath>
   </defs>
 
-  <rect width="1400" height="320" fill="#FFFFFF"/>
+  <rect width="1400" height="320" fill="#F5F8F7"/>
 
   <text x="64" y="142" font-family="Georgia, 'Times New Roman', serif" font-size="78" font-weight="700" letter-spacing="-2" fill="#1F6B5E">
     HistAgent
@@ -21,10 +21,10 @@
     </g>
   </g>
 
-  <circle cx="936" cy="164" r="31" fill="#DCEBE7" fill-opacity="0.28" stroke="#1F6B5E" stroke-width="5"/>
+  <circle cx="936" cy="164" r="31" fill="none" stroke="#1F6B5E" stroke-width="5"/>
   <text x="936" y="120" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="700" fill="#1F6B5E">55 µm</text>
 
-  <rect x="1080" y="0" width="320" height="320" fill="#FFFFFF"/>
+  <rect x="1080" y="0" width="320" height="320" fill="#F5F8F7"/>
   <text x="1114" y="104" font-family="Georgia, 'Times New Roman', serif" font-size="22" fill="#1F6B5E">The selected region</text>
   <text x="1114" y="142" font-family="Georgia, 'Times New Roman', serif" font-size="22" fill="#1F6B5E">shows an <tspan font-style="italic">ERBB2</tspan>-high</text>
   <text x="1114" y="180" font-family="Georgia, 'Times New Roman', serif" font-size="22" fill="#1F6B5E">malignant epithelial state</text>
