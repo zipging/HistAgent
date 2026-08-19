@@ -39,5 +39,5 @@ spots using 4,096-dimensional Qwen3-Embedding-8B vectors and cosine similarity.
 It presents retrieved spots in tissue space, displays ranked evidence cards and
 supports follow-up questions about the top-ranked measured evidence. The
 demonstration index and checksum manifest are published in the
-[HistAgent public evidence-bank release](https://github.com/zipging/HistAgent/releases/tag/public-evidence-bank-v1).
+[HistAgent evidence-bank release](https://github.com/zipging/HistAgent/releases/tag/public-evidence-bank-v1).
 The manuscript analyses use the complete 2.23-million-spot evidence bank.

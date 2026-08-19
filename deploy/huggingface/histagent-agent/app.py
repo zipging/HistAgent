@@ -147,7 +147,7 @@ def _load_atlas_index() -> tuple[np.ndarray, list[dict[str, Any]]]:
         mmap_mode="r",
     )
     if embeddings.ndim != 2 or embeddings.shape[1] != 4096:
-        raise RuntimeError(f"Unexpected public evidence-bank shape: {embeddings.shape}")
+        raise RuntimeError(f"Unexpected evidence-bank shape: {embeddings.shape}")
     metadata: list[dict[str, Any]] = []
     with (data_root / Path(ATLAS_METADATA_FILE).name).open() as handle:
         for line in handle:
@@ -609,7 +609,7 @@ def retrieve_atlas(
             [],
         )
 
-    progress(0.05, desc="Loading the public evidence-bank index")
+    progress(0.05, desc="Loading the evidence-bank index")
     embeddings, metadata = _load_atlas_index()
     candidate_indices = np.arange(len(metadata), dtype=np.int64)
     normalized_species = str(species or "").strip().lower()
@@ -670,7 +670,7 @@ def retrieve_atlas(
         return (
             [],
             {},
-            "No public-demo spots match the selected filters.",
+            "No evidence-bank spots match the selected filters.",
             _empty_atlas_figure(),
             _ranked_evidence_cards([], np.empty(0), np.empty(0)),
             {},
@@ -719,7 +719,7 @@ def retrieve_atlas(
         rows,
         top_evidence,
         f"Retrieved {len(rows)} measured ST spots from "
-        f"{candidate_indices.size:,} candidates in the public demonstration index.",
+        f"{candidate_indices.size:,} candidates in the evidence-bank index.",
         _atlas_tissue_map(metadata, indices, scores),
         _ranked_evidence_cards(metadata, indices, scores),
         top_evidence,
