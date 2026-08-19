@@ -5,6 +5,8 @@ import {
 const LOCAL_DIAMETER_UM = 55;
 const CONTEXT_DIAMETER_UM = 220;
 const EXAMPLE_MANIFEST_URL = "/assets/gsm5924036-spots.json";
+const ATLAS_IMAGE_QUERY_KEY = "histagent-atlas-image-query";
+const ATLAS_EVIDENCE_QUERY_KEY = "histagent-atlas-evidence-query";
 
 const tissueImage = document.querySelector("#histagent-tissue-image");
 const tissueStage = document.querySelector("#histagent-tissue-stage");
@@ -33,6 +35,7 @@ const imageMeta = document.querySelector("#histagent-image-meta");
 const selectionBadge = document.querySelector("#histagent-selection-badge");
 const runStatus = document.querySelector("#histagent-run-status");
 const evidenceBadge = document.querySelector("#histagent-evidence-badge");
+const atlasAction = document.querySelector("#histagent-atlas-action");
 const geneCount = document.querySelector("#histagent-gene-count");
 const geneList = document.querySelector("#histagent-gene-list");
 const evidenceFields = document.querySelector("#histagent-evidence-fields");
@@ -453,6 +456,7 @@ function clearEvidenceForSelection() {
   `;
   chatInput.disabled = true;
   chatButton.disabled = true;
+  atlasAction.hidden = true;
 }
 
 function selectSpot(spot, options = {}) {
@@ -569,6 +573,7 @@ function renderEvidence(evidence, badge = "Generated") {
   chatHistory = [];
   chatInput.disabled = false;
   chatButton.disabled = false;
+  atlasAction.hidden = false;
   chatLog.innerHTML = `
     <div class="atlas-message assistant">
       <span>HistAgent</span>
@@ -740,6 +745,37 @@ async function setSourceImage(file) {
   clearEvidenceForSelection();
   setWorkflowStep("image");
   setStatus("Image loaded. Select its scale and choose a spot.");
+}
+
+async function loadAtlasImageQuery() {
+  let payload = null;
+  try {
+    payload = JSON.parse(window.sessionStorage.getItem(ATLAS_IMAGE_QUERY_KEY) || "null");
+  } catch (_error) {
+    payload = null;
+  }
+  if (!payload?.dataUrl) return false;
+  const response = await fetch(payload.dataUrl);
+  const blob = await response.blob();
+  const file = new File(
+    [blob],
+    payload.name || "atlas-query-image.jpg",
+    { type: blob.type || payload.type || "image/jpeg" }
+  );
+  await setSourceImage(file);
+  speciesInput.value = ["human", "mouse", "unknown"].includes(payload.species)
+    ? payload.species
+    : "human";
+  organInput.value = [...organInput.options].some((option) => option.value === payload.organ)
+    ? payload.organ
+    : "Unknown";
+  try {
+    window.sessionStorage.removeItem(ATLAS_IMAGE_QUERY_KEY);
+  } catch (_error) {
+    // The uploaded image is already loaded in memory.
+  }
+  setStatus("Atlas query image loaded. Confirm its scale, select a spot and analyze it with HistAgent.");
+  return true;
 }
 
 async function resetExample() {
@@ -918,6 +954,18 @@ window.addEventListener("resize", () => {
 });
 generateButton.addEventListener("click", generateEvidence);
 
+atlasAction.addEventListener("click", () => {
+  if (!currentEvidence) return;
+  try {
+    window.sessionStorage.setItem(ATLAS_EVIDENCE_QUERY_KEY, JSON.stringify(currentEvidence));
+  } catch (error) {
+    console.error(error);
+    setStatus("The evidence card could not be transferred to Atlas Explorer.", true);
+    return;
+  }
+  window.location.href = "/atlas-explorer/?mode=image";
+});
+
 chatForm.addEventListener("submit", (event) => {
   event.preventDefault();
   const message = chatInput.value.trim();
@@ -939,4 +987,9 @@ document.querySelectorAll("#histagent-suggestions button").forEach((button) => {
   });
 });
 
-resetExample().catch((error) => setStatus(error.message, true));
+loadAtlasImageQuery()
+  .then((loaded) => loaded ? null : resetExample())
+  .catch((error) => {
+    console.error(error);
+    resetExample().catch((fallbackError) => setStatus(fallbackError.message, true));
+  });

@@ -10,7 +10,7 @@
     <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
     <link rel="stylesheet" href="/assets/site.css?v=20260801brand1">
     <link rel="stylesheet" href="/assets/atlas-workbench.css?v=20260801canvas1">
-    <link rel="stylesheet" href="/assets/histagent-workbench.css?v=20260816chat1">
+    <link rel="stylesheet" href="/assets/histagent-workbench.css?v=20260819atlas1">
   </head>
   <body class="atlas-page histagent-page">
     <a class="skip-link" href="#histagent-workbench">Skip to HistAgent</a>
@@ -186,7 +186,10 @@
             <section class="atlas-ranked-section histagent-evidence-section">
               <header class="atlas-results-header">
                 <h2>Spot evidence card</h2>
-                <span id="histagent-evidence-badge">Not generated</span>
+                <div class="histagent-evidence-actions">
+                  <button id="histagent-atlas-action" type="button" hidden>Retrieve in Atlas</button>
+                  <span id="histagent-evidence-badge">Not generated</span>
+                </div>
               </header>
 
               <div class="histagent-readout">
@@ -228,6 +231,6 @@
     </main>
 
     <script src="/assets/site.js?v=20260729bio1"></script>
-    <script type="module" src="/assets/histagent-workbench.js?v=20260816chat2"></script>
+    <script type="module" src="/assets/histagent-workbench.js?v=20260819atlas1"></script>
   </body>
 </html>

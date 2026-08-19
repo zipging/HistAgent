@@ -9,7 +9,7 @@
     <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
     <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
     <link rel="stylesheet" href="/assets/site.css?v=20260729paper2">
-    <link rel="stylesheet" href="/assets/atlas-workbench.css?v=20260729c">
+    <link rel="stylesheet" href="/assets/atlas-workbench.css?v=20260819a">
   </head>
   <body class="atlas-page">
     <a class="skip-link" href="#atlas-workbench">Skip to Atlas Explorer</a>
@@ -44,7 +44,7 @@
               id="atlas-query"
               name="query"
               type="search"
-              value="Find tumor-adjacent TLS-like regions."
+              value="Find tumor-adjacent immune-stromal interface regions."
               autocomplete="off"
               spellcheck="true"
             >
@@ -75,7 +75,7 @@
                 <small>Analyze the image in HistAgent, then use the resulting evidence card for retrieval.</small>
               </label>
               <img id="atlas-image-preview" alt="Uploaded H&amp;E query preview" hidden>
-              <a class="atlas-secondary-action" href="/histagent/">Analyze image in HistAgent</a>
+              <a class="atlas-secondary-action" id="atlas-image-analyze" href="/histagent/?return=atlas" aria-disabled="true">Analyze image in HistAgent</a>
             </div>
 
             <div id="atlas-text-filters">
@@ -161,9 +161,9 @@
               <div class="atlas-active-evidence">
                 <span class="atlas-label">Active query evidence</span>
                 <div id="query-evidence-chips">
-                  <span>TLS-like</span>
                   <span>Tumor-adjacent</span>
-                  <span>B cell-rich</span>
+                  <span>Immune-stromal</span>
+                  <span>Interface</span>
                 </div>
               </div>
             </div>
@@ -184,7 +184,7 @@
 
             <div class="atlas-map-stage" id="atlas-map-stage" aria-live="polite">
               <div class="atlas-tissue-example" id="atlas-tissue-example">
-                <img src="/assets/rcc-tissue.jpg" alt="H&amp;E tissue section with retrieved atlas spots">
+                <img src="https://huggingface.co/datasets/wli14/HistAgent-atlas-images/resolve/main/images/GSE212526_GSM6534010.webp" alt="H&amp;E tissue section with retrieved atlas spots">
                 <div class="atlas-dot-layer" id="atlas-dot-layer" aria-hidden="true"></div>
                 <div class="atlas-scale"><span></span>1 mm</div>
               </div>
@@ -205,7 +205,7 @@
             <div class="atlas-retrieved-summary">
               <div>
                 <strong>Retrieved spots</strong>
-                <span id="atlas-result-summary">186 matched spots · 24 top ranked · RCC atlas example</span>
+                <span id="atlas-result-summary">Tumor-adjacent immune-stromal interface · GSE212526_GSM6534010</span>
               </div>
               <span class="atlas-status-badge" id="atlas-status-badge">Example view</span>
             </div>
@@ -219,19 +219,19 @@
               </header>
               <div class="atlas-cards" id="atlas-evidence-cards">
                 <article class="atlas-evidence-card">
-                  <div class="atlas-card-title"><span class="rank rank-one">1</span><strong>TLS-like, tumor-adjacent</strong><b>0.88</b></div>
-                  <p><span>Cell composition</span>B cell; T cell</p>
-                  <p><span>Evidence</span><em>CXCL13</em>, <em>CCL19</em>, <em>MS4A1</em>, <em>CD3D</em></p>
+                  <div class="atlas-card-title"><span class="rank rank-one">1</span><strong>Natural regulatory T cell</strong><b>0.55</b></div>
+                  <p><span>Atlas source</span>human · undifferentiated pleomorphic sarcoma</p>
+                  <p><span>Top genes</span><em>TMSB10</em>, <em>S100A6</em>, <em>FTL</em>, <em>S100A4</em>, <em>B2M</em>, <em>HLA-B</em></p>
                 </article>
                 <article class="atlas-evidence-card">
-                  <div class="atlas-card-title"><span class="rank rank-two">2</span><strong>Peritumoral lymphoid aggregate</strong><b>0.76</b></div>
-                  <p><span>Cell composition</span>B cell; T cell; plasma cell</p>
-                  <p><span>Evidence</span>Antigen presentation; <em>CXCL13</em></p>
+                  <div class="atlas-card-title"><span class="rank rank-two">2</span><strong>Natural regulatory T cell</strong><b>0.55</b></div>
+                  <p><span>Atlas source</span>human · undifferentiated pleomorphic sarcoma</p>
+                  <p><span>Top genes</span><em>S100A6</em>, <em>TMSB10</em>, <em>S100A4</em>, <em>S100A10</em>, <em>FTL</em>, <em>MIF</em></p>
                 </article>
                 <article class="atlas-evidence-card">
-                  <div class="atlas-card-title"><span class="rank rank-three">3</span><strong>Margin immune aggregate</strong><b>0.64</b></div>
-                  <p><span>Cell composition</span>B-cell core; T-cell rim</p>
-                  <p><span>Evidence</span><em>CD74</em>, <em>HLA-DRA</em>, <em>CCL19</em></p>
+                  <div class="atlas-card-title"><span class="rank rank-three">3</span><strong>Mononuclear phagocyte</strong><b>0.55</b></div>
+                  <p><span>Atlas source</span>human · undifferentiated pleomorphic sarcoma</p>
+                  <p><span>Top genes</span><em>TMSB10</em>, <em>FTL</em>, <em>B2M</em>, <em>COL3A1</em>, <em>FTH1</em>, <em>CD74</em></p>
                 </article>
               </div>
             </section>
@@ -243,11 +243,11 @@
               <div class="atlas-chat" id="atlas-chat-log" aria-live="polite">
                 <div class="atlas-message user">
                   <span>User</span>
-                  <p>What microenvironment is enriched here?</p>
+                  <p>What tissue context do these spots suggest?</p>
                 </div>
                 <div class="atlas-message assistant">
                   <span>HistAgent</span>
-                  <p>Retrieved spots support a tumor-adjacent TLS-like immune niche with B-cell-rich cores, adjacent T-cell populations and <em>CXCL13</em>/<em>CCL19</em> chemokine programs.</p>
+                  <p>The retrieved spots support an immune-stromal interface containing regulatory T-cell and mononuclear-phagocyte states, with antigen-presentation and extracellular-matrix evidence.</p>
                 </div>
               </div>
               <form class="atlas-chat-form" id="atlas-chat-form">
@@ -263,6 +263,6 @@
 
     <script src="/assets/site.js?v=20260729bio1"></script>
     <script src="../assets/plotly-basic-2.35.2.min.js"></script>
-    <script type="module" src="/assets/atlas-workbench.js?v=20260804a"></script>
+    <script type="module" src="/assets/atlas-workbench.js?v=20260819a"></script>
   </body>
 </html>

@@ -400,6 +400,12 @@ body.atlas-page {
   text-decoration: none;
 }
 
+.atlas-secondary-action[aria-disabled="true"] {
+  border-color: var(--atlas-line);
+  color: var(--atlas-muted);
+  cursor: default;
+}
+
 .atlas-map-panel {
   display: grid;
   grid-template-rows: auto minmax(460px, 1fr) auto;

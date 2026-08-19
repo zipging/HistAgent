@@ -161,7 +161,6 @@ def _load_atlas_index() -> tuple[np.ndarray, list[dict[str, Any]]]:
     return embeddings, metadata
 
 
-@lru_cache(maxsize=1)
 def _load_tissue_manifest() -> dict[str, dict[str, Any]]:
     root = Path(
         snapshot_download(

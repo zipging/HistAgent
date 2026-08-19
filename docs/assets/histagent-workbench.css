@@ -641,6 +641,38 @@
   color: var(--atlas-teal-dark);
 }
 
+.histagent-evidence-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.histagent-evidence-actions > span {
+  padding: 3px 7px;
+  border: 1px solid #e2a449;
+  border-radius: 999px;
+  background: var(--atlas-orange-pale);
+  color: #946120;
+  font-size: 10px;
+}
+
+#histagent-atlas-action {
+  padding: 4px 8px;
+  border: 1px solid var(--atlas-teal);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--atlas-teal-dark);
+  cursor: pointer;
+  font: inherit;
+  font-size: 9px;
+  font-weight: 750;
+}
+
+#histagent-atlas-action:hover,
+#histagent-atlas-action:focus-visible {
+  background: var(--atlas-teal-pale);
+}
+
 @media (min-width: 961px) {
   .histagent-page {
     height: 100vh;
