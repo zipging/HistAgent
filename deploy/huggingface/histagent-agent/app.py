@@ -585,8 +585,8 @@ def retrieve_atlas(
     query: str,
     species: str,
     organ: str,
-    slide_id: str,
-    top_k: int,
+    slide_id: str = "__ready__",
+    top_k: int = 5,
     progress=gr.Progress(),
 ) -> tuple[
     list[list[Any]],
@@ -615,6 +615,12 @@ def retrieve_atlas(
     normalized_species = str(species or "").strip().lower()
     normalized_organ = str(organ or "").strip().lower()
     normalized_slide = str(slide_id or "").strip()
+    # Older cached clients sent top_k as the fourth positional argument. Keep
+    # those requests on the image-ready collection instead of interpreting the
+    # number as a slide identifier.
+    if isinstance(slide_id, (int, float)) or normalized_slide.isdigit():
+        top_k = int(slide_id)
+        normalized_slide = "__ready__"
     if normalized_species and normalized_species != "any":
         candidate_indices = np.asarray(
             [
@@ -635,7 +641,13 @@ def retrieve_atlas(
             ],
             dtype=np.int64,
         )
-    if normalized_slide == "__ready__":
+    if normalized_slide.lower() in {
+        "",
+        "any",
+        "__ready__",
+        "all indexed slides",
+        "all image-ready slides",
+    }:
         ready_slides = set(_ready_tissue_slides())
         candidate_indices = np.asarray(
             [
@@ -645,7 +657,7 @@ def retrieve_atlas(
             ],
             dtype=np.int64,
         )
-    elif normalized_slide and normalized_slide.lower() != "any":
+    else:
         candidate_indices = np.asarray(
             [
                 index
