@@ -140,7 +140,7 @@ def test_quota_window_resets_after_safety_window(monkeypatch):
 def test_reasoning_proxy_returns_backend_outputs(monkeypatch):
     async def fake_call(_space, api_name, data):
         assert api_name == "retrieve_atlas"
-        assert data[0] == "TLS-like immune niche"
+        assert data == ["TLS-like immune niche", "human", "Any", "__ready__", 5]
         return [["rows"], {"ranked_genes": ["CXCL13"]}]
 
     monkeypatch.setattr(gateway, "_call_gradio", fake_call)

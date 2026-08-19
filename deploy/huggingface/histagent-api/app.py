@@ -463,12 +463,15 @@ async def generate(
 async def call(request: Request, payload: GradioCall) -> dict[str, Any]:
     _require_token()
     rate_ticket = await _reserve_rate_limit(request, payload.api_name)
+    call_data = list(payload.data)
+    if payload.api_name == "retrieve_atlas" and len(call_data) == 4:
+        call_data.insert(3, "__ready__")
     try:
         async with _gpu_lock:
             outputs = await _call_with_reservation(
                 REASONING_SPACE,
                 payload.api_name,
-                payload.data,
+                call_data,
             )
     except BaseException:
         await _release_rate_limit(rate_ticket)
