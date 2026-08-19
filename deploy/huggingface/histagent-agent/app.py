@@ -436,7 +436,7 @@ def _atlas_tissue_map(
         )
     if slide_rows:
         figure.add_trace(
-            go.Scatter(
+            go.Scattergl(
                 x=[float(record["x"]) for record in slide_rows],
                 y=[float(record["y"]) for record in slide_rows],
                 mode="markers",
@@ -456,7 +456,7 @@ def _atlas_tissue_map(
         )
     if retrieved:
         figure.add_trace(
-            go.Scattergl(
+            go.Scatter(
                 x=[float(record["x"]) for _, _, record in retrieved],
                 y=[float(record["y"]) for _, _, record in retrieved],
                 mode="markers+text",
