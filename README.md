@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/banner.png" width="100%" alt="HistAgent — an evidence-grounded agent for spatial molecular reasoning from routine histology">
+  <img src="assets/banner-photoabstract.png" width="100%" alt="HistAgent — an evidence-grounded agent for spatial molecular reasoning from routine histology">
 </p>
 
 <p align="center">
