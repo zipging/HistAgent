@@ -21,8 +21,8 @@
     </g>
   </g>
 
-  <circle cx="936" cy="164" r="31" fill="#FFFFFF" fill-opacity="0.12" stroke="#1F6B5E" stroke-width="5"/>
-  <text x="936" y="120" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="700" fill="#1F6B5E" stroke="#FFFFFF" stroke-width="1.2" paint-order="stroke fill">55 µm</text>
+  <circle cx="936" cy="164" r="31" fill="none" stroke="#1F6B5E" stroke-width="5"/>
+  <text x="936" y="120" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="700" fill="#1F6B5E">55 µm</text>
 
   <rect x="1080" y="0" width="320" height="320" fill="#FFFFFF"/>
   <text x="1114" y="104" font-family="Georgia, 'Times New Roman', serif" font-size="22" fill="#1F6B5E">The selected region</text>
