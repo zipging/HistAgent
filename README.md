@@ -48,38 +48,6 @@ Across 135 held-out human and mouse ST slides from 15 organ cohorts, HistAgent m
 | Mean HitRate@50 | **0.699** | 0.292 | 0.410 |
 | Mean mAP@50 | **0.655** | 0.167 | 0.311 |
 
-## System requirements and tested environment
-
-HistAgent requires Python 3.10 or newer. The core package declares the following
-software dependencies in `pyproject.toml`:
-
-| Dependency | Declared version |
-|---|---|
-| PyTorch | `>=2.2` |
-| torchvision | `>=0.17` |
-| timm | `>=1.0.3` |
-| PEFT | `>=0.13,<0.14` |
-| huggingface-hub | `>=0.24` |
-| Pillow | `>=10` |
-| safetensors | `>=0.4` |
-
-The lightweight release checks were most recently run on macOS 26.2 (Apple silicon) with
-Python 3.12.4, PyTorch 2.13.0, torchvision 0.28.0, timm 1.0.28, PEFT 0.13.2,
-huggingface-hub 1.25.1, Pillow 12.0.0 and safetensors 0.8.0. All six lightweight
-tests passed in this environment. These tests cover tokenizer consistency,
-checkpoint export filtering and clinical utilities; access-controlled
-Prov-GigaPath loading is not exercised by the release test suite. The versions
-above record one tested QA environment rather than an exhaustive compatibility
-matrix. Full visual-omics training and GPU inference were run on Linux with
-NVIDIA CUDA GPUs; the released 30-epoch training run used eight NVIDIA H100
-80-GB GPUs.
-
-For visual-omics inference, an NVIDIA CUDA GPU with at least 24 GB of GPU memory
-is recommended. The API accepts `device="cpu"`, but CPU-only inference is not
-recommended and has not been benchmarked. Local use of the Qwen3-8B language
-adapter similarly requires a CUDA GPU with approximately 20 GB of free GPU
-memory. Windows has not been tested.
-
 ## Installation
 
 ```bash
@@ -94,34 +62,14 @@ Prov-GigaPath is gated on Hugging Face. Before first use, request access on the 
 export HF_TOKEN="your_read_token"
 ```
 
-Allow approximately 5--15 min to install the Python package on a broadband
-connection; the actual time depends mainly on whether a compatible PyTorch
-installation is already present. This estimate excludes the time required to
-obtain access to the gated Prov-GigaPath repository. The first model load
-downloads the 378-MB HistAgent checkpoint and the several-gigabyte Prov-GigaPath
-checkpoint; download time is network dependent. Subsequent runs use the local
-Hugging Face cache.
-
 ## Quick start
 
 HistAgent receives two H&E crops centred on the same location: a local view and a broader context view. Both are converted to 224 × 224 pixels before encoding.
 
 ```python
 import torch
-from huggingface_hub import hf_hub_download
 
 from histagent import load_pretrained, predict_ranked_genes
-
-local_image = hf_hub_download(
-    "wli13/HistAgent-data",
-    "tutorials/figure5_he_query_brain_local.png",
-    repo_type="dataset",
-)
-context_image = hf_hub_download(
-    "wli13/HistAgent-data",
-    "tutorials/figure5_he_query_brain_context.png",
-    repo_type="dataset",
-)
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 model, tokenizer, _ = load_pretrained(device=device)
@@ -129,9 +77,9 @@ model, tokenizer, _ = load_pretrained(device=device)
 genes = predict_ranked_genes(
     model,
     tokenizer,
-    local_image=local_image,
-    context_image=context_image,
-    organ="brain",
+    local_image="examples/local.png",
+    context_image="examples/context.png",
+    organ="breast",
     species="human",
     top_k=50,
     device=device,
@@ -142,37 +90,14 @@ print(genes)
 The same inference is available from the command line:
 
 ```bash
-hf download wli13/HistAgent-data \
-  tutorials/figure5_he_query_brain_local.png \
-  tutorials/figure5_he_query_brain_context.png \
-  --type dataset \
-  --local-dir demo_data
-
 histagent-predict \
-  --local demo_data/tutorials/figure5_he_query_brain_local.png \
-  --context demo_data/tutorials/figure5_he_query_brain_context.png \
-  --organ brain \
+  --local examples/local.png \
+  --context examples/context.png \
+  --organ breast \
   --species human
 ```
 
 To use an already downloaded GigaPath checkpoint, pass `base_checkpoint_path` to `load_pretrained` or `--base-checkpoint` to the command-line interface.
-
-### Expected demo output and run time
-
-The Python demo returns a list of up to 50 gene symbols ordered from the
-highest-ranked to the lowest-ranked prediction. The command-line interface prints
-the same genes as one space-delimited line, for example:
-
-```text
-GENE_1 GENE_2 ... GENE_50
-```
-
-The exact genes are model predictions and depend on the input image pair, organ
-and species. The public [HistAgent demo](https://huggingface.co/spaces/wli13/HistAgent-demo)
-uses an NVIDIA A10G 24-GB GPU and requests a GPU allocation of up to 180 s for one
-image pair. Queueing, cold-start and initial model-download times are additional
-and depend on service load and network speed. CPU-only demo run time has not been
-characterized.
 
 ## Clinical prediction API
 
@@ -243,18 +168,11 @@ HistAgent/
 
 ## Training configuration
 
-The released model was trained for 30 epochs on 2.23 million paired H&E–ST locations from 936 human and mouse 10x Visium slides. The complete training run required approximately 103 h on eight NVIDIA H100 GPUs. The model uses a shared GigaPath tile encoder with rank-16 LoRA, separate local and context resamplers, and a six-layer Transformer decoder. Earlier positions in each gene sentence receive greater weight during training.
+The released model was trained for 30 epochs on 2.23 million paired H&E–ST locations from 936 human and mouse 10x Visium slides. The complete training run required approximately 103 h on eight NVIDIA H100 GPUs. The model uses a shared GigaPath tile encoder with rank-16 LoRA, separate local and context resamplers, and a six-layer Transformer decoder. Earlier positions in each generated ranking receive greater weight during training.
 
 ## Citation
 
 The HistAgent manuscript and citation will be added here when publicly available.
-
-## License
-
-HistAgent source code is released under the
-[Apache License 2.0](LICENSE). Third-party models and datasets are not
-relicensed by this repository and remain subject to their original licenses,
-access conditions and terms of use.
 
 ## Acknowledgements
 
