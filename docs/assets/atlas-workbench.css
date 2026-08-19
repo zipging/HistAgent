@@ -484,6 +484,8 @@ body.atlas-page {
   display: grid;
   place-items: center;
   background: #edf2ef;
+  cursor: grab;
+  touch-action: none;
 }
 
 .atlas-plot {
@@ -495,11 +497,16 @@ body.atlas-page {
   touch-action: none;
 }
 
+.atlas-tissue-example[hidden],
 .atlas-plot[hidden] {
   display: none;
 }
 
 .atlas-plot.is-dragging {
+  cursor: grabbing;
+}
+
+.atlas-tissue-example.is-dragging {
   cursor: grabbing;
 }
 
@@ -512,6 +519,10 @@ body.atlas-page {
 }
 
 .atlas-plot.is-dragging .atlas-live-canvas {
+  transition: none;
+}
+
+.atlas-tissue-example.is-dragging .atlas-tissue-canvas {
   transition: none;
 }
 

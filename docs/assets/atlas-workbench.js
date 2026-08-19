@@ -384,6 +384,38 @@ function endMapDrag(event) {
 plotTarget?.addEventListener("pointerup", endMapDrag);
 plotTarget?.addEventListener("pointercancel", endMapDrag);
 
+let exampleDrag = null;
+mapExample?.addEventListener("pointerdown", (event) => {
+  if (exampleZoom <= 1) return;
+  exampleDrag = {
+    pointerId: event.pointerId,
+    x: event.clientX,
+    y: event.clientY,
+    panX: examplePan.x,
+    panY: examplePan.y
+  };
+  mapExample.setPointerCapture(event.pointerId);
+  mapExample.classList.add("is-dragging");
+});
+
+mapExample?.addEventListener("pointermove", (event) => {
+  if (!exampleDrag || event.pointerId !== exampleDrag.pointerId) return;
+  examplePan = {
+    x: exampleDrag.panX + event.clientX - exampleDrag.x,
+    y: exampleDrag.panY + event.clientY - exampleDrag.y
+  };
+  applyExampleTransform();
+});
+
+function endExampleDrag(event) {
+  if (!exampleDrag || event.pointerId !== exampleDrag.pointerId) return;
+  exampleDrag = null;
+  mapExample?.classList.remove("is-dragging");
+}
+
+mapExample?.addEventListener("pointerup", endExampleDrag);
+mapExample?.addEventListener("pointercancel", endExampleDrag);
+
 function setBusy(value) {
   searchButton.disabled = value;
   loading.hidden = !value;
