@@ -449,6 +449,12 @@ body.atlas-page {
   background: #d7ddda;
 }
 
+.atlas-legend i.other {
+  border: 1px solid rgba(255, 255, 255, 0.95);
+  background: #53665e;
+  box-shadow: 0 0 0 1px rgba(49, 70, 61, 0.2);
+}
+
 .atlas-legend i.matched {
   border: 2px solid var(--atlas-teal);
   background: transparent;
@@ -558,12 +564,12 @@ body.atlas-page {
 }
 
 .atlas-map-dot.other {
-  width: 4px;
-  height: 4px;
-  border: 0;
-  background: rgba(83, 105, 98, 0.58);
-  box-shadow: none;
-  opacity: 0.76;
+  width: 6px;
+  height: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.92);
+  background: #53665e;
+  box-shadow: 0 1px 2px rgba(21, 45, 36, 0.32);
+  opacity: 0.9;
   z-index: 1;
 }
 
