@@ -371,8 +371,8 @@ def _empty_atlas_figure() -> go.Figure:
     figure.update_layout(
         height=480,
         margin=dict(l=20, r=20, t=48, b=20),
-        paper_bgcolor="#fbfdfc",
-        plot_bgcolor="#f4f8f6",
+        paper_bgcolor="#edf2ef",
+        plot_bgcolor="#edf2ef",
         title=dict(
             text="Retrieved spots will be shown in tissue space",
             font=dict(size=16, color="#526b63"),
@@ -491,8 +491,8 @@ def _atlas_tissue_map(
     figure.update_layout(
         height=480,
         margin=dict(l=20, r=20, t=58, b=22),
-        paper_bgcolor="#fbfdfc",
-        plot_bgcolor="#f4f8f6",
+        paper_bgcolor="#edf2ef",
+        plot_bgcolor="#edf2ef",
         title=dict(
             text=f"Top-ranked slide · {html.escape(slide_id)}",
             font=dict(size=16, color="#233c35"),

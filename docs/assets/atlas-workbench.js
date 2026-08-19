@@ -263,8 +263,8 @@ function renderPlot(plotValue) {
     autosize: true,
     height: undefined,
     margin: { l: 20, r: 20, t: 44, b: 20 },
-    paper_bgcolor: "#fbfdfc",
-    plot_bgcolor: "#f4f8f6",
+    paper_bgcolor: "#edf2ef",
+    plot_bgcolor: "#edf2ef",
     dragmode: "pan",
     font: { ...(plot.layout.font || {}), family: "Inter, ui-sans-serif, system-ui, sans-serif" },
     uirevision: "atlas-live-map"
