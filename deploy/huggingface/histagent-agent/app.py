@@ -317,6 +317,18 @@ def _remove_uninformative_spatial_claims(
     """Drop only geometry or generic context presented as biological evidence."""
 
     original = answer.strip().strip('"')
+    original = re.sub(
+        r"\btop[- ]expressed genes\b",
+        "top-ranked genes",
+        original,
+        flags=re.IGNORECASE,
+    )
+    original = re.sub(
+        r"\btop (?:expression|expressed) (?:gene )?list\b",
+        "top-ranked gene list",
+        original,
+        flags=re.IGNORECASE,
+    )
     informative_spatial = _has_informative_spatial_evidence(evidence)
     sentences = re.split(r"(?<=[.!?])\s+", original)
     retained = []
