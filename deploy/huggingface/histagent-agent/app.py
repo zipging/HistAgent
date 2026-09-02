@@ -391,10 +391,14 @@ def _answer_from_evidence(
     except TypeError:
         input_ids = tokenizer.apply_chat_template(**template_args)
     input_ids = input_ids.to(model.device)
+    # Qwen uses the EOS token for padding, so generation cannot infer a reliable
+    # mask from token ids alone. This is a single unpadded conversation.
+    attention_mask = torch.ones_like(input_ids, device=model.device)
 
     with MODEL_LOCK, torch.inference_mode():
         output = model.generate(
             input_ids=input_ids,
+            attention_mask=attention_mask,
             max_new_tokens=192,
             do_sample=False,
             use_cache=True,
