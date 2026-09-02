@@ -66,6 +66,8 @@ GPU_MINIMUM_CHARGES = {
     "answer_atlas_question": 10,
 }
 GPU_CHARGE_BUFFER_SECONDS = 5
+BACKEND_SUBMISSION_ATTEMPTS = 3
+BACKEND_RETRY_DELAYS_SECONDS = (1.5, 3.0)
 RESPONSE_CACHE_TTL_SECONDS = int(
     os.environ.get("HISTAGENT_RESPONSE_CACHE_TTL_SECONDS", "21600")
 )
@@ -364,13 +366,23 @@ async def _upload_images(files: list[tuple[str, bytes, str]]) -> list[dict[str, 
         ("files", (name, content, mime_type)) for name, content, mime_type in files
     ]
     async with httpx.AsyncClient(timeout=60.0, follow_redirects=True) as client:
-        response = await client.post(
-            f"{INFERENCE_SPACE}/gradio_api/upload",
-            headers=_backend_headers(),
-            files=multipart,
-        )
-    if response.status_code >= 400:
-        raise HTTPException(status_code=502, detail="The image service rejected the upload.")
+        for attempt in range(BACKEND_SUBMISSION_ATTEMPTS):
+            response = await client.post(
+                f"{INFERENCE_SPACE}/gradio_api/upload",
+                headers=_backend_headers(),
+                files=multipart,
+            )
+            if response.status_code < 400:
+                break
+            if (
+                response.status_code not in {429, 502, 503, 504}
+                or attempt == BACKEND_SUBMISSION_ATTEMPTS - 1
+            ):
+                raise HTTPException(
+                    status_code=503,
+                    detail="The image service is temporarily unavailable. Please retry in a moment.",
+                )
+            await asyncio.sleep(BACKEND_RETRY_DELAYS_SECONDS[attempt])
     paths = response.json()
     return [
         {
@@ -387,15 +399,29 @@ async def _call_gradio(space: str, api_name: str, data: list[Any]) -> list[Any]:
     endpoint = f"{space}/gradio_api/call/{api_name}"
     timeout = httpx.Timeout(connect=30.0, read=240.0, write=60.0, pool=30.0)
     async with httpx.AsyncClient(timeout=timeout, follow_redirects=True) as client:
-        submission = await client.post(
-            endpoint,
-            headers={**_backend_headers(), "Content-Type": "application/json"},
-            json={"data": data},
-        )
-        if submission.status_code >= 400:
-            detail = submission.text[:500]
+        for attempt in range(BACKEND_SUBMISSION_ATTEMPTS):
+            submission = await client.post(
+                endpoint,
+                headers={**_backend_headers(), "Content-Type": "application/json"},
+                json={"data": data},
+            )
+            if submission.status_code < 400:
+                break
+            detail = submission.text[:4000]
             if _is_quota_error(detail):
                 raise HTTPException(status_code=429, detail="今日 GPU 额度已用完，请稍后再试。")
+            if (
+                submission.status_code in {429, 502, 503, 504}
+                and attempt < BACKEND_SUBMISSION_ATTEMPTS - 1
+            ):
+                logger.warning(
+                    "Retrying backend submission api=%s status=%s attempt=%s",
+                    api_name,
+                    submission.status_code,
+                    attempt + 1,
+                )
+                await asyncio.sleep(BACKEND_RETRY_DELAYS_SECONDS[attempt])
+                continue
             logger.error(
                 "Backend submission failed api=%s status=%s body=%s",
                 api_name,
@@ -403,10 +429,10 @@ async def _call_gradio(space: str, api_name: str, data: list[Any]) -> list[Any]:
                 detail,
             )
             raise HTTPException(
-                status_code=502,
+                status_code=503,
                 detail={
-                    "message": "The model service could not start this request. Please retry.",
-                    "code": "backend_submission_error",
+                    "message": "The model service is temporarily busy. Please retry in a moment.",
+                    "code": "backend_temporarily_unavailable",
                 },
             )
         event_id = submission.json().get("event_id")
