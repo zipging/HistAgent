@@ -50,8 +50,10 @@ spatial context support the answer. Do not fabricate evidence that is absent fro
 Use spatial context only when the card contains informative neighborhood, boundary or local
 organization evidence; image scale, spot diameter, an organ label or merely being inside
 tissue are not biological spatial evidence. State uncertainty when the evidence is limited
-or ambiguous. Prefer a focused answer of two to five sentences, but include additional detail
-when the question requires it. Answer in the same language as the user. Do not expose
+or ambiguous. Refer to ranked genes as top-ranked genes, not top expressed genes, and use
+supports or suggests rather than proves or confirms. Prefer a focused answer of two to five
+sentences, but include additional detail when the question requires it. Answer in the same
+language as the user. Do not expose
 chain-of-thought, hidden reasoning or <think> tags."""
 
 
