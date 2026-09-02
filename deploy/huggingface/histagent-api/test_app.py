@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from datetime import datetime, timedelta, timezone
 
 import pytest
@@ -13,6 +14,7 @@ import app as gateway
 def configured_gateway(monkeypatch):
     monkeypatch.setattr(gateway, "HF_TOKEN", "test-token")
     gateway._recent_calls.clear()
+    gateway._response_cache.clear()
 
 
 def test_reservation_stops_at_included_quota(monkeypatch):
@@ -103,6 +105,38 @@ async def test_backend_failure_refunds_reservation(monkeypatch):
         ("reserve", "retrieve_atlas"),
         ("refund", "retrieve_atlas"),
     ]
+
+
+@pytest.mark.anyio
+async def test_backend_wait_is_not_globally_serialized(monkeypatch):
+    active = 0
+    maximum_active = 0
+
+    monkeypatch.setattr(gateway, "_reserve_gpu_seconds", lambda _api: {})
+    monkeypatch.setattr(gateway, "_reconcile_gpu_seconds", lambda _api, _elapsed: {})
+
+    async def fake_call(*_args, **_kwargs):
+        nonlocal active, maximum_active
+        active += 1
+        maximum_active = max(maximum_active, active)
+        await asyncio.sleep(0.02)
+        active -= 1
+        return ["ok"]
+
+    monkeypatch.setattr(gateway, "_call_gradio", fake_call)
+    await asyncio.gather(
+        gateway._call_with_reservation("https://example.invalid", "retrieve_atlas", ["a"]),
+        gateway._call_with_reservation("https://example.invalid", "answer_atlas_question", ["b"]),
+    )
+    assert maximum_active == 2
+
+
+@pytest.mark.anyio
+async def test_response_cache_reuses_successful_output():
+    key = gateway._cache_key("retrieve_atlas", ["TLS", "human"])
+    assert await gateway._cached_response(key) is None
+    await gateway._store_response(key, ["result"])
+    assert await gateway._cached_response(key) == ["result"]
 
 
 @pytest.mark.anyio

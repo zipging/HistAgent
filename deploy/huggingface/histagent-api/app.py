@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import io
 import json
 import logging
@@ -8,7 +9,7 @@ import math
 import os
 import re
 import time
-from collections import defaultdict, deque
+from collections import OrderedDict, defaultdict, deque
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
@@ -65,6 +66,13 @@ GPU_MINIMUM_CHARGES = {
     "answer_atlas_question": 10,
 }
 GPU_CHARGE_BUFFER_SECONDS = 5
+RESPONSE_CACHE_TTL_SECONDS = int(
+    os.environ.get("HISTAGENT_RESPONSE_CACHE_TTL_SECONDS", "21600")
+)
+RESPONSE_CACHE_MAX_ENTRIES = int(
+    os.environ.get("HISTAGENT_RESPONSE_CACHE_MAX_ENTRIES", "64")
+)
+RESPONSE_CACHE_VERSION = os.environ.get("HISTAGENT_RESPONSE_CACHE_VERSION", "v2")
 
 ALLOWED_ORIGINS = [
     "https://histagent.bio",
@@ -84,7 +92,9 @@ app.add_middleware(
 
 _gpu_lock = asyncio.Lock()
 _rate_lock = asyncio.Lock()
+_cache_lock = asyncio.Lock()
 _recent_calls: dict[str, deque[float]] = defaultdict(deque)
+_response_cache: OrderedDict[str, tuple[float, list[Any]]] = OrderedDict()
 _hf_api = HfApi(token=HF_TOKEN or None)
 logger = logging.getLogger("histagent.gateway")
 
@@ -93,6 +103,39 @@ class GradioCall(BaseModel):
     service: str = Field(pattern="^(reasoning)$")
     api_name: str = Field(pattern="^(retrieve_atlas|answer_atlas_question)$")
     data: list[Any]
+
+
+def _cache_key(namespace: str, payload: Any) -> str:
+    serialized = json.dumps(
+        payload,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+        default=str,
+    ).encode("utf-8")
+    return f"{RESPONSE_CACHE_VERSION}:{namespace}:{hashlib.sha256(serialized).hexdigest()}"
+
+
+async def _cached_response(key: str) -> list[Any] | None:
+    now = time.monotonic()
+    async with _cache_lock:
+        cached = _response_cache.get(key)
+        if cached is None:
+            return None
+        stored_at, outputs = cached
+        if now - stored_at > RESPONSE_CACHE_TTL_SECONDS:
+            _response_cache.pop(key, None)
+            return None
+        _response_cache.move_to_end(key)
+        return outputs
+
+
+async def _store_response(key: str, outputs: list[Any]) -> None:
+    async with _cache_lock:
+        _response_cache[key] = (time.monotonic(), outputs)
+        _response_cache.move_to_end(key)
+        while len(_response_cache) > RESPONSE_CACHE_MAX_ENTRIES:
+            _response_cache.popitem(last=False)
 
 
 def _require_token() -> None:
@@ -279,22 +322,27 @@ async def _call_with_reservation(
     api_name: str,
     data: list[Any],
 ) -> list[Any]:
-    await asyncio.to_thread(_reserve_gpu_seconds, api_name)
+    # Serialize only the quota-ledger updates. Waiting for ZeroGPU should not
+    # make unrelated visitors queue behind the active request at this gateway.
+    async with _gpu_lock:
+        await asyncio.to_thread(_reserve_gpu_seconds, api_name)
     started = time.monotonic()
     try:
         outputs = await _call_gradio(space, api_name, data)
     except BaseException:
         try:
-            await asyncio.to_thread(_refund_gpu_seconds, api_name)
+            async with _gpu_lock:
+                await asyncio.to_thread(_refund_gpu_seconds, api_name)
         except Exception:
             logger.exception("Could not return the failed %s reservation", api_name)
         raise
     try:
-        await asyncio.to_thread(
-            _reconcile_gpu_seconds,
-            api_name,
-            time.monotonic() - started,
-        )
+        async with _gpu_lock:
+            await asyncio.to_thread(
+                _reconcile_gpu_seconds,
+                api_name,
+                time.monotonic() - started,
+            )
     except Exception:
         # Keeping the full reservation is conservative and prevents overage if
         # accounting reconciliation is temporarily unavailable.
@@ -440,22 +488,36 @@ async def generate(
         raise HTTPException(status_code=413, detail="Each image must be smaller than 10 MB.")
 
     rate_ticket = await _reserve_rate_limit(request, "generate_ranked_readout")
+    bounded_top_k = min(50, max(10, top_k))
+    cache_key = _cache_key(
+        "generate_ranked_readout",
+        {
+            "local_sha256": hashlib.sha256(local_bytes).hexdigest(),
+            "context_sha256": hashlib.sha256(context_bytes).hexdigest(),
+            "species": species,
+            "organ": organ,
+            "top_k": bounded_top_k,
+        },
+    )
+    cached = await _cached_response(cache_key)
+    if cached is not None:
+        return {"data": cached, "cached": True}
     try:
-        async with _gpu_lock:
-            uploaded = await _upload_images(
-                [
-                    (local_image.filename or "local.png", local_bytes, local_image.content_type),
-                    (context_image.filename or "context.png", context_bytes, context_image.content_type),
-                ]
-            )
-            outputs = await _call_with_reservation(
-                INFERENCE_SPACE,
-                "generate_ranked_readout",
-                [uploaded[0], uploaded[1], species, organ, min(50, max(10, top_k))],
-            )
+        uploaded = await _upload_images(
+            [
+                (local_image.filename or "local.png", local_bytes, local_image.content_type),
+                (context_image.filename or "context.png", context_bytes, context_image.content_type),
+            ]
+        )
+        outputs = await _call_with_reservation(
+            INFERENCE_SPACE,
+            "generate_ranked_readout",
+            [uploaded[0], uploaded[1], species, organ, bounded_top_k],
+        )
     except BaseException:
         await _release_rate_limit(rate_ticket)
         raise
+    await _store_response(cache_key, outputs)
     return {"data": outputs}
 
 
@@ -466,14 +528,18 @@ async def call(request: Request, payload: GradioCall) -> dict[str, Any]:
     call_data = list(payload.data)
     if payload.api_name == "retrieve_atlas" and len(call_data) == 4:
         call_data.insert(3, "__ready__")
+    cache_key = _cache_key(payload.api_name, call_data)
+    cached = await _cached_response(cache_key)
+    if cached is not None:
+        return {"data": cached, "cached": True}
     try:
-        async with _gpu_lock:
-            outputs = await _call_with_reservation(
-                REASONING_SPACE,
-                payload.api_name,
-                call_data,
-            )
+        outputs = await _call_with_reservation(
+            REASONING_SPACE,
+            payload.api_name,
+            call_data,
+        )
     except BaseException:
         await _release_rate_limit(rate_ticket)
         raise
+    await _store_response(cache_key, outputs)
     return {"data": outputs}

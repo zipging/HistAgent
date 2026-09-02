@@ -3,6 +3,7 @@ from __future__ import annotations
 import html
 import json
 import os
+import re
 import shutil
 import threading
 from functools import lru_cache
@@ -46,8 +47,12 @@ histology-derived molecular and spatial evidence. Answer identity and capability
 briefly and directly. For questions about the selected tissue spot, use only the supplied
 evidence card and explain how the available genes, cell states, functional programs and
 spatial context support the answer. Do not fabricate evidence that is absent from the card.
-State uncertainty when the evidence is limited or ambiguous. Answer in the same language as
-the user. Do not expose chain-of-thought, hidden reasoning or <think> tags."""
+Use spatial context only when the card contains informative neighborhood, boundary or local
+organization evidence; image scale, spot diameter, an organ label or merely being inside
+tissue are not biological spatial evidence. State uncertainty when the evidence is limited
+or ambiguous. Prefer a focused answer of two to five sentences, but include additional detail
+when the question requires it. Answer in the same language as the user. Do not expose
+chain-of-thought, hidden reasoning or <think> tags."""
 
 
 def _compact_evidence(row: dict[str, Any]) -> dict[str, Any]:
@@ -236,7 +241,7 @@ def _load_qwen() -> tuple[Any, Any]:
         base_model,
         QWEN_ADAPTER_REPO,
         is_trainable=False,
-    )
+    ).merge_and_unload()
     model.eval()
     return tokenizer, model
 
@@ -282,6 +287,79 @@ def _history_messages(history: list[dict[str, Any]] | None) -> list[dict[str, st
     return messages
 
 
+def _has_informative_spatial_evidence(evidence: dict[str, Any]) -> bool:
+    spatial = evidence.get("spatial_context") or {}
+    if not isinstance(spatial, dict):
+        return False
+    if spatial.get("neighbors"):
+        return True
+    if any(
+        spatial.get(key) is not None
+        for key in (
+            "boundary_label_discordance",
+            "boundary_entropy",
+            "local_dominance",
+            "n_neighbors",
+        )
+    ):
+        return True
+    consensus = spatial.get("neighborhood_consensus") or {}
+    label = str(consensus.get("label") or "").strip().lower()
+    return bool(label and label not in {"selected spot", "surrounding tissue context"})
+
+
+def _remove_uninformative_spatial_claims(
+    answer: str,
+    evidence: dict[str, Any],
+) -> str:
+    """Drop only geometry or generic context presented as biological evidence."""
+
+    original = answer.strip().strip('"')
+    informative_spatial = _has_informative_spatial_evidence(evidence)
+    sentences = re.split(r"(?<=[.!?])\s+", original)
+    retained = []
+    for sentence in sentences:
+        lower = sentence.lower()
+        mentions_geometry = any(
+            phrase in lower
+            for phrase in (
+                "local diameter",
+                "context diameter",
+                "spot diameter",
+                "image scale",
+                "local_diameter_um",
+                "context_diameter_um",
+            )
+        )
+        invokes_spatial_support = any(
+            phrase in lower
+            for phrase in (
+                "spatial context",
+                "spatial evidence",
+                "spatial neighborhood",
+                "surrounding tissue context",
+                "tissue architecture",
+                "within a tissue region",
+                "within a localized tissue region",
+                "inside a tissue region",
+                "embedded within",
+                "resides within",
+                "supports the interpretation",
+                "supporting the interpretation",
+                "consistent with the kidney organ context",
+            )
+        )
+        if mentions_geometry or (not informative_spatial and invokes_spatial_support):
+            continue
+        retained.append(sentence)
+    cleaned = " ".join(retained).strip()
+    if cleaned:
+        return cleaned
+    if not informative_spatial:
+        return "This evidence card does not contain informative neighborhood or boundary evidence for this spot."
+    return original
+
+
 def _answer_from_evidence(
     message: str,
     history: list[dict[str, Any]] | None,
@@ -317,12 +395,14 @@ def _answer_from_evidence(
     with MODEL_LOCK, torch.inference_mode():
         output = model.generate(
             input_ids=input_ids,
-            max_new_tokens=256,
+            max_new_tokens=192,
             do_sample=False,
+            use_cache=True,
             pad_token_id=tokenizer.eos_token_id,
         )
     new_tokens = output[0, input_ids.shape[-1] :]
-    return tokenizer.decode(new_tokens, skip_special_tokens=True).strip()
+    answer = tokenizer.decode(new_tokens, skip_special_tokens=True).strip()
+    return _remove_uninformative_spatial_claims(answer, evidence)
 
 
 @spaces.GPU(duration=60)
