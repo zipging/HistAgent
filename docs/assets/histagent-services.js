@@ -39,7 +39,16 @@ async function parseGatewayResponse(response) {
     // The status code still provides a useful fallback when the body is empty.
   }
   if (!response.ok) {
-    throw new Error(errorMessage(payload, `HistAgent service failed (${response.status})`));
+    let message = errorMessage(payload, `HistAgent service failed (${response.status})`);
+    const seconds = Number(payload?.detail?.retry_after_seconds || response.headers.get("Retry-After"));
+    if (Number.isFinite(seconds) && seconds > 0) {
+      const minutes = Math.ceil(seconds / 60);
+      message += ` Try again in ${minutes} minute${minutes === 1 ? "" : "s"}.`;
+    }
+    const error = new Error(message);
+    error.code = payload?.detail?.code || "gateway_error";
+    error.retryAfterSeconds = seconds;
+    throw error;
   }
   if (!Array.isArray(payload?.data)) {
     throw new Error("The HistAgent service returned an invalid response");

@@ -10,7 +10,9 @@ import os
 import re
 import time
 from collections import OrderedDict, defaultdict, deque
+from contextvars import ContextVar
 from datetime import datetime, timedelta, timezone
+from email.utils import parsedate_to_datetime
 from pathlib import Path
 from typing import Any
 
@@ -23,7 +25,7 @@ from pydantic import BaseModel, Field
 
 
 HF_TOKEN = (
-    os.environ.get("HF_TOKEN") or os.environ.get("WLI14_HF_TOKEN", "")
+    os.environ.get("WLI14_HF_TOKEN") or os.environ.get("HF_TOKEN", "")
 ).strip()
 INFERENCE_SPACE = os.environ.get(
     "HISTAGENT_INFERENCE_SPACE", "https://wli14-histagent-agent.hf.space"
@@ -67,7 +69,9 @@ GPU_MINIMUM_CHARGES = {
 }
 GPU_CHARGE_BUFFER_SECONDS = 5
 BACKEND_SUBMISSION_ATTEMPTS = 3
-BACKEND_RETRY_DELAYS_SECONDS = (1.5, 3.0)
+BACKEND_RETRY_DELAYS_SECONDS = (2.0, 5.0)
+BACKEND_RATE_LIMIT_COOLDOWN = 300
+BACKEND_HEALTH_TTL = 30
 RESPONSE_CACHE_TTL_SECONDS = int(
     os.environ.get("HISTAGENT_RESPONSE_CACHE_TTL_SECONDS", "21600")
 )
@@ -90,6 +94,7 @@ app.add_middleware(
     allow_credentials=False,
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["Content-Type", "X-HistAgent-Session"],
+    expose_headers=["Retry-After"],
 )
 
 _gpu_lock = asyncio.Lock()
@@ -99,6 +104,10 @@ _recent_calls: dict[str, deque[float]] = defaultdict(deque)
 _response_cache: OrderedDict[str, tuple[float, list[Any]]] = OrderedDict()
 _hf_api = HfApi(token=HF_TOKEN or None)
 logger = logging.getLogger("histagent.gateway")
+_backend_failures: dict[str, tuple[float, int, str, str]] = {}
+_backend_health: dict[str, tuple[float, dict[str, Any]]] = {}
+_health_lock = asyncio.Lock()
+_submission_state: ContextVar[str] = ContextVar("submission_state", default="unsubmitted")
 
 
 class GradioCall(BaseModel):
@@ -324,20 +333,27 @@ async def _call_with_reservation(
     api_name: str,
     data: list[Any],
 ) -> list[Any]:
+    _check_backend_cooldown(space)
     # Serialize only the quota-ledger updates. Waiting for ZeroGPU should not
     # make unrelated visitors queue behind the active request at this gateway.
     async with _gpu_lock:
         await asyncio.to_thread(_reserve_gpu_seconds, api_name)
     started = time.monotonic()
+    submission_context = _submission_state.set("unsubmitted")
     try:
         outputs = await _call_gradio(space, api_name, data)
     except BaseException:
-        try:
-            async with _gpu_lock:
-                await asyncio.to_thread(_refund_gpu_seconds, api_name)
-        except Exception:
-            logger.exception("Could not return the failed %s reservation", api_name)
+        if _submission_state.get() in {"unsubmitted", "rejected"}:
+            try:
+                async with _gpu_lock:
+                    await asyncio.to_thread(_refund_gpu_seconds, api_name)
+            except Exception:
+                logger.exception("Could not return the failed %s reservation", api_name)
+        else:
+            logger.warning("Keeping %s reservation: execution may already have started", api_name)
         raise
+    finally:
+        _submission_state.reset(submission_context)
     try:
         async with _gpu_lock:
             await asyncio.to_thread(
@@ -353,37 +369,125 @@ async def _call_with_reservation(
 
 
 def _backend_headers() -> dict[str, str]:
-    return {"Authorization": f"Bearer {HF_TOKEN}"}
+    # Match Gradio's official client: HF authenticates the owner on the server,
+    # without asking anonymous website visitors for a Hugging Face account.
+    return {"X-HF-Authorization": f"Bearer {HF_TOKEN}"}
 
 
 def _is_quota_error(value: Any) -> bool:
     text = str(value).lower()
-    return any(term in text for term in ("quota", "zerogpu", "over quota", "exceeded"))
+    return any(term in text for term in (
+        "gpu quota", "exceeded your gpu", "not enough gpu quota",
+        "zerogpu quota", "daily gpu limit",
+    ))
+
+
+def _retry_after(response: httpx.Response, default: int) -> int:
+    value = response.headers.get("retry-after", "")
+    try:
+        return max(1, math.ceil(float(value)))
+    except (ValueError, OverflowError):
+        try:
+            return max(1, math.ceil(
+                parsedate_to_datetime(value).timestamp() - time.time()
+            ))
+        except (TypeError, ValueError, OverflowError):
+            return default
+
+
+def _backend_failure(
+    space: str, code: str, message: str, *, status: int = 503, seconds: int = 30
+) -> HTTPException:
+    _backend_failures[space] = (time.monotonic() + seconds, status, code, message)
+    _backend_health.pop(space, None)
+    return HTTPException(
+        status_code=status,
+        detail={"message": message, "code": code, "retry_after_seconds": seconds},
+        headers={"Retry-After": str(seconds)},
+    )
+
+
+def _check_backend_cooldown(space: str) -> None:
+    failure = _backend_failures.get(space)
+    if not failure:
+        return
+    until, status, code, message = failure
+    remaining = math.ceil(until - time.monotonic())
+    if remaining > 0:
+        raise HTTPException(
+            status_code=status,
+            detail={"message": message, "code": code, "retry_after_seconds": remaining},
+            headers={"Retry-After": str(remaining)},
+        )
+    _backend_failures.pop(space, None)
+
+
+def _response_error(space: str, response: httpx.Response) -> HTTPException:
+    # Do not log response bodies: inference errors can contain submitted data.
+    logger.warning("Backend HTTP failure host=%s status=%s", httpx.URL(space).host, response.status_code)
+    if response.status_code == 429:
+        gpu_quota = _is_quota_error(response.text[:4000])
+        return _backend_failure(
+            space,
+            "gpu_quota_exhausted" if gpu_quota else "backend_rate_limited",
+            "The shared GPU allowance is temporarily exhausted. Please try later."
+            if gpu_quota else "The model host is temporarily rate-limiting requests. Please wait before retrying.",
+            status=429, seconds=_retry_after(response, BACKEND_RATE_LIMIT_COOLDOWN),
+        )
+    return _backend_failure(
+        space, "backend_access_unavailable" if response.status_code in {401, 403, 404} else "backend_temporarily_unavailable",
+        "The model service is temporarily unavailable. Please retry shortly.",
+        seconds=_retry_after(response, 30),
+    )
+
+
+async def _post_backend(
+    client: httpx.AsyncClient, space: str, path: str, **kwargs: Any
+) -> httpx.Response:
+    _check_backend_cooldown(space)
+    gpu_submission = path.startswith("/gradio_api/call/")
+    for attempt in range(BACKEND_SUBMISSION_ATTEMPTS):
+        try:
+            if gpu_submission:
+                _submission_state.set("uncertain")
+            response = await client.post(
+                f"{space}{path}", headers=_backend_headers(), follow_redirects=False, **kwargs
+            )
+        except httpx.TransportError as error:
+            # A timeout may happen after a job was accepted. Never submit that
+            # job again automatically, since it could use a second GPU session.
+            raise _backend_failure(
+                space, "backend_connection_error",
+                "The connection to the model was interrupted. Please retry shortly.",
+            ) from error
+        if 200 <= response.status_code < 300:
+            if gpu_submission:
+                _submission_state.set("accepted")
+            return response
+        if gpu_submission and 300 <= response.status_code < 500:
+            _submission_state.set("rejected")
+        if not gpu_submission and response.status_code in {502, 503, 504} and attempt < BACKEND_SUBMISSION_ATTEMPTS - 1:
+            delay = _retry_after(response, math.ceil(BACKEND_RETRY_DELAYS_SECONDS[attempt]))
+            if delay <= 10:
+                await asyncio.sleep(delay)
+                continue
+        # In particular, never hammer a 429 or follow a redirect with a token.
+        raise _response_error(space, response)
+    raise RuntimeError("Unreachable submission state")
 
 
 async def _upload_images(files: list[tuple[str, bytes, str]]) -> list[dict[str, Any]]:
     multipart = [
         ("files", (name, content, mime_type)) for name, content, mime_type in files
     ]
-    async with httpx.AsyncClient(timeout=60.0, follow_redirects=True) as client:
-        for attempt in range(BACKEND_SUBMISSION_ATTEMPTS):
-            response = await client.post(
-                f"{INFERENCE_SPACE}/gradio_api/upload",
-                headers=_backend_headers(),
-                files=multipart,
-            )
-            if response.status_code < 400:
-                break
-            if (
-                response.status_code not in {429, 502, 503, 504}
-                or attempt == BACKEND_SUBMISSION_ATTEMPTS - 1
-            ):
-                raise HTTPException(
-                    status_code=503,
-                    detail="The image service is temporarily unavailable. Please retry in a moment.",
-                )
-            await asyncio.sleep(BACKEND_RETRY_DELAYS_SECONDS[attempt])
-    paths = response.json()
+    async with httpx.AsyncClient(timeout=60.0, follow_redirects=False) as client:
+        response = await _post_backend(client, INFERENCE_SPACE, "/gradio_api/upload", files=multipart)
+    try:
+        paths = response.json()
+        if not isinstance(paths, list) or len(paths) != len(files) or not all(isinstance(p, str) for p in paths):
+            raise ValueError("Invalid image upload response")
+    except (ValueError, TypeError) as error:
+        raise _backend_failure(INFERENCE_SPACE, "backend_invalid_response", "The image service returned an invalid response. Please retry.") from error
     return [
         {
             "path": path,
@@ -398,85 +502,71 @@ async def _upload_images(files: list[tuple[str, bytes, str]]) -> list[dict[str, 
 async def _call_gradio(space: str, api_name: str, data: list[Any]) -> list[Any]:
     endpoint = f"{space}/gradio_api/call/{api_name}"
     timeout = httpx.Timeout(connect=30.0, read=240.0, write=60.0, pool=30.0)
-    async with httpx.AsyncClient(timeout=timeout, follow_redirects=True) as client:
-        for attempt in range(BACKEND_SUBMISSION_ATTEMPTS):
-            submission = await client.post(
-                endpoint,
-                headers={**_backend_headers(), "Content-Type": "application/json"},
-                json={"data": data},
-            )
-            if submission.status_code < 400:
-                break
-            detail = submission.text[:4000]
-            if _is_quota_error(detail):
-                raise HTTPException(status_code=429, detail="今日 GPU 额度已用完，请稍后再试。")
-            if (
-                submission.status_code in {429, 502, 503, 504}
-                and attempt < BACKEND_SUBMISSION_ATTEMPTS - 1
-            ):
-                logger.warning(
-                    "Retrying backend submission api=%s status=%s attempt=%s",
-                    api_name,
-                    submission.status_code,
-                    attempt + 1,
-                )
-                await asyncio.sleep(BACKEND_RETRY_DELAYS_SECONDS[attempt])
-                continue
-            logger.error(
-                "Backend submission failed api=%s status=%s body=%s",
-                api_name,
-                submission.status_code,
-                detail,
-            )
-            raise HTTPException(
-                status_code=503,
-                detail={
-                    "message": "The model service is temporarily busy. Please retry in a moment.",
-                    "code": "backend_temporarily_unavailable",
-                },
-            )
-        event_id = submission.json().get("event_id")
-        if not event_id:
-            raise HTTPException(status_code=502, detail="The model service returned no event identifier.")
-
-        event_name = ""
-        async with client.stream(
-            "GET", f"{endpoint}/{event_id}", headers=_backend_headers()
-        ) as stream:
-            if stream.status_code >= 400:
-                raise HTTPException(status_code=502, detail="The model response stream could not start.")
-            async for line in stream.aiter_lines():
-                if line.startswith("event:"):
-                    event_name = line[6:].strip()
-                elif line.startswith("data:"):
-                    payload = line[5:].strip()
-                    if event_name == "complete":
-                        value = json.loads(payload)
-                        return value if isinstance(value, list) else [value]
-                    if event_name == "error":
-                        if _is_quota_error(payload):
-                            raise HTTPException(
-                                status_code=429,
-                                detail="今日 GPU 额度已用完，请稍后再试。",
+    async with httpx.AsyncClient(timeout=timeout, follow_redirects=False) as client:
+        submission = await _post_backend(client, space, f"/gradio_api/call/{api_name}", json={"data": data})
+        try:
+            event_id = submission.json().get("event_id")
+            if not isinstance(event_id, str) or not re.fullmatch(r"[A-Za-z0-9_-]+", event_id):
+                raise ValueError("Missing event identifier")
+        except (ValueError, AttributeError) as error:
+            raise _backend_failure(space, "backend_invalid_response", "The model service returned an invalid response.") from error
+        try:
+            event_name = ""
+            async with client.stream("GET", f"{endpoint}/{event_id}", headers=_backend_headers()) as stream:
+                if not 200 <= stream.status_code < 300:
+                    await stream.aread()
+                    raise _response_error(space, stream)
+                async for line in stream.aiter_lines():
+                    if line.startswith("event:"):
+                        event_name = line[6:].strip()
+                    elif line.startswith("data:"):
+                        payload = line[5:].strip()
+                        if event_name == "complete":
+                            value = json.loads(payload)
+                            return value if isinstance(value, list) else [value]
+                        if event_name == "error":
+                            quota = _is_quota_error(payload)
+                            if quota:
+                                _submission_state.set("rejected")
+                            raise _backend_failure(
+                                space, "gpu_quota_exhausted" if quota else "backend_generation_error",
+                                "The shared GPU allowance is temporarily exhausted. Please try later." if quota else "The model could not complete this request. Please retry shortly.",
+                                status=429 if quota else 502, seconds=300 if quota else 30,
                             )
-                        logger.error(
-                            "Backend generation failed api=%s payload=%s",
-                            api_name,
-                            payload[:1000],
-                        )
-                        raise HTTPException(
-                            status_code=502,
-                            detail={
-                                "message": "The model could not complete this request. Please retry.",
-                                "code": "backend_generation_error",
-                            },
-                        )
-    raise HTTPException(status_code=502, detail="The model response ended unexpectedly.")
+        except (httpx.TransportError, ValueError) as error:
+            raise _backend_failure(space, "backend_stream_interrupted", "The model response was interrupted. Please retry shortly.") from error
+    raise _backend_failure(space, "backend_stream_interrupted", "The model response ended unexpectedly. Please retry shortly.")
+
+
+async def _probe_backend(space: str) -> dict[str, Any]:
+    try:
+        _check_backend_cooldown(space)
+    except HTTPException as error:
+        return {"status": "unavailable", **error.detail}
+    cached = _backend_health.get(space)
+    if cached and time.monotonic() - cached[0] < BACKEND_HEALTH_TTL:
+        return cached[1]
+    try:
+        async with httpx.AsyncClient(timeout=10.0, follow_redirects=False) as client:
+            response = await client.get(f"{space}/config", headers=_backend_headers())
+        if not 200 <= response.status_code < 300:
+            raise _response_error(space, response)
+        config = response.json()
+        if not isinstance(config, dict) or "dependencies" not in config:
+            raise ValueError("Invalid Gradio configuration")
+        # Reachable is deliberately not a claim that a GPU job has completed.
+        result = {"status": "reachable"}
+    except HTTPException as error:
+        result = {"status": "unavailable", **error.detail}
+    except (httpx.TransportError, ValueError):
+        result = {"status": "unavailable", "code": "backend_not_ready", "message": "The model service is starting or temporarily unreachable."}
+    _backend_health[space] = (time.monotonic(), result)
+    return result
 
 
 @app.get("/")
 async def root() -> dict[str, str]:
-    return {"service": "HistAgent API", "status": "ready"}
+    return {"service": "HistAgent API", "status": "online", "health": "/api/health"}
 
 
 @app.get("/api/health")
@@ -484,11 +574,13 @@ async def health() -> dict[str, Any]:
     _require_token()
     now = datetime.now(timezone.utc)
     state = await asyncio.to_thread(_load_quota_state, now)
+    async with _health_lock:
+        inference, reasoning = await asyncio.gather(_probe_backend(INFERENCE_SPACE), _probe_backend(REASONING_SPACE))
+    remaining = max(0, GPU_QUOTA_SECONDS - int(state.get("used_seconds", 0)))
     return {
-        "status": "ready",
-        "remaining_gpu_seconds": max(
-            0, GPU_QUOTA_SECONDS - int(state.get("used_seconds", 0))
-        ),
+        "status": "available" if remaining >= min(GPU_RESERVATIONS.values()) and all(item["status"] == "reachable" for item in (inference, reasoning)) else "degraded",
+        "backends": {"inference": inference, "reasoning": reasoning},
+        "remaining_gpu_seconds": remaining,
         "quota_window_started_at": state["window_started_at"],
     }
 
