@@ -8,7 +8,7 @@ globalThis.window = {
 
 test("anonymous browser sends no account credential and accepts model outputs", async () => {
   globalThis.fetch = async (url, request) => {
-    assert.equal(url, "https://wli14-histagent-agent.hf.space/api/call");
+    assert.equal(url, "https://wli14-histagent-api.hf.space/api/call");
     assert.equal(request.headers["X-HistAgent-Session"], "anonymous-test-browser");
     assert.equal(request.headers.Authorization, undefined);
     assert.equal(request.headers["X-HF-Authorization"], undefined);

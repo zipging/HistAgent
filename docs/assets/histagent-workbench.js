@@ -1,7 +1,7 @@
 import {
   callHistAgentService,
   generateHistAgentReadout
-} from "./histagent-services.js?v=20260906unified1";
+} from "./histagent-services.js?v=20260906owner1";
 const LOCAL_DIAMETER_UM = 55;
 const CONTEXT_DIAMETER_UM = 220;
 const EXAMPLE_MANIFEST_URL = "/assets/gsm5924036-spots.json";

@@ -74,9 +74,13 @@ Configure persistent secrets in the Space settings, never in the website:
 The existing gateway's `HISTAGENT_QUOTA_REPO`, `HISTAGENT_GPU_QUOTA_SECONDS`, quota
 window, rate-limit, and response-cache settings remain applicable. The health
 response's remaining seconds describe the application ledger, not a measured
-Hugging Face allowance. Anonymous visitors remain subject to Hugging Face's
-ZeroGPU quota and availability. An owner's PRO subscription must not be assumed
-to provide that allowance to anonymous requests.
+Hugging Face allowance. Direct anonymous calls to this model Space remain subject
+to the caller's Hugging Face ZeroGPU quota and availability. The public website
+uses the existing CPU Space's `histagent-public-proxy` service to originate fresh
+owner-authenticated calls with its durable wli14 token; that path was verified
+with fresh anonymous jobs and a measured decrease in wli14's platform allowance.
+The subscription alone does not fund direct anonymous calls. Website visitors
+share the owner's allowance and the unchanged application budget.
 
 ## Capacity and validation
 

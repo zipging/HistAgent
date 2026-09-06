@@ -69,8 +69,98 @@
         "code": "gpu_quota_exhausted",
         "retry_after_seconds": 300
       }
-    }
+    },
+    "scope": "Direct anonymous access to the model Space before the owner proxy"
   },
   "anonymous_cache_hit": true,
-  "browser_observation": "The published Analyze selected spot button displayed the daily GPU run quota explanation; uncached access remains subject to that platform cap."
+  "browser_observation_before_owner_proxy": "The published Analyze selected spot button displayed the daily GPU run quota explanation; uncached access remains subject to that platform cap.",
+  "owner_proxy": {
+    "revision": "9dd75e62dd71e04047f440075a1bfe0108876ee0",
+    "endpoint": "https://wli14-histagent-api.hf.space",
+    "hardware": "cpu-basic",
+    "proxy_owner": "wli14",
+    "new_resources_created": false,
+    "full_workflow": {
+      "started_at": "2026-09-06T13:04:30.790389+00:00",
+      "authentication": "anonymous",
+      "passed": true,
+      "steps": [
+        {
+          "name": "health",
+          "http_status": 200,
+          "seconds": 1.5
+        },
+        {
+          "name": "generate",
+          "http_status": 200,
+          "seconds": 8.31,
+          "cached": false,
+          "unique_ranked_genes": 50
+        },
+        {
+          "name": "spot_chat",
+          "http_status": 200,
+          "seconds": 18.32,
+          "cached": false,
+          "answer_characters": 324
+        },
+        {
+          "name": "spot_followup",
+          "http_status": 200,
+          "seconds": 3.62,
+          "cached": false,
+          "history_messages": 4
+        },
+        {
+          "name": "atlas_search",
+          "http_status": 200,
+          "seconds": 2.53,
+          "cached": false,
+          "retrieved_spots": 5
+        },
+        {
+          "name": "atlas_chat",
+          "http_status": 200,
+          "seconds": 5.33,
+          "cached": false,
+          "answer_characters": 536
+        },
+        {
+          "name": "atlas_cached",
+          "http_status": 200,
+          "seconds": 0.45,
+          "cached": true
+        }
+      ],
+      "spot_barcode": "ACGCGGGCCAAGGACA-1",
+      "atlas_query": "Find B-cell-rich lymphoid regions with antigen-presentation evidence in measured tissue spots.",
+      "completed_at": "2026-09-06T13:05:16.309552+00:00"
+    },
+    "platform_quota_before": {
+      "base": 2400,
+      "current": 2273.831162,
+      "resetsAt": "2026-09-07T10:05:11.857Z",
+      "overquotaUsed": 0
+    },
+    "platform_quota_after": {
+      "base": 2400,
+      "current": 2254.509743,
+      "resetsAt": "2026-09-07T10:05:11.973Z",
+      "overquotaUsed": 0
+    },
+    "owner_seconds_consumed": 19.321419,
+    "preflight": {
+      "http_status": 200,
+      "allowed_origin": "https://histagent.bio",
+      "note": "HF edge answers OPTIONS; application unit tests assert 204."
+    },
+    "no_origin_http_status": 403,
+    "unknown_route_http_status": 404,
+    "credential_headers_returned": false,
+    "tests": {
+      "proxy": 73,
+      "browser_client_and_state": 28
+    },
+    "published_browser_workflow": "pending"
+  }
 }

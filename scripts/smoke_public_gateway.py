@@ -22,9 +22,12 @@ from PIL import Image
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--gateway", default="https://wli14-histagent-agent.hf.space")
+    parser.add_argument("--gateway", default="https://wli14-histagent-api.hf.space")
     parser.add_argument("--site", default="https://histagent.bio")
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--spot-barcode", help="Use another real public Visium spot for an uncached check")
+    parser.add_argument("--atlas-query", default="Find tumor-adjacent immune-stromal interface regions.")
+    parser.add_argument("--atlas-question", default="What tissue context is supported by the retrieved evidence?")
     parser.add_argument("--hf-auth", action="store_true", help="Use the locally configured HF account for model API calls only")
     args = parser.parse_args()
     api_headers = {}
@@ -64,7 +67,7 @@ def main() -> None:
             print(json.dumps(step), flush=True)
             response.raise_for_status()
             if name not in {"health", "atlas_cached"}:
-                assert not step["cached"], "Cached result cannot establish fresh GPU availability; use a fresh deployment or wait for cache expiry"
+                assert not step["cached"], "Cached result cannot establish fresh GPU availability; choose another real spot/query or wait for cache expiry"
             return payload, step
 
         health, _ = request("health", "GET", "/api/health")
@@ -74,7 +77,10 @@ def main() -> None:
         response = client.get(args.site + "/assets/gsm5924036-spots.json")
         response.raise_for_status()
         manifest = response.json()
-        spot = next(s for s in manifest["spots"] if s["barcode"] == manifest["default_barcode"])
+        barcode = args.spot_barcode or manifest["default_barcode"]
+        spot = next(s for s in manifest["spots"] if s["barcode"] == barcode)
+        summary["spot_barcode"] = barcode
+        summary["atlas_query"] = args.atlas_query
         response = client.get(args.site + manifest["image_url"])
         response.raise_for_status()
         tissue = Image.open(io.BytesIO(response.content)).convert("RGB")
@@ -110,12 +116,12 @@ def main() -> None:
         assert len(followup[1]) > len(history) and followup[1][-1]["content"].strip()
         step["history_messages"] = len(followup[1])
 
-        query = ["Find tumor-adjacent immune-stromal interface regions.", "human", "Any", "__ready__", 5]
+        query = [args.atlas_query, "human", "Any", "__ready__", 5]
         atlas, step = call("atlas_search", "retrieve_atlas", query)
         atlas_rows = atlas[0].get("data", []) if isinstance(atlas[0], dict) else atlas[0]
         assert len(atlas_rows) == 5 and atlas[1], "Expected five retrieved spots and their evidence"
         step["retrieved_spots"] = len(atlas_rows)
-        atlas_chat, step = call("atlas_chat", "answer_atlas_question", ["What tissue context is supported by the retrieved evidence?", [], atlas[1]])
+        atlas_chat, step = call("atlas_chat", "answer_atlas_question", [args.atlas_question, [], atlas[1]])
         assert atlas_chat[1][-1]["role"] == "assistant" and atlas_chat[1][-1]["content"].strip()
         step["answer_characters"] = len(atlas_chat[1][-1]["content"])
         cached, step = request("atlas_cached", "POST", "/api/call", json={"service": "reasoning", "api_name": "retrieve_atlas", "data": query})

@@ -1,4 +1,4 @@
-import { callHistAgentService } from "./histagent-services.js?v=20260906unified1";
+import { callHistAgentService } from "./histagent-services.js?v=20260906owner1";
 
 const ATLAS_IMAGE_QUERY_KEY = "histagent-atlas-image-query";
 const ATLAS_EVIDENCE_QUERY_KEY = "histagent-atlas-evidence-query";

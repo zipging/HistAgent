@@ -1,4 +1,4 @@
-const HISTAGENT_GATEWAY = "https://wli14-histagent-agent.hf.space";
+const HISTAGENT_GATEWAY = "https://wli14-histagent-api.hf.space";
 const HISTAGENT_SESSION_KEY = "histagent-public-session";
 let inMemorySession = "";
 
