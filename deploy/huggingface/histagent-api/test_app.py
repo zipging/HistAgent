@@ -71,6 +71,7 @@ def test_backend_diagnostics_redact_secrets_before_header_and_body_truncation(
 def configured_gateway(monkeypatch):
     monkeypatch.setattr(gateway, "HF_TOKEN", "test-token")
     monkeypatch.setattr(gateway, "FORWARD_VISITOR_IDENTITY", True)
+    monkeypatch.setattr(gateway, "_local_backend", None)
     for name in ("_gpu_lock", "_rate_lock", "_cache_lock", "_health_lock"):
         monkeypatch.setattr(gateway, name, asyncio.Lock())
     gateway._recent_calls.clear()
@@ -78,7 +79,9 @@ def configured_gateway(monkeypatch):
     gateway._backend_failures.clear()
     gateway._backend_health.clear()
     context = gateway._backend_ip_token.set("")
+    request_context = gateway._backend_request.set(None)
     yield
+    gateway._backend_request.reset(request_context)
     gateway._backend_ip_token.reset(context)
 
 
@@ -348,6 +351,259 @@ def queue_completion(event_id, data=None, error=None):
                "success": error is None,
                "output": {"data": data} if error is None else {"error": error}}
     return f"data: {json.dumps(message)}\n\n"
+
+
+@pytest.fixture
+def local_backend(backend_transport):
+    original_client = httpx.AsyncClient
+
+    def forbid_remote_request(request):
+        raise AssertionError(f"Local backend attempted HTTP to {request.url.host}")
+
+    remote_requests = backend_transport(forbid_remote_request)
+
+    class Backend:
+        def __init__(self):
+            self.uploads = []
+            self.calls = []
+            self.health_calls = 0
+            self.http_client = original_client
+            self.outputs = {
+                "generate_ranked_readout": [{"data": [[1, "COL1A1"]]}, "COL1A1", {}, "ready"],
+                "retrieve_atlas": [{"data": [[1, "spot-1"]]}, {"spots": ["spot-1"]}],
+                "answer_atlas_question": ["", [{"role": "assistant", "content": "Evidence-based answer"}]],
+            }
+
+        async def upload_images(self, files):
+            self.uploads.append(files)
+            return [{"path": f"/tmp/{name}", "orig_name": name, "mime_type": mime,
+                     "meta": {"_type": "gradio.FileData"}} for name, _, mime in files]
+
+        async def call(self, api_name, data, request, *, on_admitted=None):
+            if on_admitted is not None:
+                on_admitted()
+            self.calls.append((api_name, data, request))
+            assert isinstance(request, Request)
+            assert gateway._backend_request.get() is request
+            return self.outputs[api_name]
+
+        async def health(self):
+            self.health_calls += 1
+            return {"status": "reachable"}
+
+    backend = Backend()
+    gateway.configure_local_backend(backend)
+    yield backend
+    assert remote_requests == []
+
+
+def test_local_dispatch_preserves_health_and_all_three_api_contracts(local_backend, local_quota):
+    client = TestClient(gateway.app)
+    health = client.get("/api/health")
+    assert health.status_code == 200
+    assert health.json()["status"] == "available"
+    assert health.json()["execution"] == "in_process"
+    assert health.json()["platform_quota_scope"] == "visitor"
+    assert local_backend.health_calls == 2
+
+    files = {"local_image": ("local.png", b"local-pixels", "image/png"),
+             "context_image": ("context.png", b"context-pixels", "image/png")}
+    generated = client.post("/api/generate", headers={"X-IP-Token": "local-visitor"},
+                            files=files, data={"species": "human", "organ": "kidney", "top_k": 50})
+    assert generated.status_code == 200
+    assert generated.json()["data"] == local_backend.outputs["generate_ranked_readout"]
+    assert local_backend.uploads == [[files["local_image"], files["context_image"]]]
+    api_name, data, request = local_backend.calls[0]
+    assert api_name == "generate_ranked_readout"
+    assert [file["path"] for file in data[:2]] == ["/tmp/local.png", "/tmp/context.png"]
+    assert data[2:] == ["human", "kidney", 50]
+    assert request.headers["x-ip-token"] == "local-visitor"
+
+    for api_name, data in [
+        ("retrieve_atlas", ["TLS", "human", "Any", 5]),
+        ("answer_atlas_question", ["Question", [], {"ranked_genes": ["COL1A1"]}]),
+    ]:
+        response = client.post("/api/call", json={"service": "reasoning", "api_name": api_name, "data": data})
+        assert response.status_code == 200
+        assert response.json()["data"] == local_backend.outputs[api_name]
+    assert local_backend.calls[1][1] == ["TLS", "human", "Any", "__ready__", 5]
+    assert local_backend.calls[2][1] == ["Question", [], {"ranked_genes": ["COL1A1"]}]
+    assert gateway._backend_request.get() is None
+
+
+def test_local_cache_reuses_results_without_upload_or_gpu_execution(local_backend, local_quota):
+    client = TestClient(gateway.app)
+    files = {"local_image": ("local.png", b"local-pixels", "image/png"),
+             "context_image": ("context.png", b"context-pixels", "image/png")}
+    first = client.post("/api/generate", files=files)
+    charged = local_quota["used_seconds"]
+    repeated = client.post("/api/generate", files=files)
+    assert first.status_code == repeated.status_code == 200
+    assert repeated.json()["cached"] is True
+    assert repeated.json()["data"] == first.json()["data"]
+    assert len(local_backend.uploads) == len(local_backend.calls) == 1
+    assert local_quota["used_seconds"] == charged
+
+
+@pytest.mark.parametrize("api_name", ["generate_ranked_readout", "retrieve_atlas", "answer_atlas_question"])
+def test_local_budget_guard_blocks_before_model_execution(local_backend, local_quota, api_name):
+    local_quota["used_seconds"] = gateway.GPU_QUOTA_SECONDS - gateway.GPU_RESERVATIONS[api_name] + 1
+    previous = local_quota.copy()
+    client = TestClient(gateway.app)
+    if api_name == "generate_ranked_readout":
+        response = client.post("/api/generate", files={
+            "local_image": ("local.png", b"local-pixels", "image/png"),
+            "context_image": ("context.png", b"context-pixels", "image/png"),
+        })
+    else:
+        response = client.post("/api/call", json={"service": "reasoning", "api_name": api_name,
+                                                  "data": ["Question", [], {}]})
+    assert response.status_code == 429
+    assert local_backend.calls == []
+    assert local_quota == previous
+
+
+@pytest.mark.parametrize("message, expected_code, status, refundable", [
+    ("You have exceeded your Pro ZeroGPU quota (60s requested vs. 0s left).", "gpu_quota_exhausted", 429, True),
+    ("The requested GPU duration (270s) is larger than the maximum allowed", "backend_duration_rejected", 503, True),
+    ("Unexpected model failure after execution started", "backend_generation_error", 502, False),
+])
+def test_local_exception_message_preserves_platform_refusal_and_budget_rules(
+    monkeypatch, local_backend, local_quota, message, expected_code, status, refundable
+):
+    class GradioLikeError(Exception):
+        # Gradio error details may live in .message while str(error) is empty.
+        def __init__(self, value):
+            self.message = value
+            super().__init__()
+
+    async def fail(api_name, data, request, *, on_admitted=None):
+        if on_admitted is not None:
+            on_admitted()
+        local_backend.calls.append((api_name, data, request))
+        assert gateway._backend_request.get() is request
+        raise GradioLikeError(message)
+
+    monkeypatch.setattr(local_backend, "call", fail)
+    response = TestClient(gateway.app).post("/api/call", headers={"X-IP-Token": "failure-visitor"},
+                                           json={"service": "reasoning", "api_name": "answer_atlas_question",
+                                                 "data": ["Question", [], {}]})
+    assert response.status_code == status
+    assert response.json()["detail"]["code"] == expected_code
+    assert len(local_backend.calls) == 1
+    assert local_quota["used_seconds"] == (0 if refundable else gateway.GPU_RESERVATIONS["answer_atlas_question"])
+    assert local_quota["calls"] == (0 if refundable else 1)
+    assert gateway._backend_request.get() is None
+
+
+@pytest.mark.anyio
+async def test_local_concurrent_requests_preserve_real_request_context(
+    monkeypatch, local_backend, local_quota
+):
+    entered = set()
+    both_entered = asyncio.Event()
+
+    async def overlap(api_name, data, request, *, on_admitted=None):
+        if on_admitted is not None:
+            on_admitted()
+        identity = data[0]
+        entered.add(identity)
+        if len(entered) == 2:
+            both_entered.set()
+        await both_entered.wait()
+        assert gateway._backend_request.get() is request
+        assert request.headers["x-ip-token"] == identity
+        assert gateway._backend_ip_token.get() == identity
+        if identity == "failing-visitor":
+            raise RuntimeError("Unexpected worker failure")
+        return [identity]
+
+    monkeypatch.setattr(local_backend, "call", overlap)
+    outer = Request({"type": "http", "headers": [], "client": ("127.0.0.1", 1)})
+    request_context = gateway._backend_request.set(outer)
+    identity_context = gateway._backend_ip_token.set("outer-identity")
+    try:
+        async with local_backend.http_client(
+            transport=httpx.ASGITransport(app=gateway.app), base_url="http://testserver"
+        ) as client:
+            async def call(identity):
+                response = await client.post("/api/call", headers={"X-IP-Token": identity,
+                                                                  "X-HistAgent-Session": identity},
+                                             json={"service": "reasoning", "api_name": "answer_atlas_question",
+                                                   "data": [identity, [], {}]})
+                assert gateway._backend_request.get() is outer
+                assert gateway._backend_ip_token.get() == "outer-identity"
+                return response
+
+            failed, healthy = await asyncio.wait_for(asyncio.gather(
+                call("failing-visitor"), call("healthy-visitor")
+            ), timeout=3)
+        assert failed.status_code == 502
+        assert healthy.status_code == 200
+        assert healthy.json()["data"] == ["healthy-visitor"]
+        assert gateway._backend_request.get() is outer
+        assert gateway._backend_ip_token.get() == "outer-identity"
+    finally:
+        gateway._backend_request.reset(request_context)
+        gateway._backend_ip_token.reset(identity_context)
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("admitted", [False, True])
+async def test_local_cancellation_refunds_only_jobs_still_waiting_for_admission(
+    monkeypatch, local_backend, local_quota, admitted
+):
+    waiting = asyncio.Event()
+
+    async def pending(api_name, data, request, *, on_admitted=None):
+        if admitted:
+            on_admitted()
+        waiting.set()
+        await asyncio.Event().wait()
+
+    monkeypatch.setattr(local_backend, "call", pending)
+    request = Request({"type": "http", "headers": [], "client": ("127.0.0.1", 1)})
+    context = gateway._backend_request.set(request)
+    try:
+        task = asyncio.create_task(gateway._call_with_reservation(
+            "https://example.invalid", "answer_atlas_question", ["Question", [], {}]
+        ))
+        await asyncio.wait_for(waiting.wait(), timeout=2)
+        task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await task
+        assert local_quota["used_seconds"] == (
+            gateway.GPU_RESERVATIONS["answer_atlas_question"] if admitted else 0
+        )
+        assert local_quota["calls"] == (1 if admitted else 0)
+        assert gateway._backend_request.get() is request
+    finally:
+        gateway._backend_request.reset(context)
+
+
+@pytest.mark.parametrize("title, message, code, status", [
+    ("ZeroGPU quota exceeded", "Space app has reached its GPU limit. Please retry later.", "gpu_quota_exhausted", 429),
+    ("ZeroGPU quota exceeded", "You have exceeded your ZeroGPU runs limit.", "gpu_quota_exhausted", 429),
+    ("ZeroGPU illegal duration", "The requested GPU duration (270s) is larger than the maximum allowedSubscribe to Hugging Face PRO to increase your quota.", "backend_duration_rejected", 503),
+    ("ZeroGPU queue timeout", "The queue wait timed out.", "gpu_queue_unavailable", 503),
+    ("ZeroGPU pending credits exceeded", "Too many pending requests.", "gpu_queue_unavailable", 503),
+])
+def test_real_gradio_scheduler_error_titles_preserve_refusal_and_refund(
+    monkeypatch, local_backend, local_quota, title, message, code, status
+):
+    import gradio as gr
+
+    async def refused(api_name, data, request, *, on_admitted=None):
+        on_admitted()
+        raise gr.Error(message, title=title, print_exception=False)
+
+    monkeypatch.setattr(local_backend, "call", refused)
+    response = TestClient(gateway.app).post("/api/call", json={
+        "service": "reasoning", "api_name": "answer_atlas_question", "data": ["Question", [], {}],
+    })
+    assert response.status_code == status
+    assert response.json()["detail"]["code"] == code
+    assert local_quota["used_seconds"] == local_quota["calls"] == 0
 
 
 @pytest.mark.parametrize("ip_token", [None, "signed-visitor-token"])

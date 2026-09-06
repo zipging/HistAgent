@@ -111,6 +111,14 @@ _backend_health: dict[tuple[str, str], tuple[float, dict[str, Any]]] = {}
 _health_lock = asyncio.Lock()
 _submission_state: ContextVar[str] = ContextVar("submission_state", default="unsubmitted")
 _backend_ip_token: ContextVar[str] = ContextVar("backend_ip_token", default="")
+_backend_request: ContextVar[Request | None] = ContextVar("backend_request", default=None)
+_local_backend: Any = None
+
+
+def configure_local_backend(backend: Any) -> None:
+    """Install the in-process model runtime before serving public requests."""
+    global _local_backend
+    _local_backend = backend
 
 
 @app.middleware("http")
@@ -122,10 +130,12 @@ async def forward_space_request_identity(request: Request, call_next):
     if len(ip_token) > 8192 or "\r" in ip_token or "\n" in ip_token:
         ip_token = ""
     context_token = _backend_ip_token.set(ip_token)
+    request_token = _backend_request.set(request)
     try:
         return await call_next(request)
     finally:
         _backend_ip_token.reset(context_token)
+        _backend_request.reset(request_token)
 
 
 class GradioCall(BaseModel):
@@ -559,6 +569,8 @@ async def _post_backend(
 
 
 async def _upload_images(files: list[tuple[str, bytes, str]]) -> list[dict[str, Any]]:
+    if _local_backend is not None:
+        return await _local_backend.upload_images(files)
     multipart = [
         ("files", (name, content, mime_type)) for name, content, mime_type in files
     ]
@@ -581,8 +593,62 @@ async def _upload_images(files: list[tuple[str, bytes, str]]) -> list[dict[str, 
     ]
 
 
+def _model_error(space: str, payload: str, *, scheduler_title: str = "") -> HTTPException:
+    duration_refused = re.fullmatch(
+        r"The requested GPU duration \(\d+(?:\.\d+)?s\) is larger than the maximum allowed\.?",
+        payload.strip(), re.I,
+    ) or (scheduler_title == "ZeroGPU illegal duration" and re.match(
+        r"The requested GPU duration \(\d+(?:\.\d+)?s\) is larger than the maximum allowed(?:[.\s]|Subscribe to Hugging Face PRO|$)",
+        payload, re.I,
+    ))
+    if duration_refused:
+        _submission_state.set("rejected")
+        logger.warning("Platform GPU duration rejected host=%s", httpx.URL(space).host)
+        return _backend_failure(
+            space, "backend_duration_rejected",
+            "The GPU service rejected its configured runtime. The service needs a configuration update.",
+            status=503, seconds=300,
+        )
+    if scheduler_title in {"ZeroGPU queue timeout", "ZeroGPU pending credits exceeded"}:
+        _submission_state.set("rejected")
+        return _backend_failure(
+            space, "gpu_queue_unavailable",
+            "The GPU queue is temporarily busy. Please retry shortly.",
+            status=503, seconds=30,
+        )
+    quota = _is_quota_error(payload) or scheduler_title == "ZeroGPU quota exceeded"
+    logger.warning(
+        "Backend task failed host=%s quota=%s null_error=%s",
+        httpx.URL(space).host, quota, not bool(payload),
+    )
+    if quota:
+        _submission_state.set("rejected")
+    return _backend_failure(
+        space, "gpu_quota_exhausted" if quota else "backend_generation_error",
+        "The GPU allowance for this request is temporarily exhausted. Please try later." if quota else "The model could not complete this request. Please retry shortly.",
+        status=429 if quota else 502, seconds=300 if quota else 30,
+    )
+
+
 async def _call_gradio(space: str, api_name: str, data: list[Any]) -> list[Any]:
     _check_backend_cooldown(space)
+    if _local_backend is not None:
+        request = _backend_request.get()
+        if request is None:
+            raise HTTPException(status_code=503, detail="The model request context is unavailable.")
+        try:
+            return await _local_backend.call(
+                api_name, data, request,
+                on_admitted=lambda: _submission_state.set("accepted"),
+            )
+        except HTTPException:
+            raise
+        except Exception as error:
+            payload = str(getattr(error, "message", "") or str(error))
+            # Scheduler titles are read only from the pinned Gradio error type,
+            # not from arbitrary model exception attributes or user text.
+            title = getattr(error, "title", "") if type(error).__module__ == "gradio.exceptions" else ""
+            raise _model_error(space, payload, scheduler_title=title) from error
     timeout = httpx.Timeout(connect=30.0, read=240.0, write=60.0, pool=30.0)
     async with httpx.AsyncClient(timeout=timeout, follow_redirects=False) as client:
         try:
@@ -641,30 +707,7 @@ async def _call_gradio(space: str, api_name: str, data: list[Any]) -> list[Any]:
                                 raise ValueError("Missing model outputs")
                             return value
                         payload = str(output.get("error") or "")
-                        if re.fullmatch(
-                            r"The requested GPU duration \(\d+(?:\.\d+)?s\) is larger than the maximum allowed\.?",
-                            payload.strip(), re.I,
-                        ):
-                            # The scheduler refused before GPU execution.
-                            _submission_state.set("rejected")
-                            logger.warning("Platform GPU duration rejected host=%s", httpx.URL(space).host)
-                            raise _backend_failure(
-                                space, "backend_duration_rejected",
-                                "The GPU service rejected its configured runtime. The service needs a configuration update.",
-                                status=503, seconds=300,
-                            )
-                        quota = _is_quota_error(payload)
-                        logger.warning(
-                            "Backend task failed host=%s quota=%s null_error=%s",
-                            httpx.URL(space).host, quota, not bool(payload),
-                        )
-                        if quota:
-                            _submission_state.set("rejected")
-                        raise _backend_failure(
-                            space, "gpu_quota_exhausted" if quota else "backend_generation_error",
-                            "The shared GPU allowance is temporarily exhausted. Please try later." if quota else "The model could not complete this request. Please retry shortly.",
-                            status=429 if quota else 502, seconds=300 if quota else 30,
-                        )
+                        raise _model_error(space, payload)
                     if message.get("msg") in {"unexpected_error", "server_stopped", "close_stream"}:
                         raise ValueError("Queue closed before a model result")
         except (httpx.TransportError, ValueError) as error:
@@ -677,6 +720,8 @@ async def _probe_backend(space: str) -> dict[str, Any]:
         _check_backend_cooldown(space)
     except HTTPException as error:
         return {"status": "unavailable", **error.detail}
+    if _local_backend is not None:
+        return await _local_backend.health()
     key = _backend_state_key(space)
     cached = _backend_health.get(key)
     if cached and time.monotonic() - cached[0] < BACKEND_HEALTH_TTL:
@@ -719,6 +764,8 @@ async def health() -> dict[str, Any]:
         "remaining_gpu_seconds": remaining,
         "quota_window_started_at": state["window_started_at"],
         "budget_source": "application_ledger",
+        "execution": "in_process" if _local_backend is not None else "remote_spaces",
+        "platform_quota_scope": "visitor" if _local_backend is not None else "upstream_identity",
         "request_identity_forwarded": bool(_backend_ip_token.get()) and FORWARD_VISITOR_IDENTITY,
     }
 
