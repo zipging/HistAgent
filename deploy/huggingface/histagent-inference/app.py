@@ -43,7 +43,9 @@ def _load_histagent():
     return model, tokenizer, config
 
 
-@spaces.GPU(duration=180)
+# Keep the request within ZeroGPU's per-call scheduling limit. The model
+# normally completes in under a minute; this does not alter its predictions.
+@spaces.GPU(duration=60)
 def generate_ranked_readout(
     local_image: Any,
     context_image: Any,

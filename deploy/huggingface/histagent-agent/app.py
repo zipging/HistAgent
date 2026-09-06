@@ -706,7 +706,7 @@ def _ranked_evidence_cards(
     return '<div class="evidence-card-list">' + "".join(cards) + "</div>"
 
 
-@spaces.GPU(duration=120)
+@spaces.GPU(duration=60)
 def retrieve_atlas(
     query: str,
     species: str,

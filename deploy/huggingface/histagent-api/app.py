@@ -9,6 +9,7 @@ import math
 import os
 import re
 import time
+import uuid
 from collections import OrderedDict, defaultdict, deque
 from contextvars import ContextVar
 from datetime import datetime, timedelta, timezone
@@ -27,8 +28,9 @@ from pydantic import BaseModel, Field
 HF_TOKEN = (
     os.environ.get("WLI14_HF_TOKEN") or os.environ.get("HF_TOKEN", "")
 ).strip()
+FORWARD_VISITOR_IDENTITY = os.environ.get("HISTAGENT_FORWARD_VISITOR_IDENTITY", "1") == "1"
 INFERENCE_SPACE = os.environ.get(
-    "HISTAGENT_INFERENCE_SPACE", "https://wli14-histagent-agent.hf.space"
+    "HISTAGENT_INFERENCE_SPACE", "https://wli14-histagent-inference.hf.space"
 ).rstrip("/")
 REASONING_SPACE = os.environ.get(
     "HISTAGENT_REASONING_SPACE", "https://wli14-histagent-agent.hf.space"
@@ -54,9 +56,8 @@ RATE_LIMITS = {
     ),
 }
 
-# Reserve each call at the maximum duration declared by the corresponding
-# @spaces.GPU function. This deliberately stops before Hugging Face can draw
-# from prepaid credits.
+# Conservative application reservations, distinct from Hugging Face's live
+# quota and billing. Retain the existing limits after shortening GPU requests.
 GPU_RESERVATIONS = {
     "generate_ranked_readout": 180,
     "retrieve_atlas": 120,
@@ -72,6 +73,7 @@ BACKEND_SUBMISSION_ATTEMPTS = 3
 BACKEND_RETRY_DELAYS_SECONDS = (2.0, 5.0)
 BACKEND_RATE_LIMIT_COOLDOWN = 300
 BACKEND_HEALTH_TTL = 30
+BACKEND_STATE_MAX_ENTRIES = 1024
 RESPONSE_CACHE_TTL_SECONDS = int(
     os.environ.get("HISTAGENT_RESPONSE_CACHE_TTL_SECONDS", "21600")
 )
@@ -104,10 +106,26 @@ _recent_calls: dict[str, deque[float]] = defaultdict(deque)
 _response_cache: OrderedDict[str, tuple[float, list[Any]]] = OrderedDict()
 _hf_api = HfApi(token=HF_TOKEN or None)
 logger = logging.getLogger("histagent.gateway")
-_backend_failures: dict[str, tuple[float, int, str, str]] = {}
-_backend_health: dict[str, tuple[float, dict[str, Any]]] = {}
+_backend_failures: dict[tuple[str, str], tuple[float, int, str, str]] = {}
+_backend_health: dict[tuple[str, str], tuple[float, dict[str, Any]]] = {}
 _health_lock = asyncio.Lock()
 _submission_state: ContextVar[str] = ContextVar("submission_state", default="unsubmitted")
+_backend_ip_token: ContextVar[str] = ContextVar("backend_ip_token", default="")
+
+
+@app.middleware("http")
+async def forward_space_request_identity(request: Request, call_next):
+    # Hugging Face inserts this signed identity at its edge. Forward it only
+    # to our fixed model hosts, alongside server-side private-Space auth.
+    # Never synthesize an identity or expose it to browser code or logs.
+    ip_token = request.headers.get("x-ip-token", "") if request.url.path.startswith("/api/") else ""
+    if len(ip_token) > 8192 or "\r" in ip_token or "\n" in ip_token:
+        ip_token = ""
+    context_token = _backend_ip_token.set(ip_token)
+    try:
+        return await call_next(request)
+    finally:
+        _backend_ip_token.reset(context_token)
 
 
 class GradioCall(BaseModel):
@@ -369,9 +387,38 @@ async def _call_with_reservation(
 
 
 def _backend_headers() -> dict[str, str]:
-    # Match Gradio's official client: HF authenticates the owner on the server,
-    # without asking anonymous website visitors for a Hugging Face account.
-    return {"X-HF-Authorization": f"Bearer {HF_TOKEN}"}
+    # Use HF's documented REST authorization as well as Gradio's dedicated
+    # private-Space header. Both are restricted to fixed backend origins and
+    # redirects remain disabled; neither credential reaches browser code.
+    headers = {
+        "Authorization": f"Bearer {HF_TOKEN}",
+        "X-HF-Authorization": f"Bearer {HF_TOKEN}",
+    }
+    ip_token = _backend_ip_token.get()
+    if ip_token and FORWARD_VISITOR_IDENTITY:
+        headers["X-IP-Token"] = ip_token
+    return headers
+
+
+def _backend_state_key(space: str) -> tuple[str, str]:
+    # HF request identities can have different rate limits. A rejection for
+    # one visitor must not open a circuit for every visitor to the website.
+    ip_token = _backend_ip_token.get() if FORWARD_VISITOR_IDENTITY else ""
+    identity = hashlib.sha256(ip_token.encode()).hexdigest() if ip_token else "service"
+    return space, identity
+
+
+def _prune_backend_state() -> None:
+    now = time.monotonic()
+    for key, failure in list(_backend_failures.items()):
+        if failure[0] <= now:
+            _backend_failures.pop(key, None)
+    for key, cached in list(_backend_health.items()):
+        if now - cached[0] >= BACKEND_HEALTH_TTL:
+            _backend_health.pop(key, None)
+    for cache in (_backend_failures, _backend_health):
+        while len(cache) >= BACKEND_STATE_MAX_ENTRIES:
+            cache.pop(next(iter(cache)))
 
 
 def _is_quota_error(value: Any) -> bool:
@@ -398,8 +445,10 @@ def _retry_after(response: httpx.Response, default: int) -> int:
 def _backend_failure(
     space: str, code: str, message: str, *, status: int = 503, seconds: int = 30
 ) -> HTTPException:
-    _backend_failures[space] = (time.monotonic() + seconds, status, code, message)
-    _backend_health.pop(space, None)
+    key = _backend_state_key(space)
+    _prune_backend_state()
+    _backend_failures[key] = (time.monotonic() + seconds, status, code, message)
+    _backend_health.pop(key, None)
     return HTTPException(
         status_code=status,
         detail={"message": message, "code": code, "retry_after_seconds": seconds},
@@ -408,7 +457,8 @@ def _backend_failure(
 
 
 def _check_backend_cooldown(space: str) -> None:
-    failure = _backend_failures.get(space)
+    key = _backend_state_key(space)
+    failure = _backend_failures.get(key)
     if not failure:
         return
     until, status, code, message = failure
@@ -419,12 +469,44 @@ def _check_backend_cooldown(space: str) -> None:
             detail={"message": message, "code": code, "retry_after_seconds": remaining},
             headers={"Retry-After": str(remaining)},
         )
-    _backend_failures.pop(space, None)
+    _backend_failures.pop(key, None)
+
+
+def _redact_backend_diagnostic(value: str) -> str:
+    # Redact before truncating: otherwise a long credential crossing the
+    # length limit would leave its prefix in a diagnostic log.
+    for secret in (HF_TOKEN, _backend_ip_token.get()):
+        if secret:
+            value = value.replace(secret, "[redacted]")
+    return re.sub(r"hf_[A-Za-z0-9]+|Bearer\s+\S+", "[redacted]", value, flags=re.I)
 
 
 def _response_error(space: str, response: httpx.Response) -> HTTPException:
-    # Do not log response bodies: inference errors can contain submitted data.
-    logger.warning("Backend HTTP failure host=%s status=%s", httpx.URL(space).host, response.status_code)
+    # Preserve host diagnostics without logging credentials or submitted data.
+    diagnostics = {
+        name: _redact_backend_diagnostic(response.headers[name])[:256]
+        for name in (
+            "server", "content-type", "retry-after", "ratelimit",
+            "ratelimit-policy", "x-request-id", "x-error-code", "x-error-message",
+        )
+        if name in response.headers
+    }
+    try:
+        request = response.request
+    except RuntimeError:
+        request = None
+    # /config contains no user inputs. Restrict body diagnostics to this
+    # read-only probe; upload, inference and stream responses stay private.
+    if request is not None and request.method == "GET" and request.url.path == "/config":
+        message = _redact_backend_diagnostic(response.text)
+        message = re.sub(r"<(script|style)\b[^>]*>.*?</\1>", " ", message, flags=re.I | re.S)
+        message = re.sub(r"<[^>]+>", " ", message)
+        diagnostics["config_error"] = " ".join(message.split())[:1200]
+    diagnostics["request_identity_forwarded"] = bool(_backend_ip_token.get()) and FORWARD_VISITOR_IDENTITY
+    logger.warning(
+        "Backend HTTP failure host=%s status=%s diagnostics=%s",
+        httpx.URL(space).host, response.status_code, json.dumps(diagnostics),
+    )
     if response.status_code == 429:
         gpu_quota = _is_quota_error(response.text[:4000])
         return _backend_failure(
@@ -445,7 +527,7 @@ async def _post_backend(
     client: httpx.AsyncClient, space: str, path: str, **kwargs: Any
 ) -> httpx.Response:
     _check_backend_cooldown(space)
-    gpu_submission = path.startswith("/gradio_api/call/")
+    gpu_submission = path.startswith("/gradio_api/call/") or path == "/gradio_api/queue/join"
     for attempt in range(BACKEND_SUBMISSION_ATTEMPTS):
         try:
             if gpu_submission:
@@ -500,10 +582,33 @@ async def _upload_images(files: list[tuple[str, bytes, str]]) -> list[dict[str, 
 
 
 async def _call_gradio(space: str, api_name: str, data: list[Any]) -> list[Any]:
-    endpoint = f"{space}/gradio_api/call/{api_name}"
+    _check_backend_cooldown(space)
     timeout = httpx.Timeout(connect=30.0, read=240.0, write=60.0, pool=30.0)
     async with httpx.AsyncClient(timeout=timeout, follow_redirects=False) as client:
-        submission = await _post_backend(client, space, f"/gradio_api/call/{api_name}", json={"data": data})
+        try:
+            config_response = await client.get(f"{space}/config", headers=_backend_headers())
+        except httpx.TransportError as error:
+            raise _backend_failure(space, "backend_connection_error", "The model configuration could not be loaded. Please retry shortly.") from error
+        if not 200 <= config_response.status_code < 300:
+            raise _response_error(space, config_response)
+        try:
+            dependencies = config_response.json()["dependencies"]
+            fn_index = next(
+                dependency.get("id", index)
+                for index, dependency in enumerate(dependencies)
+                if dependency.get("api_name") == api_name
+            )
+            if not isinstance(fn_index, int) or isinstance(fn_index, bool):
+                raise ValueError("Invalid function index")
+        except (ValueError, KeyError, TypeError, AttributeError, StopIteration) as error:
+            raise _backend_failure(space, "backend_invalid_response", "The requested model API is unavailable.") from error
+        # Gradio's simplified /call stream drops output.error on failed jobs.
+        # Use its complete queue protocol, as the official Python client does.
+        session_hash = uuid.uuid4().hex
+        submission = await _post_backend(
+            client, space, "/gradio_api/queue/join",
+            json={"data": data, "fn_index": fn_index, "session_hash": session_hash, "event_data": None},
+        )
         try:
             event_id = submission.json().get("event_id")
             if not isinstance(event_id, str) or not re.fullmatch(r"[A-Za-z0-9_-]+", event_id):
@@ -511,28 +616,57 @@ async def _call_gradio(space: str, api_name: str, data: list[Any]) -> list[Any]:
         except (ValueError, AttributeError) as error:
             raise _backend_failure(space, "backend_invalid_response", "The model service returned an invalid response.") from error
         try:
-            event_name = ""
-            async with client.stream("GET", f"{endpoint}/{event_id}", headers=_backend_headers()) as stream:
+            async with client.stream(
+                "GET", f"{space}/gradio_api/queue/data",
+                params={"session_hash": session_hash}, headers=_backend_headers(),
+            ) as stream:
                 if not 200 <= stream.status_code < 300:
                     await stream.aread()
                     raise _response_error(space, stream)
                 async for line in stream.aiter_lines():
-                    if line.startswith("event:"):
-                        event_name = line[6:].strip()
-                    elif line.startswith("data:"):
-                        payload = line[5:].strip()
-                        if event_name == "complete":
-                            value = json.loads(payload)
-                            return value if isinstance(value, list) else [value]
-                        if event_name == "error":
-                            quota = _is_quota_error(payload)
-                            if quota:
-                                _submission_state.set("rejected")
+                    if not line.startswith("data:"):
+                        continue
+                    message = json.loads(line[5:].strip())
+                    if not isinstance(message, dict):
+                        raise ValueError("Invalid queue message")
+                    if message.get("event_id") not in (None, event_id):
+                        raise ValueError("Unexpected event identifier")
+                    if message.get("msg") == "process_completed":
+                        output = message.get("output") or {}
+                        if not isinstance(output, dict):
+                            raise ValueError("Invalid queue output")
+                        if message.get("success") is True:
+                            value = output.get("data")
+                            if not isinstance(value, list):
+                                raise ValueError("Missing model outputs")
+                            return value
+                        payload = str(output.get("error") or "")
+                        if re.fullmatch(
+                            r"The requested GPU duration \(\d+(?:\.\d+)?s\) is larger than the maximum allowed\.?",
+                            payload.strip(), re.I,
+                        ):
+                            # The scheduler refused before GPU execution.
+                            _submission_state.set("rejected")
+                            logger.warning("Platform GPU duration rejected host=%s", httpx.URL(space).host)
                             raise _backend_failure(
-                                space, "gpu_quota_exhausted" if quota else "backend_generation_error",
-                                "The shared GPU allowance is temporarily exhausted. Please try later." if quota else "The model could not complete this request. Please retry shortly.",
-                                status=429 if quota else 502, seconds=300 if quota else 30,
+                                space, "backend_duration_rejected",
+                                "The GPU service rejected its configured runtime. The service needs a configuration update.",
+                                status=503, seconds=300,
                             )
+                        quota = _is_quota_error(payload)
+                        logger.warning(
+                            "Backend task failed host=%s quota=%s null_error=%s",
+                            httpx.URL(space).host, quota, not bool(payload),
+                        )
+                        if quota:
+                            _submission_state.set("rejected")
+                        raise _backend_failure(
+                            space, "gpu_quota_exhausted" if quota else "backend_generation_error",
+                            "The shared GPU allowance is temporarily exhausted. Please try later." if quota else "The model could not complete this request. Please retry shortly.",
+                            status=429 if quota else 502, seconds=300 if quota else 30,
+                        )
+                    if message.get("msg") in {"unexpected_error", "server_stopped", "close_stream"}:
+                        raise ValueError("Queue closed before a model result")
         except (httpx.TransportError, ValueError) as error:
             raise _backend_failure(space, "backend_stream_interrupted", "The model response was interrupted. Please retry shortly.") from error
     raise _backend_failure(space, "backend_stream_interrupted", "The model response ended unexpectedly. Please retry shortly.")
@@ -543,7 +677,8 @@ async def _probe_backend(space: str) -> dict[str, Any]:
         _check_backend_cooldown(space)
     except HTTPException as error:
         return {"status": "unavailable", **error.detail}
-    cached = _backend_health.get(space)
+    key = _backend_state_key(space)
+    cached = _backend_health.get(key)
     if cached and time.monotonic() - cached[0] < BACKEND_HEALTH_TTL:
         return cached[1]
     try:
@@ -560,7 +695,8 @@ async def _probe_backend(space: str) -> dict[str, Any]:
         result = {"status": "unavailable", **error.detail}
     except (httpx.TransportError, ValueError):
         result = {"status": "unavailable", "code": "backend_not_ready", "message": "The model service is starting or temporarily unreachable."}
-    _backend_health[space] = (time.monotonic(), result)
+    _prune_backend_state()
+    _backend_health[key] = (time.monotonic(), result)
     return result
 
 
@@ -578,10 +714,12 @@ async def health() -> dict[str, Any]:
         inference, reasoning = await asyncio.gather(_probe_backend(INFERENCE_SPACE), _probe_backend(REASONING_SPACE))
     remaining = max(0, GPU_QUOTA_SECONDS - int(state.get("used_seconds", 0)))
     return {
-        "status": "available" if remaining >= min(GPU_RESERVATIONS.values()) and all(item["status"] == "reachable" for item in (inference, reasoning)) else "degraded",
+        "status": "available" if remaining >= max(GPU_RESERVATIONS.values()) and all(item["status"] == "reachable" for item in (inference, reasoning)) else "degraded",
         "backends": {"inference": inference, "reasoning": reasoning},
         "remaining_gpu_seconds": remaining,
         "quota_window_started_at": state["window_started_at"],
+        "budget_source": "application_ledger",
+        "request_identity_forwarded": bool(_backend_ip_token.get()) and FORWARD_VISITOR_IDENTITY,
     }
 
 
