@@ -6,8 +6,7 @@ import os
 import time
 from typing import Any
 
-# Select a durable model credential before importing Hub/Transformers clients.
-# An explicitly separate model token takes precedence over the service token.
+# Keep the existing model and ledger credentials separate before importing clients.
 _service_token = os.environ.get("WLI14_HF_TOKEN") or os.environ.get("HF_TOKEN")
 if not _service_token:
     raise RuntimeError("A service credential for the private usage ledger is required.")
@@ -16,6 +15,7 @@ if not _service_token:
 os.environ.setdefault("WLI14_HF_TOKEN", _service_token)
 _model_token = (
     os.environ.get("HISTAGENT_MODEL_TOKEN")
+    or os.environ.get("HF_TOKEN")
     or _service_token
 )
 if _model_token:
@@ -37,7 +37,7 @@ def _ignore_progress(*_args: Any, **_kwargs: Any) -> None:
     """No UI progress events are emitted from the guarded JSON API."""
 
 
-@spaces.GPU(duration=60)
+@spaces.GPU(duration=30)
 def gpu_dispatch(api_name: str, data: list[Any]) -> Any:
     """One GPU worker serves all models packed into this process at startup."""
     started = time.monotonic()

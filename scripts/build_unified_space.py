@@ -147,7 +147,29 @@ def reasoning_backend(source: str) -> str:
                     loaders.add(node.name)
     if loaders != {"_load_qwen", "_load_embedder"} or len(replacements) != 2:
         raise ValueError("Expected the two canonical reasoning model device maps")
-    return _replace_nodes(source, replacements).rstrip() + "\n"
+    source = _replace_nodes(source, replacements)
+    adapter_calls = [
+        node for node in ast.walk(ast.parse(source))
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
+        and node.func.attr == "from_pretrained"
+        and isinstance(node.func.value, ast.Name) and node.func.value.id == "PeftModel"
+    ]
+    if len(adapter_calls) != 1:
+        raise ValueError("Expected exactly one canonical PEFT adapter loader")
+    adapter_call = adapter_calls[0]
+    if any(keyword.arg == "torch_device" for keyword in adapter_call.keywords):
+        raise ValueError("The canonical PEFT adapter device requires review")
+    trainable = [keyword for keyword in adapter_call.keywords if keyword.arg == "is_trainable"]
+    if (len(trainable) != 1 or not isinstance(trainable[0].value, ast.Constant)
+            or trainable[0].value.value is not False):
+        raise ValueError("Expected the canonical inference-only PEFT adapter")
+    # PEFT otherwise asks safetensors to load directly on CUDA, which bypasses
+    # ZeroGPU's startup emulation. CPU deserialization retains tensor dtypes;
+    # load_state_dict then copies into the existing CUDA-emulated parameters.
+    keyword = trainable[0]
+    source = _replace_nodes(source, [(keyword,
+        "is_trainable=False,\n" + " " * keyword.col_offset + 'torch_device="cpu"')])
+    return source.rstrip() + "\n"
 
 
 def collect_bundle(root: Path = ROOT) -> tuple[dict[str, bytes], dict[str, Any]]:
@@ -175,7 +197,8 @@ def collect_bundle(root: Path = ROOT) -> tuple[dict[str, bytes], dict[str, Any]]
     add(deploy / "histagent-inference" / "app.py", "vision_backend.py", vision_backend,
         "Remove UI and spaces.GPU decorator; select vision token and optional local base checkpoint")
     add(deploy / "histagent-agent" / "app.py", "reasoning_backend.py", reasoning_backend,
-        "Remove UI/reference-spot features and spaces.GPU decorators; set model device_map to cuda")
+        "Remove UI/reference-spot features and spaces.GPU decorators; set model device_map to cuda; "
+        "deserialize PEFT adapter weights on cpu before loading into the CUDA model")
     package = deploy / "histagent-inference" / "histagent"
     for path in sorted(package.rglob("*")):
         if not path.is_file() or "__pycache__" in path.parts or path.suffix in {".pyc", ".pyo"} or path.name == ".DS_Store":

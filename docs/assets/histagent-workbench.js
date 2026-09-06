@@ -1,7 +1,7 @@
 import {
   callHistAgentService,
   generateHistAgentReadout
-} from "./histagent-services.js?v=20260905gateway1";
+} from "./histagent-services.js?v=20260906unified1";
 const LOCAL_DIAMETER_UM = 55;
 const CONTEXT_DIAMETER_UM = 220;
 const EXAMPLE_MANIFEST_URL = "/assets/gsm5924036-spots.json";
@@ -672,7 +672,7 @@ function appendMessage(role, content) {
 function chatServiceError(error) {
   const message = String(error?.message || "").trim();
   if (error?.code === "gpu_quota_exhausted" || (error?.code !== "backend_rate_limited" && /额度|quota/i.test(message))) {
-    return "The public GPU allowance is temporarily unavailable. Your evidence card is preserved; please retry after the allowance resets.";
+    return `${message || "The public GPU allowance is temporarily unavailable."} Your evidence card is preserved.`;
   }
   return message || "The reasoning service could not answer this question. Please retry.";
 }

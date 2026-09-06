@@ -58,7 +58,7 @@ def isolated_runtime(monkeypatch):
     monkeypatch.setattr(gateway, "_save_quota_state", lambda value: state.update(value))
     request_token = gateway._backend_request.set(None)
     identity_token = gateway._backend_ip_token.set("")
-    yield
+    yield state
     gateway._backend_request.reset(request_token)
     gateway._backend_ip_token.reset(identity_token)
 
@@ -208,3 +208,40 @@ def test_real_gradio_app_serves_gateway_health_inference_and_cors():
     assert dispatched == ["generate_ranked_readout"]
     assert all(not path.exists() for path in temporary_paths)
     assert gateway._backend_request.get() is None
+
+
+@pytest.mark.parametrize("invalid_field, truncated", [("local_image", False), ("context_image", True)])
+def test_invalid_image_rejected_before_budget_or_gpu_and_releases_rate_limit(
+    monkeypatch, isolated_runtime, caplog, invalid_field, truncated
+):
+    dispatched = []
+
+    def dispatch(api_name, data):
+        dispatched.append(api_name)
+        return {"data": [[1, "COL1A1"]]}, "COL1A1"
+
+    gateway.configure_local_backend(backend_for(dispatch))
+    monkeypatch.setitem(gateway.RATE_LIMITS, "generate_ranked_readout", 1)
+    previous = isolated_runtime.copy()
+    corrupt = png_bytes()[:-30] if truncated else b"corrupt-private-image-content"
+    if truncated:
+        # The PNG is identifiable, so Image.open alone is insufficient.
+        with Image.open(io.BytesIO(corrupt)):
+            pass
+    files = {"local_image": ("local.png", png_bytes(), "image/png"),
+             "context_image": ("context.png", png_bytes(), "image/png")}
+    files[invalid_field] = ("invalid.png", corrupt, "image/png")
+    client = TestClient(gateway.app)
+    headers = {"X-HistAgent-Session": "image-validation-session"}
+    response = client.post("/api/generate", headers=headers, files=files)
+    assert response.status_code == 422
+    assert isolated_runtime == previous
+    assert dispatched == []
+    assert gateway._recent_calls == {}
+    assert "corrupt-private-image-content" not in caplog.text
+    assert "corrupt-private-image-content" not in response.text
+
+    files[invalid_field] = ("valid.png", png_bytes(), "image/png")
+    corrected = client.post("/api/generate", headers=headers, files=files)
+    assert corrected.status_code == 200
+    assert dispatched == ["generate_ranked_readout"]

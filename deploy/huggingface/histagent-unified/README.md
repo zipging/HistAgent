@@ -57,8 +57,9 @@ public smoke test for generation, retrieval, follow-up chat, and caching.
 Configure persistent secrets in the Space settings, never in the website:
 
 - `WLI14_HF_TOKEN`: the primary long-term service token, with write access to the
-  private usage ledger and read access to the required models, including gated
-  GigaPath access. `HF_TOKEN` is the fallback when this secret is absent.
+  private usage ledger. `HF_TOKEN` is the fallback when this secret is absent.
+- `HF_TOKEN`: the existing model-download credential, including gated GigaPath
+  access. When absent, model downloads fall back to the service token.
 - `HISTAGENT_MODEL_TOKEN`: optional separate model-access credential. When set,
   model downloads use it while ledger operations retain the service token.
 - `HISTAGENT_VISION_TOKEN`: optional separate token for the HistAgent checkpoint
@@ -79,12 +80,17 @@ to provide that allowance to anonymous requests.
 
 ## Capacity and validation
 
-The checkpoint metadata suggests approximately 34 GiB of combined GPU model
-weights. Fitting within a 48 GiB allocation is an estimate, not a runtime memory
-measurement; activations, loading peaks, host RAM, and GPU allocation limits still
-need validation. Preserve the shared concurrency limit of one. Do not change
+On September 6, 2026, all three models loaded successfully and ZeroGPU packed
+36.4 GB of tensors. Real generation, chat, follow-up, retrieval, and Atlas chat
+completed using the public RCC example. This is a working example, not a
+measurement of worst-case memory use. Preserve the shared concurrency limit of one. Do not change
 model precision or switch models to fit memory without validating the resulting
 scientific behavior.
+
+The dispatcher requests 30 seconds (45 scheduler seconds on Blackwell), with
+models already loaded before admission. Measured model execution on the public
+example was approximately 0.8 seconds for generation, 1.5 seconds for retrieval,
+and 3–4 seconds for chat; HTTP and scheduling overhead are additional.
 
 Dependency versions are pinned to one environment. In particular PEFT 0.20.0
 replaces the incompatible version ranges in the separate services. Dependency

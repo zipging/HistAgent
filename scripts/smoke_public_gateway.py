@@ -1,7 +1,8 @@
 """Exercise the public gateway with the website's public RCC example.
 
-No Hugging Face token or login is used. This consumes real inference allowance;
-run deliberately after deployments, not as a frequent health poll.
+Anonymous by default; --hf-auth explicitly uses the local Hub credential for a
+separate account-quota check. This consumes real inference allowance; run
+deliberately after deployments, not as a frequent health poll.
 Requires httpx and Pillow.
 """
 from __future__ import annotations
@@ -13,6 +14,7 @@ import time
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
+from urllib.parse import urlparse
 
 import httpx
 from PIL import Image
@@ -20,12 +22,24 @@ from PIL import Image
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--gateway", default="https://wli14-histagent-api.hf.space")
+    parser.add_argument("--gateway", default="https://wli14-histagent-agent.hf.space")
     parser.add_argument("--site", default="https://histagent.bio")
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--hf-auth", action="store_true", help="Use the locally configured HF account for model API calls only")
     args = parser.parse_args()
+    api_headers = {}
+    if args.hf_auth:
+        if urlparse(args.gateway).scheme != "https" or urlparse(args.gateway).hostname not in {
+            "wli14-histagent-agent.hf.space", "wli14-histagent-api.hf.space"
+        }:
+            parser.error("Authenticated checks require a configured HistAgent HF endpoint")
+        from huggingface_hub import get_token
+        token = get_token()
+        if not token:
+            parser.error("No local Hugging Face credential is available")
+        api_headers["Authorization"] = "Bearer " + token
     args.output.mkdir(parents=True, exist_ok=True)
-    summary = {"started_at": datetime.now(timezone.utc).isoformat(), "passed": False, "steps": []}
+    summary = {"started_at": datetime.now(timezone.utc).isoformat(), "authentication": "local_hf_account" if args.hf_auth else "anonymous", "passed": False, "steps": []}
     headers = {"X-HistAgent-Session": "smoke-" + str(uuid.uuid4()), "Origin": args.site}
 
     def save_summary() -> None:
@@ -35,7 +49,8 @@ def main() -> None:
     with httpx.Client(timeout=300, headers=headers, follow_redirects=False) as client:
         def request(name, method, path, **kwargs):
             start = time.monotonic()
-            response = client.request(method, args.gateway + path, **kwargs)
+            # Credentials are confined to the chosen HF API, never website assets.
+            response = client.request(method, args.gateway + path, headers=api_headers, **kwargs)
             try:
                 payload = response.json()
             except ValueError:

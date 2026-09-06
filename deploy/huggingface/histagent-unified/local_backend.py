@@ -10,9 +10,9 @@ from typing import Any, Callable
 
 import anyio
 import gradio as gr
-from fastapi import Request
+from fastapi import HTTPException, Request
 from gradio.context import LocalContext
-from PIL import Image, ImageOps
+from PIL import Image, ImageOps, UnidentifiedImageError
 
 
 class LocalBackend:
@@ -62,8 +62,22 @@ class LocalBackend:
     async def upload_images(
         self, files: list[tuple[str, bytes, str]]
     ) -> list[dict[str, Any]]:
+        def validate_images() -> None:
+            for _, content, _ in files:
+                try:
+                    with Image.open(io.BytesIO(content)) as image:
+                        image.load()
+                except (UnidentifiedImageError, OSError, ValueError) as error:
+                    raise HTTPException(
+                        status_code=422,
+                        detail="The local and contextual images must contain valid image data.",
+                    ) from error
+
+        # Validate before the gateway reserves GPU budget. Loading pixels also
+        # rejects truncated files whose headers alone identify a valid image.
+        await anyio.to_thread.run_sync(validate_images)
         # Keep images in the request's data, never in a global upload registry.
-        # Their contents are decoded in the worker thread immediately before use.
+        # Preprocessing still happens in the worker immediately before use.
         return [
             {
                 "_histagent_image_bytes": content,

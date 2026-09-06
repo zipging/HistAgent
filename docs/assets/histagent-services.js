@@ -1,4 +1,4 @@
-const HISTAGENT_GATEWAY = "https://wli14-histagent-api.hf.space";
+const HISTAGENT_GATEWAY = "https://wli14-histagent-agent.hf.space";
 const HISTAGENT_SESSION_KEY = "histagent-public-session";
 let inMemorySession = "";
 
@@ -41,7 +41,10 @@ async function parseGatewayResponse(response) {
   if (!response.ok) {
     let message = errorMessage(payload, `HistAgent service failed (${response.status})`);
     const seconds = Number(payload?.detail?.retry_after_seconds || response.headers.get("Retry-After"));
-    if (Number.isFinite(seconds) && seconds > 0) {
+    const waitingForDailyQuotaReset = payload?.detail?.code === "gpu_quota_exhausted"
+      && /\bdaily\b/i.test(message) && /\breset\b/i.test(message);
+    // The gateway cooldown does not tell us when HF's daily allowance resets.
+    if (Number.isFinite(seconds) && seconds > 0 && !waitingForDailyQuotaReset) {
       const minutes = Math.ceil(seconds / 60);
       message += ` Try again in ${minutes} minute${minutes === 1 ? "" : "s"}.`;
     }

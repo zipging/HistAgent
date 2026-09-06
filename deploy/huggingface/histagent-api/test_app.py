@@ -606,6 +606,58 @@ def test_real_gradio_scheduler_error_titles_preserve_refusal_and_refund(
     assert local_quota["used_seconds"] == local_quota["calls"] == 0
 
 
+def test_spaces_html_gradio_error_subclass_preserves_queue_timeout_refund(
+    monkeypatch, local_backend, local_quota
+):
+    import gradio as gr
+
+    class HTMLQueueError(gr.Error):
+        __module__ = "spaces.zero.gradio"
+
+    async def refused(api_name, data, request, *, on_admitted=None):
+        on_admitted()
+        raise HTMLQueueError(
+            "<p>The queue wait timed out. Please try again later.</p>",
+            title="ZeroGPU queue timeout", print_exception=False,
+        )
+
+    monkeypatch.setattr(local_backend, "call", refused)
+    response = TestClient(gateway.app).post("/api/call", json={
+        "service": "reasoning", "api_name": "answer_atlas_question", "data": ["Question", [], {}],
+    })
+    assert response.status_code == 503
+    assert response.json()["detail"]["code"] == "gpu_queue_unavailable"
+    assert local_quota["used_seconds"] == local_quota["calls"] == 0
+
+
+def test_trusted_daily_run_limit_keeps_reset_message_during_cooldown_and_refunds(
+    monkeypatch, local_backend, local_quota
+):
+    import gradio as gr
+
+    attempts = []
+
+    async def refused(api_name, data, request, *, on_admitted=None):
+        on_admitted()
+        attempts.append(api_name)
+        raise gr.Error("You have exceeded your ZeroGPU runs limit.",
+                       title="ZeroGPU quota exceeded", print_exception=False)
+
+    monkeypatch.setattr(local_backend, "call", refused)
+    client = TestClient(gateway.app)
+    request = {"service": "reasoning", "api_name": "answer_atlas_question", "data": ["Question", [], {}]}
+    expected = "Hugging Face’s daily GPU run quota for this visitor has been reached. Please wait for the platform quota to reset."
+    for _ in range(2):
+        response = client.post("/api/call", json=request)
+        assert response.status_code == 429
+        assert response.json()["detail"]["code"] == "gpu_quota_exhausted"
+        assert response.json()["detail"]["message"] == expected
+        assert 0 < response.json()["detail"]["retry_after_seconds"] <= 300
+        assert 0 < int(response.headers["Retry-After"]) <= 300
+    assert attempts == ["answer_atlas_question"]
+    assert local_quota["used_seconds"] == local_quota["calls"] == 0
+
+
 @pytest.mark.parametrize("ip_token", [None, "signed-visitor-token"])
 def test_anonymous_generate_authenticates_upload_submission_and_stream(
     monkeypatch, backend_transport, local_quota, ip_token

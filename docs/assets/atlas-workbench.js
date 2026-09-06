@@ -1,4 +1,4 @@
-import { callHistAgentService } from "./histagent-services.js?v=20260905gateway1";
+import { callHistAgentService } from "./histagent-services.js?v=20260906unified1";
 
 const ATLAS_IMAGE_QUERY_KEY = "histagent-atlas-image-query";
 const ATLAS_EVIDENCE_QUERY_KEY = "histagent-atlas-evidence-query";
@@ -423,12 +423,9 @@ function setBusy(value) {
 }
 
 function showSearchError(error) {
-  const quotaMessage = error?.code === "gpu_quota_exhausted" || (error?.code !== "backend_rate_limited" && /quota/i.test(String(error)));
   statusBadge.className = "atlas-status-badge";
   statusBadge.textContent = "Example view";
-  resultSummary.textContent = quotaMessage
-    ? "Live retrieval is temporarily unavailable · manuscript example remains visible"
-    : `${error?.message || "Live retrieval could not start"} The manuscript example remains visible.`;
+  resultSummary.textContent = `${error?.message || "Live retrieval could not start"} The manuscript example remains visible.`;
 }
 
 async function runRetrieval(query, chipText = query) {
@@ -604,7 +601,7 @@ chatForm?.addEventListener("submit", async (event) => {
     appendMessage("assistant", answer);
   } catch (error) {
     console.error(error);
-    appendMessage("assistant", localEvidenceAnswer(message, topEvidence));
+    appendMessage("assistant", `${error?.message || "Live chat is temporarily unavailable."}\n\nSummary from the displayed evidence card:\n${localEvidenceAnswer(message, topEvidence)}`);
   } finally {
     chatButton.disabled = false;
   }

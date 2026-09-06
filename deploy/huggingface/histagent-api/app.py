@@ -617,15 +617,36 @@ def _model_error(space: str, payload: str, *, scheduler_title: str = "") -> HTTP
             status=503, seconds=30,
         )
     quota = _is_quota_error(payload) or scheduler_title == "ZeroGPU quota exceeded"
+    daily_runs_exhausted = (
+        scheduler_title == "ZeroGPU quota exceeded"
+        and "You have exceeded your ZeroGPU runs limit." in payload
+    )
     logger.warning(
         "Backend task failed host=%s quota=%s null_error=%s",
         httpx.URL(space).host, quota, not bool(payload),
     )
     if quota:
         _submission_state.set("rejected")
+        # Fixed categories and numeric counters only; never log visitor tokens,
+        # model inputs, or the arbitrary text of a model exception.
+        if scheduler_title == "ZeroGPU quota exceeded":
+            counters = re.search(r"\((\d+)s requested vs\. (\d+)s left\)", payload)
+            category = (
+                "runs" if "ZeroGPU runs limit" in payload else
+                "space" if "Space app has reached its GPU limit" in payload else
+                "duration" if counters else "unknown"
+            )
+            logger.warning(
+                "Platform GPU quota category=%s requested=%s remaining=%s",
+                category, counters.group(1) if counters else None,
+                counters.group(2) if counters else None,
+            )
     return _backend_failure(
         space, "gpu_quota_exhausted" if quota else "backend_generation_error",
-        "The GPU allowance for this request is temporarily exhausted. Please try later." if quota else "The model could not complete this request. Please retry shortly.",
+        "Hugging Face’s daily GPU run quota for this visitor has been reached. Please wait for the platform quota to reset."
+        if daily_runs_exhausted else
+        "The GPU allowance for this request is temporarily exhausted. Please try later."
+        if quota else "The model could not complete this request. Please retry shortly.",
         status=429 if quota else 502, seconds=300 if quota else 30,
     )
 
@@ -644,10 +665,12 @@ async def _call_gradio(space: str, api_name: str, data: list[Any]) -> list[Any]:
         except HTTPException:
             raise
         except Exception as error:
+            from gradio.exceptions import Error as GradioError
+
             payload = str(getattr(error, "message", "") or str(error))
-            # Scheduler titles are read only from the pinned Gradio error type,
-            # not from arbitrary model exception attributes or user text.
-            title = getattr(error, "title", "") if type(error).__module__ == "gradio.exceptions" else ""
+            # spaces' HTML scheduler errors subclass Gradio Error in another
+            # module. Preserve those titles without trusting arbitrary errors.
+            title = getattr(error, "title", "") if isinstance(error, GradioError) else ""
             raise _model_error(space, payload, scheduler_title=title) from error
     timeout = httpx.Timeout(connect=30.0, read=240.0, write=60.0, pool=30.0)
     async with httpx.AsyncClient(timeout=timeout, follow_redirects=False) as client:

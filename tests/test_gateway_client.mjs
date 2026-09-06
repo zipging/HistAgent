@@ -8,7 +8,7 @@ globalThis.window = {
 
 test("anonymous browser sends no account credential and accepts model outputs", async () => {
   globalThis.fetch = async (url, request) => {
-    assert.equal(url, "https://wli14-histagent-api.hf.space/api/call");
+    assert.equal(url, "https://wli14-histagent-agent.hf.space/api/call");
     assert.equal(request.headers["X-HistAgent-Session"], "anonymous-test-browser");
     assert.equal(request.headers.Authorization, undefined);
     assert.equal(request.headers["X-HF-Authorization"], undefined);
@@ -29,6 +29,32 @@ test("host rate limiting remains distinct from GPU quota with a retry time", asy
     assert.equal(error.retryAfterSeconds, 90);
     assert.match(error.message, /2 minutes/);
     assert.doesNotMatch(error.message, /quota/i);
+    return true;
+  });
+});
+
+test("daily GPU run quota does not turn the gateway cooldown into a reset promise", async () => {
+  const message = "Hugging Face’s daily GPU run quota for this visitor has been reached. Please wait for the platform quota to reset.";
+  globalThis.fetch = async () => Response.json({ detail: {
+    message, code: "gpu_quota_exhausted", retry_after_seconds: 300,
+  } }, { status: 429, headers: { "Retry-After": "300" } });
+  await assert.rejects(callHistAgentService("reasoning", "answer_atlas_question", []), (error) => {
+    assert.equal(error.code, "gpu_quota_exhausted");
+    assert.equal(error.retryAfterSeconds, 300);
+    assert.equal(error.message, message);
+    assert.doesNotMatch(error.message, /Try again in|5 minutes/);
+    return true;
+  });
+});
+
+test("other GPU quota errors retain their retry guidance", async () => {
+  globalThis.fetch = async () => Response.json({ detail: {
+    message: "The GPU allowance for this request is temporarily exhausted. Please try later.",
+    code: "gpu_quota_exhausted", retry_after_seconds: 300,
+  } }, { status: 429 });
+  await assert.rejects(callHistAgentService("reasoning", "retrieve_atlas", []), (error) => {
+    assert.match(error.message, /Try again in 5 minutes/);
+    assert.equal(error.retryAfterSeconds, 300);
     return true;
   });
 });
