@@ -150,9 +150,9 @@ body.atlas-page,body.histagent-page{height:auto;min-width:320px;overflow:visible
 .atlas-page .histagent-evidence-fields{gap:12px;margin-top:14px}.atlas-page .histagent-evidence-fields article{padding:12px 14px;border-left-width:2px;border-radius:0 8px 8px 0}
 .atlas-page .histagent-evidence-fields span{font-size:11px;letter-spacing:.06em}.atlas-page .histagent-evidence-fields strong{font-size:14px;line-height:1.45;font-weight:500}
 .atlas-page .histagent-evidence-fields p{font-size:13px;line-height:1.55;color:var(--ha-muted)}
-.atlas-page .atlas-evidence-card{padding:15px;border:1px solid var(--ha-line);border-radius:9px;box-shadow:none}.atlas-page .atlas-cards{gap:12px}
+.atlas-page .atlas-evidence-card{min-width:0;padding:15px;border:1px solid var(--ha-line);border-radius:9px;box-shadow:none}.atlas-page .atlas-cards{gap:12px;min-width:0;grid-template-columns:minmax(0,1fr)}
 .atlas-page .atlas-card-title strong{font-size:15px;font-weight:500}.atlas-page .atlas-card-title b{font-size:12px;font-weight:500;color:var(--ha-muted)}
-.atlas-page .atlas-evidence-card p{font-size:13px;line-height:1.55}.atlas-page .atlas-evidence-card p>span{font-size:11px;color:var(--ha-muted)}
+.atlas-page .atlas-evidence-card p{font-size:13px;line-height:1.55;overflow-wrap:anywhere}.atlas-page .atlas-evidence-card p>span{font-size:11px;color:var(--ha-muted);white-space:nowrap}
 .atlas-page .rank{border-radius:6px;background:var(--ha-soft);color:var(--ha-plum);font-size:12px}.atlas-page .rank-one{background:var(--ha-plum);color:white}
 .atlas-page .atlas-active-evidence span:not(.atlas-label){font-size:12px;background:var(--ha-soft);color:var(--ha-plum)}
 .atlas-page .atlas-message{margin-bottom:17px}.atlas-page .atlas-message>span{font-size:11px;color:var(--ha-muted);letter-spacing:.05em;margin-bottom:6px}

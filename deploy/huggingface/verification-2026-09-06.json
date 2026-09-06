@@ -161,6 +161,78 @@
       "proxy": 73,
       "browser_client_and_state": 28
     },
-    "published_browser_workflow": "pending"
+    "published_browser_workflow": {
+      "authentication": "anonymous_clean_browser_context",
+      "mockedRequests": false,
+      "steps": [
+        {
+          "name": "generate",
+          "http_status": 200,
+          "seconds": 10.484,
+          "cached": false,
+          "origin": "https://histagent.bio",
+          "credentialHeaders": []
+        },
+        {
+          "name": "spot_chat",
+          "http_status": 200,
+          "seconds": 12.452,
+          "cached": false,
+          "origin": "https://histagent.bio",
+          "credentialHeaders": []
+        },
+        {
+          "name": "atlas_search",
+          "http_status": 200,
+          "seconds": 5.952,
+          "cached": false,
+          "origin": "https://histagent.bio",
+          "credentialHeaders": []
+        },
+        {
+          "name": "atlas_chat",
+          "http_status": 200,
+          "seconds": 5.013,
+          "cached": false,
+          "origin": "https://histagent.bio",
+          "credentialHeaders": []
+        }
+      ],
+      "pageErrors": [],
+      "passed": true,
+      "spot": "GCCGATTGGCCAAGCT-1",
+      "completed_at": "2026-09-06T13:10:53.068Z"
+    },
+    "website_functional_revision": "c61990c6e0e342f7e3881d16922846781bf4210e",
+    "published_asset_comparison": {
+      "paths": [
+        "index.html",
+        "histagent/index.html",
+        "atlas-explorer/index.html",
+        "assets/histagent-services.js",
+        "assets/histagent-workbench.js",
+        "assets/atlas-workbench.js",
+        "assets/design-system.css"
+      ],
+      "all_http_200": true,
+      "all_match_release": true
+    }
+  },
+  "evidence_card_layout": {
+    "passed": true,
+    "widths": [
+      1440,
+      768,
+      390,
+      320
+    ],
+    "cached_live_model_response": true,
+    "candidate_frontend_assets": true,
+    "checks": [
+      "document width matches viewport",
+      "cards stay inside results container",
+      "gene paragraphs do not overflow",
+      "retrieved tissue image loads"
+    ]
   }
 }

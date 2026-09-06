@@ -84,7 +84,8 @@ function formatGenes(value = "") {
     .split(/([,;])/)
     .map((part) => {
       const text = part.trim();
-      if (!text || text === "," || text === ";") return part;
+      if (text === "," || text === ";") return `${text} `;
+      if (!text) return part;
       return /^[A-Z0-9-]{2,}$/.test(text) ? `<em>${text}</em>` : part;
     })
     .join("");

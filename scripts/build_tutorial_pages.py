@@ -14,7 +14,7 @@ ROOT = Path(__file__).resolve().parents[1]
 NOTEBOOK_DIR = ROOT / "docs" / "notebooks"
 TUTORIAL_DIR = ROOT / "docs" / "tutorials"
 ASSET_VERSION = "20260816academic1"
-DESIGN_VERSION = "20260906design1"
+DESIGN_VERSION = "20260906design2"
 
 
 @dataclass(frozen=True)
