@@ -1,0 +1,76 @@
+{
+  "unified_revision": "846aace3f148be7df80e6876378e6518baad9b99",
+  "legacy_redirect_revision": "7210ceae448ef87e7a9ec71d94b8fe3b811cf761",
+  "full_workflow": {
+    "started_at": "2026-09-06T11:53:42.752645+00:00",
+    "authentication": "local_hf_account",
+    "passed": true,
+    "steps": [
+      {
+        "name": "health",
+        "http_status": 200,
+        "seconds": 1.52
+      },
+      {
+        "name": "generate",
+        "http_status": 200,
+        "seconds": 11.46,
+        "cached": false,
+        "unique_ranked_genes": 50
+      },
+      {
+        "name": "spot_chat",
+        "http_status": 200,
+        "seconds": 8.5,
+        "cached": false,
+        "answer_characters": 305
+      },
+      {
+        "name": "spot_followup",
+        "http_status": 200,
+        "seconds": 13.12,
+        "cached": false,
+        "history_messages": 4
+      },
+      {
+        "name": "atlas_search",
+        "http_status": 200,
+        "seconds": 8.09,
+        "cached": false,
+        "retrieved_spots": 5
+      },
+      {
+        "name": "atlas_chat",
+        "http_status": 200,
+        "seconds": 14.39,
+        "cached": false,
+        "answer_characters": 448
+      },
+      {
+        "name": "atlas_cached",
+        "http_status": 200,
+        "seconds": 0.4,
+        "cached": true
+      }
+    ],
+    "completed_at": "2026-09-06T11:54:42.675997+00:00"
+  },
+  "ranked_gene_comparison": {
+    "baseline": "direct-duration60",
+    "merged": "smoke-v7-owner-stable",
+    "unique_genes": 50,
+    "identical_order": true
+  },
+  "anonymous_limit": {
+    "http_status": 429,
+    "payload": {
+      "detail": {
+        "message": "Hugging Face\u2019s daily GPU run quota for this visitor has been reached. Please wait for the platform quota to reset.",
+        "code": "gpu_quota_exhausted",
+        "retry_after_seconds": 300
+      }
+    }
+  },
+  "anonymous_cache_hit": true,
+  "browser_observation": "The published Analyze selected spot button displayed the daily GPU run quota explanation; uncached access remains subject to that platform cap."
+}

@@ -651,7 +651,7 @@ async function generateEvidence() {
   } catch (error) {
     console.error(error);
     clearEvidenceForSelection();
-    setStatus(`${error.message || "Spot inference is temporarily unavailable"}. The selected local and contextual views are ready to retry.`, true);
+    setStatus(`${(error.message || "Spot inference is temporarily unavailable").replace(/[.。]\s*$/, "")}. The selected local and contextual views are ready to retry.`, true);
   } finally {
     setBusy(false);
   }
