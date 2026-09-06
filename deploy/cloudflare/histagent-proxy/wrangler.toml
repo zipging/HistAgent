@@ -1,0 +1,13 @@
+name = "histagent-public-api"
+main = "worker.mjs"
+compatibility_date = "2026-09-06"
+workers_dev = true
+preview_urls = false
+
+[vars]
+# Keep disabled until the existing owner credential is installed as a secret
+# and a controlled owner-quota test succeeds. This is not a secret value.
+HISTAGENT_PROXY_ENABLED = "false"
+
+[observability]
+enabled = false

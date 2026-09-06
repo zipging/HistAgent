@@ -4,13 +4,14 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="Select a tissue location in an H&amp;E image and use HistAgent for interactive analysis of its molecular and spatial context.">
-    <meta name="theme-color" content="#f4f7f5">
+    <meta name="theme-color" content="#261e34">
     <title>HistAgent Workbench</title>
     <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
     <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
     <link rel="stylesheet" href="/assets/site.css?v=20260801brand1">
     <link rel="stylesheet" href="/assets/atlas-workbench.css?v=20260801canvas1">
     <link rel="stylesheet" href="/assets/histagent-workbench.css?v=20260819atlas1">
+    <link rel="stylesheet" href="/assets/design-system.css?v=20260906design1">
   </head>
   <body class="atlas-page histagent-page">
     <a class="skip-link" href="#histagent-workbench">Skip to HistAgent</a>
@@ -36,7 +37,7 @@
         <header class="atlas-product-bar histagent-product-bar">
           <a class="atlas-product-brand" href="/histagent/" aria-label="HistAgent workbench home">
             <span class="brand-mark" aria-hidden="true"></span>
-            <span>HistAgent</span>
+            <span class="ha-product-title">Image analysis<small>HistAgent workbench</small></span>
           </a>
           <ol class="histagent-steps" aria-label="Analysis workflow">
             <li class="complete" data-step="image"><span>1</span><strong>Tissue image</strong></li>
@@ -215,10 +216,13 @@
                   <p>Analyze the selected spot before starting the conversation.</p>
                 </div>
               </div>
-              <div class="histagent-suggestions" id="histagent-suggestions">
-                <button type="button">Which genes support this interpretation?</button>
-                <button type="button">What cell types are suggested here?</button>
-              </div>
+              <details class="ha-chat-prompts">
+                <summary>Suggested questions</summary>
+                <div class="histagent-suggestions" id="histagent-suggestions">
+                  <button type="button">Which genes support this interpretation?</button>
+                  <button type="button">What cell types are suggested here?</button>
+                </div>
+              </details>
               <form class="atlas-chat-form" id="histagent-chat-form">
                 <label class="sr-only" for="histagent-chat-input">Ask about the selected spot evidence</label>
                 <textarea id="histagent-chat-input" rows="2" placeholder="Ask about the selected spot" disabled></textarea>
@@ -231,6 +235,6 @@
     </main>
 
     <script src="/assets/site.js?v=20260729bio1"></script>
-    <script type="module" src="/assets/histagent-workbench.js?v=20260906unified1"></script>
+    <script type="module" src="/assets/histagent-workbench.js?v=20260906design1"></script>
   </body>
 </html>

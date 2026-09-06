@@ -31,6 +31,7 @@ const imagePreview = document.querySelector("#atlas-image-preview");
 const imageAnalyzeLink = document.querySelector("#atlas-image-analyze");
 const evidenceChips = document.querySelector("#query-evidence-chips");
 const mapControls = [...document.querySelectorAll("[data-map-action]")];
+const mapAnnotations = [...document.querySelectorAll(".atlas-scale, .atlas-map-hint")];
 const evidenceFilterInputs = [
   document.querySelector("#atlas-cell-filter"),
   document.querySelector("#atlas-pathway-filter"),
@@ -64,6 +65,10 @@ let exampleZoom = 1;
 let examplePan = { x: 0, y: 0 };
 let liveMapState = null;
 let stagedImagePayload = null;
+let lastRetrieval = null;
+let retrievalPending = false;
+let evidenceRevision = 0;
+let activeChatRequest = null;
 
 function escapeHtml(value = "") {
   return String(value)
@@ -223,7 +228,6 @@ function normalizeRows(value) {
 
 function renderCards(rows) {
   const topRows = normalizeRows(rows).slice(0, 3);
-  if (!topRows.length) return;
   cardsTarget.innerHTML = topRows.map((row, index) => {
     const values = Array.isArray(row) ? row : Object.values(row);
     const rank = Number(values[0] ?? index + 1);
@@ -249,6 +253,17 @@ function renderCards(rows) {
       </article>
     `;
   }).join("");
+}
+
+function renderEmptyMap() {
+  liveMapState = null;
+  mapDrag = null;
+  plotTarget.classList.remove("is-dragging");
+  const message = document.createElement("p");
+  message.textContent = "No matching spots to display. Try a broader query or different filters.";
+  plotTarget.replaceChildren(message);
+  mapExample.hidden = true;
+  plotTarget.hidden = false;
 }
 
 function renderPlot(plotValue) {
@@ -325,6 +340,7 @@ function applyLiveTransform() {
 }
 
 function controlMap(action) {
+  if (mapExample.hidden && !liveMapState) return;
   if (!plotTarget.hidden && liveMapState) {
     if (action === "zoom-in") liveMapState.zoom = Math.min(4, liveMapState.zoom * 1.25);
     if (action === "zoom-out") liveMapState.zoom = Math.max(1, liveMapState.zoom / 1.25);
@@ -417,20 +433,31 @@ mapExample?.addEventListener("pointerup", endExampleDrag);
 mapExample?.addEventListener("pointercancel", endExampleDrag);
 
 function setBusy(value) {
+  retrievalPending = value;
   searchButton.disabled = value;
   loading.hidden = !value;
   searchButton.textContent = value ? "Searching…" : activeMode === "image" ? "Open HistAgent" : "Search";
 }
 
 function showSearchError(error) {
+  const message = error?.message || "Live retrieval could not start";
+  if (lastRetrieval) {
+    statusBadge.className = lastRetrieval.empty ? "atlas-status-badge" : "atlas-status-badge live";
+    statusBadge.textContent = lastRetrieval.empty ? "No matches" : "Previous result";
+    resultSummary.textContent = `${message} Previous retrieval retained: ${lastRetrieval.summary}.`;
+    evidenceChips.innerHTML = lastRetrieval.chips;
+    return;
+  }
   statusBadge.className = "atlas-status-badge";
   statusBadge.textContent = "Example view";
-  resultSummary.textContent = `${error?.message || "Live retrieval could not start"} The manuscript example remains visible.`;
+  resultSummary.textContent = `${message} The manuscript example remains visible.`;
 }
 
 async function runRetrieval(query, chipText = query) {
+  if (retrievalPending) return;
   setBusy(true);
   updateChips(chipText);
+  const retrievalChips = evidenceChips.innerHTML;
   try {
     const data = await callHistAgentService("reasoning", "retrieve_atlas", [
       query,
@@ -440,23 +467,32 @@ async function runRetrieval(query, chipText = query) {
       5
     ]);
     const outputs = Array.isArray(data) ? data : [];
+    const rows = normalizeRows(outputs[0]);
     renderCards(outputs[0]);
-    topEvidence = outputs[1] ?? null;
-    const status = String(outputs[2] ?? "Retrieved measured ST evidence");
-    const plotted = renderPlot(outputs[3]);
-    if (!plotted) {
+    topEvidence = rows.length ? outputs[1] ?? null : null;
+    const status = String(outputs[2] ?? (rows.length ? "Retrieved measured ST evidence" : "No evidence-bank spots match this query."));
+    if (!rows.length) {
+      renderEmptyMap();
+    } else if (!renderPlot(outputs[3])) {
       mapExample.hidden = false;
       plotTarget.hidden = true;
     }
-    const rows = normalizeRows(outputs[0]);
+    mapControls.forEach((control) => { control.disabled = !rows.length; });
+    mapAnnotations.forEach((annotation) => { annotation.hidden = !rows.length; });
     const firstRow = rows[0];
     const firstValues = Array.isArray(firstRow) ? firstRow : firstRow ? Object.values(firstRow) : [];
     const slide = firstValues[5] || "top-ranked atlas slide";
     spotCount.textContent = `${rows.length} retrieved`;
-    resultSummary.textContent = `${rows.length} top-ranked spots · ${slide}`;
-    statusBadge.className = "atlas-status-badge live";
-    statusBadge.textContent = "Live result";
+    resultSummary.textContent = rows.length ? `${rows.length} top-ranked spots · ${slide}` : status;
+    evidenceChips.innerHTML = retrievalChips;
+    lastRetrieval = { summary: resultSummary.textContent, chips: retrievalChips, empty: !rows.length };
+    statusBadge.className = rows.length ? "atlas-status-badge live" : "atlas-status-badge";
+    statusBadge.textContent = rows.length ? "Live result" : "No matches";
+    evidenceRevision += 1;
+    activeChatRequest = null;
     chatHistory = [];
+    chatInput.disabled = !topEvidence;
+    chatButton.disabled = !topEvidence;
     chatLog.innerHTML = `
       <div class="atlas-message assistant">
         <span>HistAgent</span>
@@ -577,21 +613,31 @@ form?.addEventListener("submit", (event) => {
 chatForm?.addEventListener("submit", async (event) => {
   event.preventDefault();
   const message = chatInput.value.trim();
-  if (!message) return;
+  if (!message || activeChatRequest) return;
   appendMessage("user", message);
   chatInput.value = "";
   chatButton.disabled = true;
   if (!topEvidence) {
     appendMessage("assistant", "No retrieved evidence card is currently selected.");
-    chatButton.disabled = false;
+    chatButton.disabled = true;
     return;
   }
+  const request = {
+    evidence: topEvidence,
+    revision: evidenceRevision,
+    history: Array.isArray(chatHistory) ? chatHistory.slice() : []
+  };
+  activeChatRequest = request;
+  const isCurrentRequest = () => activeChatRequest === request
+    && topEvidence === request.evidence
+    && evidenceRevision === request.revision;
   try {
     const data = await callHistAgentService("reasoning", "answer_atlas_question", [
       message,
-      chatHistory,
-      topEvidence
+      request.history,
+      request.evidence
     ]);
+    if (!isCurrentRequest()) return;
     const outputs = Array.isArray(data) ? data : [];
     chatHistory = outputs[1] ?? outputs[0] ?? chatHistory;
     const last = Array.isArray(chatHistory) ? chatHistory.at(-1) : null;
@@ -601,9 +647,13 @@ chatForm?.addEventListener("submit", async (event) => {
     appendMessage("assistant", answer);
   } catch (error) {
     console.error(error);
-    appendMessage("assistant", `${error?.message || "Live chat is temporarily unavailable."}\n\nSummary from the displayed evidence card:\n${localEvidenceAnswer(message, topEvidence)}`);
+    if (!isCurrentRequest()) return;
+    appendMessage("assistant", `${error?.message || "Live chat is temporarily unavailable."}\n\nSummary from the displayed evidence card:\n${localEvidenceAnswer(message, request.evidence)}`);
   } finally {
-    chatButton.disabled = false;
+    if (activeChatRequest === request) {
+      activeChatRequest = null;
+      chatButton.disabled = !topEvidence;
+    }
   }
 });
 

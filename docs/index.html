@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="HistAgent supports spatial molecular analysis, interactive biological interpretation, whole-slide clinical prediction and atlas-scale retrieval from routine H&amp;E histology.">
-    <meta name="theme-color" content="#17362f">
+    <meta name="theme-color" content="#F7F7FB">
     <title>HistAgent | Spatial molecular reasoning from routine histology</title>
     <link rel="canonical" href="https://histagent.bio/">
     <meta property="og:type" content="website">
@@ -18,8 +18,9 @@
     <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
     <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
     <link rel="stylesheet" href="/assets/site.css?v=20260804copy1">
+    <link rel="stylesheet" href="/assets/design-system.css?v=20260906design1">
   </head>
-  <body>
+  <body class="ha-home">
     <a class="skip-link" href="#main">Skip to content</a>
     <header class="site-header">
       <div class="header-inner">
@@ -39,123 +40,132 @@
     </header>
 
     <main id="main">
-      <div class="page-shell">
-        <section class="hero" aria-labelledby="hero-title">
-          <div class="hero-copy">
-            <p class="eyebrow">Spot · whole-slide · atlas</p>
-            <h1 id="hero-title">Spatial molecular reasoning from routine histology</h1>
-            <p class="lede">HistAgent combines a visual-omics foundation model with a spatial agentic module to support spatial molecular analysis, interactive biological analysis, whole-slide clinical prediction and atlas-scale retrieval.</p>
-            <div class="hero-actions">
-              <a class="button primary" href="/tutorials/">Explore tutorials</a>
-              <a class="button" href="/histagent/">Try HistAgent</a>
+      <div class="ha-shell">
+        <section class="ha-hero" aria-labelledby="hero-title">
+          <div class="ha-hero-copy">
+            <p class="ha-eyebrow">Spot · whole-slide · atlas</p>
+            <h1 class="ha-hero-title" id="hero-title">Spatial molecular reasoning <span>from routine histology</span></h1>
+            <p class="ha-lede">HistAgent combines a visual-omics foundation model with a spatial agentic module to support spatial molecular analysis, interactive biological analysis, whole-slide clinical prediction and atlas-scale retrieval.</p>
+            <div class="ha-actions">
+              <a class="ha-button ha-button--primary" href="/histagent/">Analyze tissue <span aria-hidden="true">↗</span></a>
+              <a class="ha-button ha-button--secondary" href="/atlas-explorer/">Explore Atlas <span aria-hidden="true">↗</span></a>
             </div>
+            <a class="ha-text-link ha-hero-tutorial-link" href="/tutorials/">Reproduce the analyses with our tutorials <span aria-hidden="true">→</span></a>
           </div>
-          <figure class="hero-visual">
-            <img src="/assets/rcc-tissue.jpg" alt="Renal cell carcinoma tissue section used in the HistAgent TLS case study">
-            <figcaption class="figure-note">
-              <strong>Renal cell carcinoma TLS example</strong>
-              <span class="caption">HistAgent localizes and interprets a TLS-like immune niche.</span>
-              <span class="capability-line" aria-label="TLS analysis capabilities">
-                <span>Localization</span>
-                <span>Molecular evidence</span>
-                <span>Multi-turn analysis</span>
-              </span>
+          <figure class="ha-specimen">
+            <img class="ha-specimen-image" src="/assets/rcc-tissue.jpg" width="1517" height="1749" fetchpriority="high" decoding="async" alt="Renal cell carcinoma tissue section used in the HistAgent TLS case study">
+            <figcaption class="ha-specimen-caption">
+              <span class="ha-specimen-label">RCC · H&amp;E specimen</span>
+              <div class="ha-specimen-description">
+                <strong>Renal cell carcinoma TLS example</strong>
+                <p>HistAgent localizes and interprets a TLS-like immune niche.</p>
+              </div>
             </figcaption>
           </figure>
         </section>
 
-        <section class="stat-strip" aria-label="HistAgent corpus and model summary">
-          <div class="stat"><strong>2.23M</strong><span>paired H&amp;E–ST spots</span></div>
-          <div class="stat"><strong>936</strong><span>human and mouse slides</span></div>
-          <div class="stat"><strong>32</strong><span>tissue categories</span></div>
-          <div class="stat"><strong>50,000</strong><span>evidence-reasoning traces</span></div>
+        <section class="ha-corpus-section" aria-label="HistAgent corpus and model summary">
+          <ul class="ha-corpus">
+            <li><strong>2.23M</strong><span>paired H&amp;E–ST spots</span></li>
+            <li><strong>936</strong><span>human and mouse slides</span></li>
+            <li><strong>32</strong><span>tissue categories</span></li>
+            <li><strong>50,000</strong><span>evidence-reasoning traces</span></li>
+          </ul>
         </section>
 
-        <section class="section" aria-labelledby="modes-heading">
-          <div class="section-intro">
+        <section class="ha-section" aria-labelledby="workspaces-heading">
+          <div class="ha-section-heading">
             <div>
-              <p class="eyebrow">Three ways to use HistAgent</p>
-              <h2 id="modes-heading">Reproduce, analyze and retrieve</h2>
+              <p class="ha-eyebrow">Interactive workspaces</p>
+              <h2 id="workspaces-heading">Start with tissue.<br>Follow the evidence.</h2>
             </div>
-            <p>Reproduce the manuscript analyses with the tutorials, analyze selected tissue locations with HistAgent, or retrieve related molecular states from the measured ST evidence bank.</p>
+            <p>Analyze a selected tissue location, or retrieve related molecular states from the measured spatial transcriptomics evidence bank.</p>
           </div>
-          <div class="route-grid">
-            <a class="route-card" href="/tutorials/">
-              <span class="route-number">01 / Tutorials</span>
-              <h3>Reproduce the manuscript analyses</h3>
-              <p>Five notebooks cover spatial biological findings, molecular recovery and ST analyses, clinical prediction and atlas retrieval.</p>
-              <span class="route-link">Open tutorials →</span>
-            </a>
-            <a class="route-card" href="/histagent/">
-              <span class="route-number">02 / HistAgent</span>
+          <div class="ha-app-grid">
+            <a class="ha-app-card ha-app-card--tissue" href="/histagent/">
+              <span class="ha-app-name">HistAgent</span>
               <h3>Analyze selected tissue locations</h3>
               <p>Use local and contextual H&amp;E views to examine a selected tissue location through interactive, multi-turn analysis.</p>
-              <span class="route-link">Try HistAgent →</span>
+              <span class="ha-app-link">Analyze tissue <span aria-hidden="true">↗</span></span>
             </a>
-            <a class="route-card" href="/atlas-explorer/">
-              <span class="route-number">03 / Atlas Explorer</span>
+            <a class="ha-app-card ha-app-card--atlas" href="/atlas-explorer/">
+              <span class="ha-app-name">Atlas Explorer</span>
               <h3>Explore measured ST atlases</h3>
               <p>Use natural-language or H&amp;E image queries to retrieve related molecular states and continue with retrieval-grounded analysis.</p>
-              <span class="route-link">Open Atlas Explorer →</span>
+              <span class="ha-app-link">Explore Atlas <span aria-hidden="true">↗</span></span>
             </a>
+          </div>
+          <div class="ha-tutorial-access">
+            <div>
+              <h3>Reproduce the manuscript analyses</h3>
+              <p>Five notebooks cover spatial biological findings, molecular recovery and ST analyses, clinical prediction and atlas retrieval.</p>
+            </div>
+            <a class="ha-text-link" href="/tutorials/">Open tutorials <span aria-hidden="true">→</span></a>
           </div>
         </section>
 
-        <section class="section" aria-labelledby="framework-heading">
-          <div class="feature-grid">
-            <figure class="paper-figure">
-              <img src="/assets/framework.png" alt="HistAgent visual-omics foundation model and spatial agentic module">
-              <figcaption>HistAgent model and spatial analysis workflow.</figcaption>
+        <section class="ha-section ha-method" aria-labelledby="framework-heading">
+          <div class="ha-method-grid">
+            <figure class="ha-method-figure">
+              <a href="/assets/framework.png" aria-label="View the HistAgent model and spatial analysis workflow at full size">
+                <img src="/assets/framework.png" width="2481" height="1867" loading="lazy" decoding="async" alt="HistAgent visual-omics foundation model and spatial agentic module">
+              </a>
+              <figcaption><span>HistAgent model and spatial analysis workflow.</span><a href="/assets/framework.png">View full figure <span aria-hidden="true">↗</span></a></figcaption>
             </figure>
-            <div class="framework-copy">
-              <p class="eyebrow">Method at a glance</p>
+            <div class="ha-method-copy">
+              <p class="ha-eyebrow">Method at a glance</p>
               <h2 id="framework-heading">A unified framework for spatial molecular analysis</h2>
               <p>HistAgent couples a visual-omics foundation model with a spatial agentic module to connect local and contextual H&amp;E morphology with question-driven analysis of local tissue states.</p>
-              <ul class="plain-list">
-                <li><strong>Local and contextual H&amp;E</strong>The foundation model jointly encodes a selected tissue location and its surrounding tissue context.</li>
-                <li><strong>Spatial molecular analysis</strong>HistAgent recovers spatial biological findings and supports standard ST analyses from routine histology.</li>
-                <li><strong>Interactive biological analysis</strong>The spatial agentic module selects and integrates question-relevant molecular and spatial evidence across multiple turns.</li>
-                <li><strong>Cross-scale applications</strong>HistAgent extends from spot-level analysis to whole-slide clinical prediction and retrieval from a measured ST evidence bank.</li>
+              <ul class="ha-method-list">
+                <li><strong>Local and contextual H&amp;E</strong><p>The foundation model jointly encodes a selected tissue location and its surrounding tissue context.</p></li>
+                <li><strong>Spatial molecular analysis</strong><p>HistAgent recovers spatial biological findings and supports standard ST analyses from routine histology.</p></li>
+                <li><strong>Interactive biological analysis</strong><p>The spatial agentic module selects and integrates question-relevant molecular and spatial evidence across multiple turns.</p></li>
+                <li><strong>Cross-scale applications</strong><p>HistAgent extends from spot-level analysis to whole-slide clinical prediction and retrieval from a measured ST evidence bank.</p></li>
               </ul>
             </div>
           </div>
         </section>
 
-        <section class="section" aria-labelledby="tutorials-heading">
-          <div class="section-intro">
+        <section class="ha-section ha-notebooks" aria-labelledby="tutorials-heading">
+          <div class="ha-section-heading">
             <div>
-              <p class="eyebrow">Tutorial sequence</p>
+              <p class="ha-eyebrow">Runnable notebooks</p>
               <h2 id="tutorials-heading">Five tutorials</h2>
             </div>
             <p>Each notebook combines explanation, runnable code and outputs. Pretrained models are provided where training would take too long for a tutorial.</p>
           </div>
-          <div class="tutorial-list">
-            <a class="tutorial-row" href="/tutorials/ranked-molecular-readouts/">
-              <span class="index">T01</span>
-              <span><h3>Generate and evaluate ranked molecular readouts</h3><p>Calculate spot-level gene-ranking recovery and gene-level spatial recovery across five held-out slides.</p></span>
-              <span class="time">HitRate@50 · mAP@50 · PCC</span>
-            </a>
-            <a class="tutorial-row" href="/tutorials/spatial-biological-findings/">
-              <span class="index">T02</span>
-              <span><h3>Analyze spatial biological findings</h3><p>Compare predicted and measured expression, localize an RCC TLS-like niche and review cross-study finding recovery.</p></span>
-              <span class="time">RCC TLS case study</span>
-            </a>
-            <a class="tutorial-row" href="/tutorials/spatial-transcriptomic-analyses/">
-              <span class="index">T03</span>
-              <span><h3>Run standard spatial transcriptomic analyses</h3><p>Run SVG detection, spatial domain identification, deconvolution, differential expression and pathway enrichment.</p></span>
-              <span class="time">Five standard ST analyses</span>
-            </a>
-            <a class="tutorial-row" href="/tutorials/clinical-prediction/">
-              <span class="index">T04</span>
-              <span><h3>Interpret whole-slide clinical predictions</h3><p>Inspect tissue regions associated with slide-level predictions and compare patient-level risk groups.</p></span>
-              <span class="time">WSI · prognosis</span>
-            </a>
-            <a class="tutorial-row" href="/tutorials/st-atlas-retrieval/">
-              <span class="index">T05</span>
-              <span><h3>Search the spatial transcriptomics atlas</h3><p>Explore measured tissue locations and run representative natural-language and H&amp;E image queries.</p></span>
-              <span class="time">Text and image retrieval</span>
-            </a>
-          </div>
+          <ol class="ha-notebook-list">
+            <li><a class="ha-notebook-row" href="/tutorials/ranked-molecular-readouts/">
+              <span class="ha-notebook-index" aria-hidden="true">T01</span>
+              <div class="ha-notebook-copy"><h3>Generate and evaluate ranked molecular readouts</h3><p>Calculate spot-level gene-ranking recovery and gene-level spatial recovery across five held-out slides.</p></div>
+              <span class="ha-notebook-meta">HitRate@50 · mAP@50 · PCC</span>
+              <span class="ha-notebook-arrow" aria-hidden="true">↗</span>
+            </a></li>
+            <li><a class="ha-notebook-row" href="/tutorials/spatial-biological-findings/">
+              <span class="ha-notebook-index" aria-hidden="true">T02</span>
+              <div class="ha-notebook-copy"><h3>Analyze spatial biological findings</h3><p>Compare predicted and measured expression, localize an RCC TLS-like niche and review cross-study finding recovery.</p></div>
+              <span class="ha-notebook-meta">RCC TLS case study</span>
+              <span class="ha-notebook-arrow" aria-hidden="true">↗</span>
+            </a></li>
+            <li><a class="ha-notebook-row" href="/tutorials/spatial-transcriptomic-analyses/">
+              <span class="ha-notebook-index" aria-hidden="true">T03</span>
+              <div class="ha-notebook-copy"><h3>Run standard spatial transcriptomic analyses</h3><p>Run SVG detection, spatial domain identification, deconvolution, differential expression and pathway enrichment.</p></div>
+              <span class="ha-notebook-meta">Five standard ST analyses</span>
+              <span class="ha-notebook-arrow" aria-hidden="true">↗</span>
+            </a></li>
+            <li><a class="ha-notebook-row" href="/tutorials/clinical-prediction/">
+              <span class="ha-notebook-index" aria-hidden="true">T04</span>
+              <div class="ha-notebook-copy"><h3>Interpret whole-slide clinical predictions</h3><p>Inspect tissue regions associated with slide-level predictions and compare patient-level risk groups.</p></div>
+              <span class="ha-notebook-meta">WSI · prognosis</span>
+              <span class="ha-notebook-arrow" aria-hidden="true">↗</span>
+            </a></li>
+            <li><a class="ha-notebook-row" href="/tutorials/st-atlas-retrieval/">
+              <span class="ha-notebook-index" aria-hidden="true">T05</span>
+              <div class="ha-notebook-copy"><h3>Search the spatial transcriptomics atlas</h3><p>Explore measured tissue locations and run representative natural-language and H&amp;E image queries.</p></div>
+              <span class="ha-notebook-meta">Text and image retrieval</span>
+              <span class="ha-notebook-arrow" aria-hidden="true">↗</span>
+            </a></li>
+          </ol>
         </section>
       </div>
     </main>

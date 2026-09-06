@@ -20,6 +20,12 @@
   };
 
   document.addEventListener("DOMContentLoaded", () => {
+    const tutorialNav = document.querySelector(".nb-tutorial-nav");
+    const currentChapter = tutorialNav?.querySelector('[aria-current="page"]');
+    if (currentChapter && window.matchMedia("(max-width: 900px)").matches) {
+      tutorialNav.scrollLeft += currentChapter.getBoundingClientRect().left
+        - tutorialNav.getBoundingClientRect().left;
+    }
     const inputs = document.querySelectorAll(
       ".code_cell .input, .jp-CodeCell .jp-Cell-inputWrapper, " +
       ".text_cell_render .highlight, .jp-MarkdownOutput .highlight"
@@ -35,15 +41,19 @@
       button.className = "nb-copy-button";
       button.textContent = "Copy";
       button.setAttribute("aria-label", "Copy code");
+      button.setAttribute("aria-live", "polite");
       button.addEventListener("click", async () => {
         try {
           await copyText(code.innerText);
           button.textContent = "Copied";
+          button.setAttribute("aria-label", "Code copied");
         } catch {
           button.textContent = "Try again";
+          button.setAttribute("aria-label", "Copy failed. Try again");
         }
         window.setTimeout(() => {
           button.textContent = "Copy";
+          button.setAttribute("aria-label", "Copy code");
         }, 1200);
       });
       input.appendChild(button);

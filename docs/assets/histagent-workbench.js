@@ -87,6 +87,9 @@ let viewerPanX = 0;
 let viewerPanY = 0;
 let dragState = null;
 let suppressNextSpotClick = false;
+let selectionRevision = 0;
+let inferencePending = false;
+let activeChatRequest = null;
 
 const MIN_VIEWER_ZOOM = 1;
 const MAX_VIEWER_ZOOM = 8;
@@ -146,7 +149,8 @@ function setStatus(message, error = false) {
 }
 
 function setBusy(value) {
-  generateButton.disabled = value;
+  inferencePending = value;
+  generateButton.disabled = value || !selectedSpot;
   generateButton.textContent = value ? "Analyzing…" : "Analyze selected spot";
   stageLoading.hidden = !value;
 }
@@ -215,7 +219,10 @@ function imageTissueMask() {
 }
 
 function createSpots(preserveEvidence = false) {
-  if (!tissueImage.naturalWidth || !tissueImage.naturalHeight) return;
+  if (!tissueImage.naturalWidth || !tissueImage.naturalHeight) {
+    clearSpotSelection();
+    return;
+  }
   if (isDefaultExample && exampleManifest) {
     spots = exampleManifest.spots.map((spot) => ({
       ...spot,
@@ -231,6 +238,7 @@ function createSpots(preserveEvidence = false) {
   }
   const mpp = Number(mppInput.value);
   if (!Number.isFinite(mpp) || mpp <= 0) {
+    clearSpotSelection();
     setStatus("Enter a valid image scale before dividing the image into spots.", true);
     return;
   }
@@ -265,6 +273,11 @@ function createSpots(preserveEvidence = false) {
     const distance = (spot.xNorm - 0.5) ** 2 + (spot.yNorm - 0.5) ** 2;
     return !best || distance < best.distance ? { spot, distance } : best;
   }, null)?.spot || spots[0];
+  if (!center) {
+    clearSpotSelection();
+    setStatus("No tissue sampling spots were found. Choose an image with visible tissue or check its scale.", true);
+    return;
+  }
   selectSpot(center, { preserveEvidence });
   spotCount.textContent = `${spots.length.toLocaleString()} 55 µm sampling spots`;
 }
@@ -376,6 +389,7 @@ function directionalSpot(horizontal, vertical) {
 
 function positionContextRing() {
   const box = displayBox();
+  contextRing.hidden = !box || !selectedSpot;
   if (!box || !selectedSpot) return;
   const size = Math.max(
     24,
@@ -430,13 +444,37 @@ function updateCropPreviews() {
   const contextCanvas = canvasCrop(selectedSpot.x, selectedSpot.y, CONTEXT_DIAMETER_UM);
   localPreview.src = localCanvas.toDataURL("image/png");
   contextPreview.src = contextCanvas.toDataURL("image/png");
+  localPreview.hidden = false;
+  contextPreview.hidden = false;
   const coordinateText = `Center ${Math.round(selectedSpot.x)}, ${Math.round(selectedSpot.y)} px`;
   selectedCoordinates.textContent = selectedSpot.array_row == null
     ? `${coordinateText} · 55 µm sampling diameter`
     : `${coordinateText} · Visium row ${selectedSpot.array_row}, column ${selectedSpot.array_col} · 55 µm`;
 }
 
+function clearSpotSelection() {
+  selectedSpot = null;
+  spots = [];
+  clearEvidenceForSelection();
+  generateButton.disabled = true;
+  spotId.textContent = "No spot selected";
+  spotCount.textContent = "0 sampling spots";
+  selectedCoordinates.textContent = "Select a tissue spot to view its coordinates.";
+  selectionBadge.className = "atlas-status-badge";
+  selectionBadge.textContent = "No spot selected";
+  localPreview.removeAttribute("src");
+  contextPreview.removeAttribute("src");
+  localPreview.hidden = true;
+  contextPreview.hidden = true;
+  contextRing.hidden = true;
+  spotCanvasContext.clearRect(0, 0, spotGrid.width, spotGrid.height);
+  renderSpots();
+  setWorkflowStep("image");
+}
+
 function clearEvidenceForSelection() {
+  selectionRevision += 1;
+  activeChatRequest = null;
   currentEvidence = null;
   evidenceSpotKey = "";
   evidenceBadge.textContent = "Not generated";
@@ -463,6 +501,7 @@ function selectSpot(spot, options = {}) {
   if (!spot) return;
   const changed = selectedSpot?.id !== spot.id;
   selectedSpot = spot;
+  generateButton.disabled = inferencePending;
   spotId.textContent = spot.id;
   renderSpots();
   updateCropPreviews();
@@ -487,7 +526,33 @@ function matchedEvidence(genes, entries) {
     .slice(0, 4);
 }
 
+function captureSelection() {
+  return {
+    revision: selectionRevision,
+    spot: selectedSpot ? { ...selectedSpot } : null,
+    species: speciesInput.value,
+    organ: organInput.value,
+    mpp: mppInput.value,
+    sourceUrl,
+    sourceLabel,
+    isDefaultExample
+  };
+}
+
+function isCurrentSelection(selection) {
+  return selection.revision === selectionRevision
+    && selection.spot?.id === selectedSpot?.id
+    && selection.spot?.x === selectedSpot?.x
+    && selection.spot?.y === selectedSpot?.y
+    && selection.species === speciesInput.value
+    && selection.organ === organInput.value
+    && selection.mpp === mppInput.value
+    && selection.sourceUrl === sourceUrl;
+}
+
 function buildEvidence(genes, options = {}) {
+  const selection = options.selection || captureSelection();
+  const spot = selection.spot;
   const cleanGenes = genes
     .map((gene) => String(gene || "").trim())
     .filter(Boolean)
@@ -497,24 +562,24 @@ function buildEvidence(genes, options = {}) {
   const programs = options.programOverride || matchedEvidence(cleanGenes, markerCatalog.programs);
   return {
     spot: {
-      id: selectedSpot?.id || "S112",
-      barcode: selectedSpot?.barcode || null,
-      species: speciesInput?.value || "human",
-      organ: organInput?.value || "kidney",
-      x: selectedSpot ? Math.round(selectedSpot.x) : 759,
-      y: selectedSpot ? Math.round(selectedSpot.y) : 875,
-      array_row: selectedSpot?.array_row ?? null,
-      array_col: selectedSpot?.array_col ?? null
+      id: spot?.id || "S112",
+      barcode: spot?.barcode || null,
+      species: selection.species || "human",
+      organ: selection.organ || "kidney",
+      x: spot ? Math.round(spot.x) : 759,
+      y: spot ? Math.round(spot.y) : 875,
+      array_row: spot?.array_row ?? null,
+      array_col: spot?.array_col ?? null
     },
     ranked_genes: cleanGenes,
     cell_type_composition: cells,
     pathway_evidence: Object.fromEntries(programs.map((item) => [item.label, item.genes])),
     spatial_context: {
       available: true,
-      selected_spot: selectedSpot?.id || "S112",
+      selected_spot: spot?.id || "S112",
       local_diameter_um: LOCAL_DIAMETER_UM,
       context_diameter_um: CONTEXT_DIAMETER_UM,
-      coordinate_source: isDefaultExample
+      coordinate_source: selection.isDefaultExample
         ? "Official 10x Visium tissue positions for GSM5924036"
         : "User-defined physical sampling grid",
       interpretation: options.spatialLabel || "Selected spot interpreted with surrounding tissue context"
@@ -526,7 +591,7 @@ function buildEvidence(genes, options = {}) {
     },
     provenance: {
       source: options.source || "HistAgent ranked molecular readout",
-      image_name: sourceLabel
+      image_name: selection.sourceLabel
     }
   };
 }
@@ -538,8 +603,9 @@ function geneMarkup(genes) {
 }
 
 function renderEvidence(evidence, badge = "Generated") {
+  activeChatRequest = null;
   currentEvidence = evidence;
-  evidenceSpotKey = selectedSpot?.id || "generated";
+  evidenceSpotKey = evidence.spot?.id || "generated";
   const genes = evidence.ranked_genes || [];
   const cells = evidence.display?.cells || evidence.cell_type_composition || [];
   const programs = evidence.display?.programs || Object.entries(evidence.pathway_evidence || {})
@@ -577,7 +643,7 @@ function renderEvidence(evidence, badge = "Generated") {
   chatLog.innerHTML = `
     <div class="atlas-message assistant">
       <span>HistAgent</span>
-      <p>The evidence card for ${escapeHtml(selectedSpot?.id || "the selected spot")} is ready. Ask about its ranked genes, cellular states, functional programs or surrounding context.</p>
+      <p>The evidence card for ${escapeHtml(evidence.spot?.id || "the selected spot")} is ready. Ask about its ranked genes, cellular states, functional programs or surrounding context.</p>
     </div>
   `;
   setWorkflowStep("evidence");
@@ -610,6 +676,7 @@ function canvasBlob(canvas) {
 }
 
 async function generateEvidence() {
+  if (inferencePending) return;
   if (!selectedSpot) {
     setStatus("Select a tissue spot before generating evidence.", true);
     return;
@@ -619,37 +686,44 @@ async function generateEvidence() {
     setStatus("Enter an image scale that resolves the 55 µm spot.", true);
     return;
   }
+  const selection = captureSelection();
   setBusy(true);
-  setStatus(`Analyzing ${selectedSpot.id} with HistAgent.`);
+  setStatus(`Analyzing ${selection.spot.id} with HistAgent.`);
   try {
-    const localCanvas = canvasCrop(selectedSpot.x, selectedSpot.y, LOCAL_DIAMETER_UM);
+    const localCanvas = canvasCrop(selection.spot.x, selection.spot.y, LOCAL_DIAMETER_UM);
     // Training stored the four-times context field at 256 px; the released
     // inference transform then applies its 224 px center crop.
-    const contextCanvas = canvasCrop(selectedSpot.x, selectedSpot.y, CONTEXT_DIAMETER_UM, 256);
+    const contextCanvas = canvasCrop(selection.spot.x, selection.spot.y, CONTEXT_DIAMETER_UM, 256);
     const [localBlob, contextBlob] = await Promise.all([
       canvasBlob(localCanvas),
       canvasBlob(contextCanvas)
     ]);
+    // Image preparation and inference can finish after the user changes the
+    // selection. Such a response must never become the new spot's evidence.
+    if (!isCurrentSelection(selection)) return;
     const outputs = await generateHistAgentReadout({
       localBlob,
       contextBlob,
-      localName: `${selectedSpot.id}_local.png`,
-      contextName: `${selectedSpot.id}_context.png`,
-      species: speciesInput.value,
-      organ: organInput.value,
+      localName: `${selection.spot.id}_local.png`,
+      contextName: `${selection.spot.id}_context.png`,
+      species: selection.species,
+      organ: selection.organ,
       topK: 50
     });
+    if (!isCurrentSelection(selection)) return;
     const genes = parseGenes(outputs?.[0], outputs?.[1]);
     if (!genes.length) throw new Error("HistAgent returned no ranked genes for this spot");
     const evidence = buildEvidence(genes, {
+      selection,
       source: "HistAgent ranked molecular readout"
     });
     renderEvidence(evidence, "Generated");
     selectionBadge.className = "atlas-status-badge live";
     selectionBadge.textContent = "Evidence ready";
-    setStatus(`${genes.length} ranked genes generated for ${selectedSpot.id}.`);
+    setStatus(`${genes.length} ranked genes generated for ${selection.spot.id}.`);
   } catch (error) {
     console.error(error);
+    if (!isCurrentSelection(selection)) return;
     clearEvidenceForSelection();
     setStatus(`${(error.message || "Spot inference is temporarily unavailable").replace(/[.。]\s*$/, "")}. The selected local and contextual views are ready to retry.`, true);
   } finally {
@@ -678,7 +752,16 @@ function chatServiceError(error) {
 }
 
 async function submitChat(message, appendUser = true) {
-  if (!currentEvidence) return;
+  if (!currentEvidence || activeChatRequest) return;
+  const request = {
+    evidence: currentEvidence,
+    selection: captureSelection(),
+    history: chatHistory.slice()
+  };
+  activeChatRequest = request;
+  const isCurrentRequest = () => activeChatRequest === request
+    && currentEvidence === request.evidence
+    && isCurrentSelection(request.selection);
   if (appendUser) appendMessage("user", message);
   const pendingMessage = appendMessage(
     "assistant",
@@ -690,22 +773,25 @@ async function submitChat(message, appendUser = true) {
   try {
     const outputs = await callHistAgentService("reasoning", "answer_atlas_question", [
       message,
-      chatHistory,
-      currentEvidence
+      request.history,
+      request.evidence
     ]);
+    if (!isCurrentRequest()) return;
     if (!Array.isArray(outputs?.[1])) {
       throw new Error("The reasoning service returned an invalid response. Please retry.");
     }
-    chatHistory = outputs[1];
-    const last = Array.isArray(chatHistory) ? chatHistory.at(-1) : null;
+    const nextHistory = outputs[1];
+    const last = nextHistory.at(-1);
     if (last?.role !== "assistant" || typeof last?.content !== "string" || !last.content.trim()) {
       throw new Error("The reasoning service returned no answer. Please retry.");
     }
+    chatHistory = nextHistory;
     const answer = last.content.trim();
     pendingMessage.querySelector("p").innerHTML = escapeHtml(answer).replaceAll("\n", "<br>");
     pendingMessage.classList.remove("pending");
   } catch (error) {
     console.error(error);
+    if (!isCurrentRequest()) return;
     pendingMessage.querySelector("p").textContent = chatServiceError(error);
     pendingMessage.classList.remove("pending");
     pendingMessage.classList.add("error");
@@ -714,12 +800,16 @@ async function submitChat(message, appendUser = true) {
     retry.className = "histagent-chat-retry";
     retry.textContent = "Retry";
     retry.addEventListener("click", () => {
+      if (activeChatRequest || currentEvidence !== request.evidence || !isCurrentSelection(request.selection)) return;
       pendingMessage.remove();
       submitChat(message, false);
-    }, { once: true });
+    });
     pendingMessage.append(retry);
   } finally {
-    chatButton.disabled = false;
+    if (activeChatRequest === request) {
+      activeChatRequest = null;
+      chatButton.disabled = !currentEvidence;
+    }
   }
 }
 
@@ -742,7 +832,7 @@ async function setSourceImage(file) {
   mppInput.value = "0.50";
   tissueImage.src = sourceUrl;
   imageName.textContent = sourceLabel;
-  clearEvidenceForSelection();
+  clearSpotSelection();
   setWorkflowStep("image");
   setStatus("Image loaded. Select its scale and choose a spot.");
 }
@@ -779,6 +869,7 @@ async function loadAtlasImageQuery() {
 }
 
 async function resetExample() {
+  clearSpotSelection();
   setStatus("Loading the GSM5924036 example and its official Visium coordinates.");
   if (!exampleManifest) {
     const response = await fetch(EXAMPLE_MANIFEST_URL);
@@ -800,18 +891,16 @@ async function resetExample() {
   speciesInput.value = exampleManifest.species;
   organInput.value = exampleManifest.organ;
   imageName.textContent = sourceLabel;
-  currentEvidence = null;
-  evidenceSpotKey = "";
   if (tissueImage.getAttribute("src") === sourceUrl && tissueImage.complete) {
     onImageReady();
   } else {
     tissueImage.src = sourceUrl;
   }
-  clearEvidenceForSelection();
   setStatus("Select any real 55 µm Visium spot, then analyze it with HistAgent.");
 }
 
 function onImageReady() {
+  clearSpotSelection();
   const dimensions = `${tissueImage.naturalWidth.toLocaleString()} × ${tissueImage.naturalHeight.toLocaleString()} px`;
   imageMeta.textContent = `${dimensions} · ${Number(mppInput.value).toFixed(2)} µm/px`;
   tissueStage.style.setProperty(
@@ -845,7 +934,7 @@ mppInput.addEventListener("input", () => {
     `${tissueImage.naturalWidth.toLocaleString()} × ${tissueImage.naturalHeight.toLocaleString()} px · ${Number(mppInput.value).toFixed(2)} µm/px`;
   clearEvidenceForSelection();
   createSpots(false);
-  setStatus("Image scale changed. Regenerate evidence for the selected spot.");
+  if (selectedSpot) setStatus("Image scale changed. Regenerate evidence for the selected spot.");
 });
 speciesInput.addEventListener("change", () => {
   clearEvidenceForSelection();
