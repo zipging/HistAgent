@@ -14,7 +14,7 @@ ROOT = Path(__file__).resolve().parents[1]
 NOTEBOOK_DIR = ROOT / "docs" / "notebooks"
 TUTORIAL_DIR = ROOT / "docs" / "tutorials"
 ASSET_VERSION = "20260816academic1"
-DESIGN_VERSION = "20260906design2"
+DESIGN_VERSION = "20261114-lighttable"
 
 
 @dataclass(frozen=True)
@@ -105,12 +105,13 @@ def render_tutorial(tutorial: Tutorial) -> None:
     soup.title.string = f"{tutorial.title} | HistAgent tutorials"
     head = soup.head
     for markup in (
-        '<meta name="theme-color" content="#261e34">',
+        '<meta name="theme-color" content="#f5f7fa">',
         '<link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">',
         '<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">',
         '<link rel="stylesheet" href="/assets/site.css?v=20260727paper2">',
         f'<link rel="stylesheet" href="/assets/notebook.css?v={ASSET_VERSION}">',
         f'<link rel="stylesheet" href="/assets/design-system.css?v={DESIGN_VERSION}">',
+        f'<link rel="stylesheet" href="/assets/editorial.css?v={DESIGN_VERSION}">',
     ):
         append_fragment(head, fragment(markup))
 

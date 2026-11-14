@@ -4,14 +4,15 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="Select a tissue location in an H&amp;E image and use HistAgent for interactive analysis of its molecular and spatial context.">
-    <meta name="theme-color" content="#261e34">
+    <meta name="theme-color" content="#f5f7fa">
     <title>HistAgent Workbench</title>
     <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
     <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
     <link rel="stylesheet" href="/assets/site.css?v=20260801brand1">
     <link rel="stylesheet" href="/assets/atlas-workbench.css?v=20260801canvas1">
     <link rel="stylesheet" href="/assets/histagent-workbench.css?v=20260819atlas1">
-    <link rel="stylesheet" href="/assets/design-system.css?v=20260906design2">
+    <link rel="stylesheet" href="/assets/design-system.css?v=20261114-lighttable">
+    <link rel="stylesheet" href="/assets/editorial.css?v=20261114-lighttable">
   </head>
   <body class="atlas-page histagent-page">
     <a class="skip-link" href="#histagent-workbench">Skip to HistAgent</a>
@@ -33,6 +34,7 @@
     </header>
 
     <main class="atlas-main" id="histagent-workbench">
+      <div class="ha-workspace-intro"><h1>HistAgent workbench</h1><p>Select a spot in the tissue image, analyze it, then ask questions about the evidence.</p></div>
       <section class="atlas-product histagent-product" aria-label="HistAgent image analysis workbench">
         <header class="atlas-product-bar histagent-product-bar">
           <a class="atlas-product-brand" href="/histagent/" aria-label="HistAgent workbench home">
@@ -141,7 +143,7 @@
           <section class="histagent-tissue-panel" aria-labelledby="tissue-map-title">
             <header class="atlas-map-header histagent-tissue-header">
               <div>
-                <h1 id="tissue-map-title">Tissue spot selection</h1>
+                <h2 id="tissue-map-title">Tissue spot selection</h2>
                 <div class="atlas-legend" aria-label="Spot legend">
                   <span><i class="histagent-candidate"></i>Candidate spot</span>
                   <span><i class="top-ranked"></i>Selected spot</span>

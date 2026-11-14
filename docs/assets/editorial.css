@@ -1,0 +1,340 @@
+/* Overview and reading surfaces. The tissue remains the only expressive image. */
+.ha-home {
+  background: #f5f7fa;
+  color: #182b3a;
+}
+.ha-home .ha-shell {
+  width: min(1360px, calc(100% - 96px));
+  margin-inline: auto;
+}
+.ha-home .ha-hero {
+  display: grid;
+  grid-template-columns: minmax(0, .95fr) minmax(0, 1.05fr);
+  align-items: center;
+  gap: 64px;
+  padding: 52px 0 48px;
+}
+.ha-home .ha-hero-copy { padding: 8px 0 12px; }
+.ha-home .ha-eyebrow {
+  margin: 0 0 20px;
+  color: #245bc4;
+  font: 500 11px/1.6 var(--mono, monospace);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+.ha-home .ha-hero-title {
+  max-width: 650px;
+  margin: 0 0 25px;
+  color: #182b3a;
+  font-family: 'IBM Plex Sans', 'Helvetica Neue', sans-serif;
+  font-size: clamp(42px, 4.5vw, 65px);
+  font-weight: 450;
+  line-height: 1.04;
+  letter-spacing: -.055em;
+  text-wrap: balance;
+}
+.ha-home .ha-hero-title span { display: block; color: #617381; }
+.ha-home .ha-lede {
+  max-width: 520px;
+  margin: 0;
+  color: #526672;
+  font-size: 17px;
+  line-height: 1.65;
+}
+.ha-home .ha-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 28px 0 0;
+}
+.ha-home .ha-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 28px;
+  min-height: 47px;
+  padding: 11px 17px;
+  border: 1px solid #bac7d1;
+  border-radius: 3px;
+  background: transparent;
+  color: #182b3a;
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+  box-shadow: none;
+  transition: background .15s, border-color .15s;
+}
+.ha-home .ha-button--primary { background: #245bc4; border-color: #245bc4; color: white; }
+.ha-home .ha-button:hover { background: #e7edf4; border-color: #245bc4; box-shadow: none; }
+.ha-home .ha-button--primary:hover { background: #194ba9; color: white; }
+.ha-home .ha-hero-copy > .fine-print { max-width: 450px; margin: 14px 0 0; color: #617381; font-size: 12px; line-height: 1.6; }
+.ha-home .ha-text-link { display: inline-flex; align-items: center; gap: 14px; color: #245bc4; font-size: 14px; text-decoration: none; }
+.ha-home .ha-text-link:hover { text-decoration: underline; text-underline-offset: 4px; }
+.ha-home .ha-hero-tutorial-link { margin-top: 23px; font-size: 13px; }
+.ha-home .ha-specimen {
+  position: relative;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: #fff;
+  box-shadow: none;
+}
+.ha-home .ha-specimen-image {
+  display: block;
+  width: 100%;
+  height: 530px;
+  object-fit: cover;
+  object-position: 50% 45%;
+  border-radius: 0;
+  background: #e4e9ed;
+}
+.ha-home .ha-specimen-caption {
+  display: grid;
+  grid-template-columns: 105px minmax(0,1fr);
+  align-items: start;
+  gap: 18px;
+  padding: 17px 0 0;
+  border-top: 3px solid #182b3a;
+  background: #f5f7fa;
+  color: #617381;
+}
+.ha-home .ha-specimen-label {
+  max-width: 105px;
+  padding-top: 1px;
+  font: 400 10px/1.6 var(--mono, monospace);
+  letter-spacing: .025em;
+  text-transform: uppercase;
+}
+.ha-home .ha-specimen-description strong { display: block; color: #182b3a; font-size: 13px; font-weight: 500; line-height: 1.5; }
+.ha-home .ha-specimen-description p { margin: 3px 0 0; font-size: 12px; line-height: 1.5; }
+.ha-home .ha-corpus {
+  display: grid;
+  grid-template-columns: repeat(4,1fr);
+  gap: 28px;
+  list-style: none;
+  margin: 0;
+  padding: 26px 0 28px;
+  border-top: 1px solid #c7d2dc;
+  border-bottom: 1px solid #c7d2dc;
+}
+.ha-home .ha-corpus li { display: flex; flex-direction: column; gap: 2px; }
+.ha-home .ha-corpus strong { font-family: 'IBM Plex Sans',sans-serif; font-size: 29px; line-height: 1.4; font-weight: 450; letter-spacing: -.045em; color: #182b3a; }
+.ha-home .ha-corpus span { font-size: 12px; color: #617381; }
+.ha-home .ha-section { padding: 72px 0; }
+.ha-home .ha-section + .ha-section { border-top: 1px solid #d6dfe6; }
+.ha-home .ha-section-heading {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 60px;
+  align-items: end;
+  margin-bottom: 32px;
+}
+.ha-home .ha-section-heading .ha-eyebrow,
+.ha-home .ha-method-copy .ha-eyebrow { margin-bottom: 13px; }
+.ha-home .ha-section-heading h2,
+.ha-home .ha-method-copy h2 { margin: 0; font-family: 'IBM Plex Sans',sans-serif; color: #182b3a; font-size: 37px; font-weight: 450; letter-spacing: -.045em; line-height: 1.15; }
+.ha-home .ha-section-heading > p { max-width: 500px; margin: 0; color: #617381; font-size: 16px; line-height: 1.65; }
+.ha-home .ha-app-grid { display: block; border-top: 1px solid #aabac8; }
+.ha-home .ha-app-card {
+  display: grid;
+  grid-template-columns: 155px minmax(0, .9fr) minmax(0, 1.1fr) 145px;
+  align-items: start;
+  gap: 28px;
+  padding: 28px 0;
+  border: 0;
+  border-bottom: 1px solid #c7d2dc;
+  border-radius: 0;
+  background: transparent;
+  color: #182b3a;
+  text-decoration: none;
+  box-shadow: none;
+  transition: background .15s;
+}
+.ha-home .ha-app-card:hover { border-color: #c7d2dc; background: #ecf1f6; box-shadow: none; }
+.ha-home .ha-app-name { color: #245bc4; font: 500 12px/1.6 var(--mono,monospace); letter-spacing: 0; text-transform: none; }
+.ha-home .ha-app-card h3 { margin: 0; font-family: 'IBM Plex Sans',sans-serif; font-size: 23px; line-height: 1.25; letter-spacing: -.035em; font-weight: 450; }
+.ha-home .ha-app-card p { margin: 0; color: #617381; font-size: 14px; line-height: 1.65; }
+.ha-home .ha-app-link { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0; margin: 0; color: #245bc4; font-size: 13px; }
+.ha-home .ha-tutorial-access { display: flex; justify-content: space-between; align-items: center; gap: 32px; padding: 27px 0 0; margin: 0; border: 0; border-radius: 0; background: transparent; }
+.ha-home .ha-tutorial-access h3 { margin: 0 0 4px; color: #182b3a; font-family: 'IBM Plex Sans',sans-serif; font-size: 16px; font-weight: 500; letter-spacing: 0; }
+.ha-home .ha-tutorial-access p { max-width: 780px; margin: 0; font-size: 13px; line-height: 1.6; color: #617381; }
+.ha-home .ha-tutorial-access > a { flex-shrink: 0; }
+.ha-home .ha-method-grid { display: grid; grid-template-columns: 1.2fr 1fr; gap: 62px; align-items: start; }
+.ha-home .ha-method-figure { min-width: 0; margin: 0; padding: 20px; border: 1px solid #d6dfe6; border-radius: 0; background: white; }
+.ha-home .ha-method-figure img { display: block; width: 100%; height: auto; }
+.ha-home .ha-method-figure figcaption { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; padding: 18px 0 0; color: #617381; font-size: 11px; line-height: 1.6; }
+.ha-home .ha-method-figure figcaption a { color: #245bc4; }
+.ha-home .ha-method-copy > p:not(.ha-eyebrow) { color: #617381; font-size: 15px; line-height: 1.65; }
+.ha-home .ha-method-list { display: grid; gap: 0; margin: 24px 0 0; padding: 0; list-style: none; }
+.ha-home .ha-method-list li { padding: 16px 0; border: 0; border-top: 1px solid #d6dfe6; color: #617381; font-size: 13px; line-height: 1.6; }
+.ha-home .ha-method-list strong { display: block; margin: 0 0 4px; color: #182b3a; font-size: 14px; font-weight: 500; }
+.ha-home .ha-method-list p { margin: 0; }
+.ha-home .ha-notebook-list { display: block; margin: 0; padding: 0; border-top: 1px solid #aabac8; list-style: none; }
+.ha-home .ha-notebook-row { display: grid; grid-template-columns: 45px minmax(0,1fr) 205px 18px; gap: 24px; align-items: start; padding: 25px 0; border-bottom: 1px solid #d6dfe6; color: #182b3a; text-decoration: none; }
+.ha-home .ha-notebook-row:hover { background: #ecf1f6; }
+.ha-home .ha-notebook-row h3 { font: 450 19px/1.4 'IBM Plex Sans',sans-serif; margin: 0 0 6px; letter-spacing: -.025em; }
+.ha-home .ha-notebook-row p { max-width: 800px; margin: 0; font-size: 14px; line-height: 1.65; color: #617381; }
+.ha-home .ha-notebook-index,
+.ha-home .ha-notebook-arrow { font: 400 12px/1.7 var(--mono,monospace); color: #245bc4; }
+.ha-home .ha-notebook-meta { font: 400 11px/1.7 var(--mono,monospace); color: #617381; text-align: right; }
+
+/* Tutorial directory and exported notebook pages share the same reading measure. */
+.nb-workspace {
+  --nb-ink: #182b3a;
+  --nb-text: #354d5d;
+  --nb-muted: #617381;
+  --nb-line: #d6dfe6;
+  --nb-paper: #f5f7fa;
+  --nb-sidebar: #f5f7fa;
+  --nb-green: #245bc4;
+  --nb-green-dark: #194ba9;
+  --nb-green-soft: #e9eff8;
+  --nb-code: #182b3a;
+  --nb-serif: 'IBM Plex Sans',sans-serif;
+  --nb-sans: 'IBM Plex Sans',sans-serif;
+  --nb-mono: 'SFMono-Regular',Consolas,monospace;
+  display: grid;
+  grid-template-columns: 260px minmax(0,1fr);
+  max-width: 1440px;
+  margin-inline: auto;
+}
+.nb-sidebar { background: #f5f7fa; top: 72px; height: calc(100vh - 72px); padding: 30px 12px; border-color: #d6dfe6; }
+.nb-sidebar-heading { padding: 0 14px 24px; }
+.nb-sidebar-kicker { color: #617381; font: 400 10px/1.6 var(--mono,monospace); letter-spacing: .09em; }
+.nb-sidebar-heading h2 { font: 450 29px/1.2 'IBM Plex Sans',sans-serif; letter-spacing: -.04em; margin: 0 0 10px; }
+.nb-sidebar-heading p { color: #617381; font-size: 13px; line-height: 1.6; }
+.nb-nav-chapter { padding: 14px 11px; border-radius: 0; grid-template-columns: 23px minmax(0,1fr); gap: 9px; }
+.nb-nav-chapter strong { font-size: 13px; line-height: 1.5; font-weight: 500; }
+.nb-nav-chapter small { margin-top: 3px; font-size: 11px; line-height: 1.6; }
+.nb-nav-chapter .nb-nav-number { color: #617381; font: 400 10px/1.8 var(--mono,monospace); }
+.nb-nav-chapter[aria-current=page] { background: #e9eff8; border-left-color: #245bc4; }
+.nb-nav-chapter[aria-current=page] .nb-nav-number { color: #245bc4; }
+.nb-subnav { padding-left: 12px; margin: 0 8px 14px 44px; border-left: 1px solid #d6dfe6; }
+.nb-subnav a { color: #617381 !important; font-size: 12px !important; line-height: 1.55; }
+.nb-subnav a:hover { color: #245bc4 !important; }
+.nb-sidebar-note { margin-top: 26px; padding: 18px 14px; border-radius: 0; background: transparent; border-color: #d6dfe6; font-size: 12px; }
+.nb-sidebar-note strong { font-size: 12px; font-weight: 500; }
+.nb-sidebar-note span { font-size: 12px; line-height: 1.6; }
+.nb-page { min-width: 0; padding: 30px 64px 80px; background: white; }
+.nb-toolbar { display: flex; justify-content: space-between; gap: 24px; align-items: center; padding-bottom: 20px; margin-bottom: 44px; border-bottom: 1px solid #d6dfe6; color: #617381; font: 400 12px/1.6 'IBM Plex Sans',sans-serif; }
+.nb-toolbar strong { color: #182b3a; font-weight: 500; }
+.nb-toolbar .nb-download { border: 1px solid #245bc4; border-radius: 3px; background: #245bc4; color: white !important; padding: 10px 14px; font-size: 13px; font-weight: 500; white-space: nowrap; }
+.nb-overview-hero { padding: 0 0 34px; border-bottom: 1px solid #d6dfe6; }
+.nb-page .eyebrow { color: #245bc4; font: 400 10px/1.6 var(--mono,monospace); letter-spacing: .09em; }
+.nb-overview-hero h1 { font: 450 52px/1.08 'IBM Plex Sans',sans-serif; letter-spacing: -.05em; margin: 18px 0; }
+.nb-overview-hero .lede { max-width: 720px; color: #617381; font-size: 18px; line-height: 1.65; }
+.nb-overview-section { padding: 36px 0 40px; }
+.nb-overview-section h2 { font: 450 30px/1.2 'IBM Plex Sans',sans-serif; letter-spacing: -.04em; }
+.nb-overview-list { margin-top: 25px; border-top: 1px solid #aabac8; }
+.nb-overview-row { display: grid; grid-template-columns: 32px minmax(0,1fr) 140px; gap: 20px; padding: 24px 0; border-bottom: 1px solid #d6dfe6; border-radius: 0; background: transparent; }
+.nb-overview-row:hover { background: #f5f7fa; }
+.nb-overview-number { color: #245bc4; font: 400 11px/1.8 var(--mono,monospace); }
+.nb-overview-row h3 { margin: 0 0 7px; font: 450 20px/1.3 'IBM Plex Sans',sans-serif; letter-spacing: -.025em; }
+.nb-overview-row p { margin: 0; color: #617381; font-size: 14px; line-height: 1.65; }
+.nb-overview-meta { color: #617381; font: 400 10px/1.7 var(--mono,monospace); }
+.nb-reading-note { grid-template-columns: 1fr; gap: 10px; }
+.nb-reading-note p { font-size: 15px; line-height: 1.8; }
+.nb-reading-note .button { border-radius: 3px; background: #245bc4; border-color: #245bc4; color: white; font-size: 14px; }
+.nb-page :is(.jp-MarkdownOutput,.text_cell_render) h1 { font: 450 40px/1.15 'IBM Plex Sans',sans-serif; letter-spacing: -.04em; }
+.nb-page :is(.jp-MarkdownOutput,.text_cell_render) h2 { font: 450 28px/1.25 'IBM Plex Sans',sans-serif; letter-spacing: -.035em; }
+.nb-page :is(.jp-MarkdownOutput,.text_cell_render) h3 { font: 500 21px/1.4 'IBM Plex Sans',sans-serif; letter-spacing: -.02em; }
+.nb-page :is(.jp-MarkdownOutput,.text_cell_render) :is(p,li) { font-size: 16px; line-height: 1.8; }
+.nb-page :is(.highlight pre,.jp-InputArea-editor pre) { background: #182b3a !important; border-radius: 3px; font-size: 13px !important; line-height: 1.7 !important; }
+.nb-page :is(.input_area,.jp-InputArea-editor) { border-color: #d6dfe6 !important; border-radius: 3px; overflow: hidden; }
+.nb-page :is(.jp-OutputArea-output pre,.output_area pre) { font-size: 13px !important; line-height: 1.65 !important; color: #182b3a !important; }
+.nb-page .output_area img { max-width: 100%; height: auto; }
+
+@media (max-width: 1200px) {
+  .ha-home .ha-shell { width: calc(100% - 64px); }
+  .ha-home .ha-hero { gap: 36px; }
+  .ha-home .ha-hero-title { font-size: 50px; }
+  .ha-home .ha-specimen-image { height: 510px; }
+  .ha-home .ha-app-card { grid-template-columns: 115px minmax(0,1fr) minmax(0,1fr); gap: 24px; }
+  .ha-home .ha-app-link { grid-column: 2; }
+  .ha-home .ha-method-grid { gap: 36px; }
+  .nb-workspace { grid-template-columns: 235px minmax(0,1fr); }
+  .nb-page { padding-inline: 36px; }
+  .nb-overview-row { grid-template-columns: 27px minmax(0,1fr); gap: 15px; }
+  .nb-overview-meta { grid-column: 2; }
+}
+@media (max-width: 900px) {
+  .ha-home .ha-hero { grid-template-columns: 1fr 1fr; gap: 28px; padding: 40px 0; }
+  .ha-home .ha-hero-title { font-size: 42px; }
+  .ha-home .ha-lede { font-size: 15px; }
+  .ha-home .ha-specimen-image { height: 500px; }
+  .ha-home .ha-specimen-caption { grid-template-columns: 1fr; gap: 6px; }
+  .ha-home .ha-specimen-label { max-width: none; }
+  .ha-home .ha-section { padding: 52px 0; }
+  .ha-home .ha-section-heading { gap: 32px; }
+  .ha-home .ha-section-heading h2,.ha-home .ha-method-copy h2 { font-size: 32px; }
+  .ha-home .ha-app-card { grid-template-columns: 100px minmax(0,1fr); gap: 12px 24px; }
+  .ha-home .ha-app-card p { grid-column: 2; }
+  .ha-home .ha-method-grid { grid-template-columns: 1fr; gap: 35px; }
+  .ha-home .ha-notebook-row { grid-template-columns: 35px minmax(0,1fr) 18px; gap: 18px; }
+  .ha-home .ha-notebook-meta { grid-column: 2; grid-row: 2; text-align: left; }
+  .ha-home .ha-notebook-arrow { grid-column: 3; grid-row: 1; }
+  .nb-workspace { display: block; }
+  .nb-sidebar { position: static; height: auto; padding: 20px; border-bottom: 1px solid #d6dfe6; border-right: 0; }
+  .nb-sidebar-heading { padding: 0 0 16px; }
+  .nb-sidebar-heading h2 { font-size: 23px; margin-bottom: 5px; }
+  .nb-sidebar-heading p { margin: 0; }
+  .nb-tutorial-nav { display: flex; gap: 0; overflow-x: auto; padding-bottom: 8px; }
+  .nb-nav-group { flex: 0 0 190px; border-top: 0; border-right: 1px solid #d6dfe6; }
+  .nb-nav-chapter { min-height: 80px; padding: 10px; border-left: 0; }
+  .nb-nav-chapter[aria-current=page] { border-left: 0; box-shadow: inset 0 -2px #245bc4; }
+  .nb-subnav,.nb-sidebar-note { display: none; }
+  .nb-page { padding: 30px 40px 60px; }
+}
+@media (max-width: 600px) {
+  .ha-home .ha-shell { width: calc(100% - 36px); }
+  .ha-home .ha-hero { grid-template-columns: 1fr; padding: 30px 0 32px; gap: 30px; }
+  .ha-home .ha-hero-copy { padding: 0; }
+  .ha-home .ha-hero-title { max-width: 520px; font-size: clamp(39px,9.8vw,54px); line-height: 1.07; margin-bottom: 20px; }
+  .ha-home .ha-eyebrow { margin-bottom: 16px; font-size: 10px; }
+  .ha-home .ha-lede { max-width: none; font-size: 15px; line-height: 1.65; }
+  .ha-home .ha-actions { margin-top: 22px; }
+  .ha-home .ha-button { gap: 17px; padding-inline: 14px; font-size: 13px; min-height: 46px; }
+  .ha-home .ha-hero-tutorial-link { margin-top: 18px; font-size: 12px; }
+  .ha-home .ha-specimen-image { height: 390px; }
+  .ha-home .ha-specimen-caption { grid-template-columns: 88px minmax(0,1fr); gap: 14px; padding-top: 13px; }
+  .ha-home .ha-specimen-label { font-size: 9px; }
+  .ha-home .ha-specimen-description strong { font-size: 12px; }
+  .ha-home .ha-specimen-description p { font-size: 11px; }
+  .ha-home .ha-corpus { grid-template-columns: 1fr 1fr; gap: 18px 24px; padding: 20px 0; }
+  .ha-home .ha-corpus strong { font-size: 27px; }
+  .ha-home .ha-corpus span { font-size: 11px; }
+  .ha-home .ha-section { padding: 40px 0; }
+  .ha-home .ha-section-heading { display: block; margin-bottom: 26px; }
+  .ha-home .ha-section-heading h2,.ha-home .ha-method-copy h2 { font-size: 31px; }
+  .ha-home .ha-section-heading > p { margin-top: 18px; font-size: 14px; }
+  .ha-home .ha-app-card { grid-template-columns: 1fr; gap: 12px; padding: 24px 0; }
+  .ha-home .ha-app-card h3 { font-size: 24px; }
+  .ha-home .ha-app-card p,.ha-home .ha-app-link { grid-column: 1; }
+  .ha-home .ha-app-link { max-width: 150px; margin-top: 5px; }
+  .ha-home .ha-tutorial-access { align-items: start; flex-direction: column; gap: 15px; padding-top: 24px; }
+  .ha-home .ha-method-figure { padding: 12px; }
+  .ha-home .ha-method-copy > p:not(.ha-eyebrow) { font-size: 14px; }
+  .ha-home .ha-notebook-row { grid-template-columns: 30px minmax(0,1fr); gap: 10px 12px; padding: 22px 0; }
+  .ha-home .ha-notebook-row h3 { font-size: 18px; }
+  .ha-home .ha-notebook-row p { font-size: 13px; }
+  .ha-home .ha-notebook-arrow { display: none; }
+  .ha-home .ha-notebook-meta { font-size: 10px; }
+  .nb-sidebar { padding: 18px; }
+  .nb-nav-group { flex-basis: 180px; }
+  .nb-page { padding: 24px 20px 55px; }
+  .nb-toolbar { gap: 15px; margin-bottom: 30px; padding-bottom: 16px; font-size: 11px; flex-wrap: wrap; }
+  .nb-toolbar .nb-download { font-size: 12px; }
+  .nb-overview-hero h1 { font-size: 38px; }
+  .nb-overview-hero .lede { font-size: 16px; }
+  .nb-overview-section h2 { font-size: 28px; }
+  .nb-overview-row { grid-template-columns: 24px minmax(0,1fr); gap: 12px; }
+  .nb-overview-row h3 { font-size: 18px; }
+  .nb-overview-row p { font-size: 13px; }
+  .nb-page :is(.jp-MarkdownOutput,.text_cell_render) h1 { font-size: 31px; }
+  .nb-page :is(.jp-MarkdownOutput,.text_cell_render) h2 { font-size: 25px; }
+  .nb-page :is(.jp-MarkdownOutput,.text_cell_render) :is(p,li) { font-size: 15px; }
+  .nb-page :is(.highlight pre,.jp-InputArea-editor pre) { font-size: 12px !important; }
+}
