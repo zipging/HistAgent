@@ -31,7 +31,7 @@ function errorMessage(payload, fallback) {
   return fallback;
 }
 
-async function parseGatewayResponse(response) {
+async function parseGatewayResponse(response, health = false) {
   let payload = null;
   try {
     payload = await response.json();
@@ -39,7 +39,10 @@ async function parseGatewayResponse(response) {
     // The status code still provides a useful fallback when the body is empty.
   }
   if (!response.ok) {
-    let message = errorMessage(payload, `HistAgent service failed (${response.status})`);
+    const missingService = !payload && [404, 410].includes(response.status);
+    let message = errorMessage(payload, missingService
+      ? "The analysis service is currently unavailable. Please try again later."
+      : `HistAgent service failed (${response.status})`);
     const seconds = Number(payload?.detail?.retry_after_seconds || response.headers.get("Retry-After"));
     const waitingForDailyQuotaReset = payload?.detail?.code === "gpu_quota_exhausted"
       && /\bdaily\b/i.test(message) && /\breset\b/i.test(message);
@@ -49,9 +52,23 @@ async function parseGatewayResponse(response) {
       message += ` Try again in ${minutes} minute${minutes === 1 ? "" : "s"}.`;
     }
     const error = new Error(message);
-    error.code = payload?.detail?.code || "gateway_error";
+    error.code = payload?.detail?.code || (missingService ? "service_unavailable" : "gateway_error");
     error.retryAfterSeconds = seconds;
     throw error;
+  }
+  if (health) {
+    if (!payload || !["available", "degraded"].includes(payload.status)) {
+      throw new Error("The analysis service returned invalid availability information.");
+    }
+    if (payload.status !== "available") {
+      const message = Object.values(payload.backends || {}).find((backend) => backend?.message)?.message;
+      const error = new Error(message || (Number(payload.remaining_gpu_seconds) === 0
+        ? "The shared analysis allowance is temporarily exhausted. Please try again later."
+        : "The analysis service is starting or temporarily unavailable. Please try again later."));
+      error.code = "service_unavailable";
+      throw error;
+    }
+    return payload;
   }
   if (!Array.isArray(payload?.data)) {
     throw new Error("The HistAgent service returned an invalid response");
@@ -59,8 +76,40 @@ async function parseGatewayResponse(response) {
   return payload.data;
 }
 
+// One bounded request per explicit action. A timeout never resubmits GPU work.
+async function requestGateway(path, options, { health = false, timeoutMs = 330000 } = {}) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(`${HISTAGENT_GATEWAY}${path}`, {
+      ...options, credentials: "omit", signal: controller.signal
+    });
+    return await parseGatewayResponse(response, health);
+  } catch (error) {
+    if (controller.signal.aborted) {
+      const timeout = new Error(health
+        ? "The analysis service is taking too long to respond. Please try again later."
+        : "The analysis request timed out. It was not retried automatically; please wait before submitting again.");
+      timeout.code = "service_timeout";
+      throw timeout;
+    }
+    if (error instanceof TypeError) {
+      const unavailable = new Error("The analysis service could not be reached. Check your connection or try again later.");
+      unavailable.code = "service_unavailable";
+      throw unavailable;
+    }
+    throw error;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+export async function getHistAgentServiceHealth({ timeoutMs = 15000 } = {}) {
+  return requestGateway("/api/health", { method: "GET", cache: "no-store" }, { health: true, timeoutMs });
+}
+
 export async function callHistAgentService(service, apiName, data) {
-  const response = await fetch(`${HISTAGENT_GATEWAY}/api/call`, {
+  return requestGateway("/api/call", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -68,7 +117,6 @@ export async function callHistAgentService(service, apiName, data) {
     },
     body: JSON.stringify({ service, api_name: apiName, data })
   });
-  return parseGatewayResponse(response);
 }
 export async function generateHistAgentReadout({
   localBlob,
@@ -86,10 +134,9 @@ export async function generateHistAgentReadout({
   form.append("organ", organ);
   form.append("top_k", String(topK));
 
-  const response = await fetch(`${HISTAGENT_GATEWAY}/api/generate`, {
+  return requestGateway("/api/generate", {
     method: "POST",
     headers: { "X-HistAgent-Session": sessionId() },
     body: form
   });
-  return parseGatewayResponse(response);
 }

@@ -1,4 +1,4 @@
-import { callHistAgentService } from "./histagent-services.js?v=20260906owner1";
+import { callHistAgentService, getHistAgentServiceHealth } from "./histagent-services.js?v=20261114availability1";
 
 const ATLAS_IMAGE_QUERY_KEY = "histagent-atlas-image-query";
 const ATLAS_EVIDENCE_QUERY_KEY = "histagent-atlas-evidence-query";
@@ -67,6 +67,7 @@ let liveMapState = null;
 let stagedImagePayload = null;
 let lastRetrieval = null;
 let retrievalPending = false;
+let retrievalAttempt = 0;
 let evidenceRevision = 0;
 let activeChatRequest = null;
 
@@ -454,8 +455,23 @@ function showSearchError(error) {
   resultSummary.textContent = `${message} The manuscript example remains visible.`;
 }
 
+async function checkInitialServiceAvailability() {
+  // Transferred evidence may already be starting a real retrieval.
+  if (retrievalAttempt) return;
+  resultSummary.textContent = "Checking live retrieval availability. The manuscript example is displayed.";
+  try {
+    await getHistAgentServiceHealth();
+    if (retrievalAttempt || retrievalPending || lastRetrieval) return;
+    resultSummary.textContent = "Manuscript example. Enter a query and select Search to retrieve live evidence.";
+  } catch (error) {
+    if (retrievalAttempt || retrievalPending || lastRetrieval) return;
+    showSearchError(error);
+  }
+}
+
 async function runRetrieval(query, chipText = query) {
   if (retrievalPending) return;
+  retrievalAttempt += 1;
   setBusy(true);
   updateChips(chipText);
   const retrievalChips = evidenceChips.innerHTML;
@@ -732,3 +748,5 @@ if (transferredEvidence) {
 } else if (new URLSearchParams(window.location.search).get("mode") === "image") {
   setQueryMode("image");
 }
+
+checkInitialServiceAvailability();

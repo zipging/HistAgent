@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { callHistAgentService } from "../docs/assets/histagent-services.js";
+import { callHistAgentService, getHistAgentServiceHealth } from "../docs/assets/histagent-services.js";
 
 globalThis.window = {
   localStorage: { getItem: () => "anonymous-test-browser", setItem() {} },
@@ -74,4 +74,60 @@ test("unexpected HTML gateway errors do not appear as successful output", async 
 test("malformed success responses are rejected", async () => {
   globalThis.fetch = async () => Response.json({ status: "ready" });
   await assert.rejects(callHistAgentService("reasoning", "retrieve_atlas", []), /invalid response/);
+});
+
+
+test("missing HTML service endpoints explain unavailability without exposing HTML", async () => {
+  globalThis.fetch = async () => new Response("<html>Hugging Face 404</html>", { status: 404 });
+  await assert.rejects(callHistAgentService("reasoning", "retrieve_atlas", []), (error) => {
+    assert.equal(error.code, "service_unavailable");
+    assert.match(error.message, /service is currently unavailable/);
+    assert.doesNotMatch(error.message, /html|Hugging Face/);
+    return true;
+  });
+});
+
+test("readiness is an anonymous uncached GET, not a model submission", async () => {
+  globalThis.fetch = async (url, request) => {
+    assert.match(url, /\/api\/health$/);
+    assert.equal(request.method, "GET");
+    assert.equal(request.cache, "no-store");
+    assert.equal(request.credentials, "omit");
+    assert.equal(request.body, undefined);
+    assert.equal(request.headers, undefined);
+    return Response.json({ status: "available", remaining_gpu_seconds: 2400 });
+  };
+  assert.equal((await getHistAgentServiceHealth()).status, "available");
+});
+
+test("degraded and invalid health responses never claim readiness", async () => {
+  globalThis.fetch = async () => Response.json({ status: "degraded", remaining_gpu_seconds: 0 });
+  await assert.rejects(getHistAgentServiceHealth(), /shared analysis allowance.*exhausted/);
+  globalThis.fetch = async () => new Response("<html>starting</html>");
+  await assert.rejects(getHistAgentServiceHealth(), /invalid availability/);
+});
+
+test("network failure is actionable and never retries a model submission", async () => {
+  let calls = 0;
+  globalThis.fetch = async () => { calls += 1; throw new TypeError("Failed to fetch"); };
+  await assert.rejects(callHistAgentService("reasoning", "retrieve_atlas", []), (error) => {
+    assert.equal(error.code, "service_unavailable");
+    assert.match(error.message, /could not be reached/);
+    return true;
+  });
+  assert.equal(calls, 1);
+});
+
+test("a stalled readiness check is aborted after its deadline without retry", async () => {
+  let calls = 0;
+  globalThis.fetch = (_url, request) => {
+    calls += 1;
+    return new Promise((_resolve, reject) => request.signal.addEventListener("abort", () => reject(new DOMException("Aborted", "AbortError"))));
+  };
+  await assert.rejects(getHistAgentServiceHealth({ timeoutMs: 5 }), (error) => {
+    assert.equal(error.code, "service_timeout");
+    assert.match(error.message, /taking too long/);
+    return true;
+  });
+  assert.equal(calls, 1);
 });

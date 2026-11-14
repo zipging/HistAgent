@@ -1,7 +1,8 @@
 import {
   callHistAgentService,
+  getHistAgentServiceHealth,
   generateHistAgentReadout
-} from "./histagent-services.js?v=20260906owner1";
+} from "./histagent-services.js?v=20261114availability1";
 const LOCAL_DIAMETER_UM = 55;
 const CONTEXT_DIAMETER_UM = 220;
 const EXAMPLE_MANIFEST_URL = "/assets/gsm5924036-spots.json";
@@ -89,6 +90,7 @@ let dragState = null;
 let suppressNextSpotClick = false;
 let selectionRevision = 0;
 let inferencePending = false;
+let inferenceAttempt = 0;
 let activeChatRequest = null;
 
 const MIN_VIEWER_ZOOM = 1;
@@ -146,6 +148,45 @@ function escapeHtml(value = "") {
 function setStatus(message, error = false) {
   runStatus.textContent = message;
   runStatus.setAttribute("data-error", String(error));
+}
+
+function waitForTissueImage({ timeoutMs = 15000 } = {}) {
+  return new Promise((resolve, reject) => {
+    let timer;
+    const cleanup = () => {
+      clearTimeout(timer);
+      tissueImage.removeEventListener("load", loaded);
+      tissueImage.removeEventListener("error", failed);
+    };
+    const failed = () => {
+      cleanup();
+      reject(new Error("The tissue image could not be loaded. Please reload the page or upload another image."));
+    };
+    const loaded = () => {
+      if (!tissueImage.naturalWidth) return failed();
+      cleanup();
+      resolve();
+    };
+    // onImageReady was registered first, so its spot/status setup completes
+    // before this listener releases the availability check.
+    tissueImage.addEventListener("load", loaded);
+    tissueImage.addEventListener("error", failed);
+    timer = setTimeout(failed, timeoutMs);
+    if (tissueImage.complete) loaded();
+  });
+}
+
+async function checkInitialServiceAvailability() {
+  const attempt = inferenceAttempt;
+  setStatus("Checking the analysis service. Select a spot, then use Analyze selected spot.");
+  try {
+    await getHistAgentServiceHealth();
+    if (inferenceAttempt !== attempt || inferencePending || currentEvidence) return;
+    setStatus("Select a tissue spot, then use Analyze selected spot to generate evidence and unlock the conversation.");
+  } catch (error) {
+    if (inferenceAttempt !== attempt || inferencePending || currentEvidence) return;
+    setStatus(`${error.message} Image upload and spot selection remain available; use Analyze selected spot to retry.`, true);
+  }
 }
 
 function setBusy(value) {
@@ -687,6 +728,7 @@ async function generateEvidence() {
     return;
   }
   const selection = captureSelection();
+  inferenceAttempt += 1;
   setBusy(true);
   setStatus(`Analyzing ${selection.spot.id} with HistAgent.`);
   try {
@@ -1080,5 +1122,8 @@ loadAtlasImageQuery()
   .then((loaded) => loaded ? null : resetExample())
   .catch((error) => {
     console.error(error);
-    resetExample().catch((fallbackError) => setStatus(fallbackError.message, true));
-  });
+    return resetExample();
+  })
+  .then(() => waitForTissueImage())
+  .then(() => checkInitialServiceAvailability())
+  .catch((error) => setStatus(error.message, true));

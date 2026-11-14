@@ -26,6 +26,9 @@ function element() {
     addEventListener(name, listener) {
       listeners.set(name, [...(listeners.get(name) || []), listener]);
     },
+    removeEventListener(name, listener) {
+      listeners.set(name, (listeners.get(name) || []).filter((item) => item !== listener));
+    },
     emit(name, event = {}) { return (listeners.get(name) || []).map((listener) => listener(event)); },
     querySelector(selector) {
       if (!children.has(selector)) children.set(selector, element());
@@ -54,8 +57,9 @@ function workbench(kind, services = {}) {
     document: { querySelector: node, querySelectorAll: () => [], createElement: element },
     window: { addEventListener() {}, devicePixelRatio: 1, setTimeout,
       sessionStorage: { getItem: () => null }, location: { search: "" } },
-    console: { error() {} }, Blob, File, URL, URLSearchParams,
+    console: { error() {} }, Blob, File, URL, URLSearchParams, setTimeout, clearTimeout,
     fetch: () => new Promise(() => {}),
+    getHistAgentServiceHealth: () => new Promise(() => {}),
     ...services
   });
   let source = readFileSync(new URL(`../docs/assets/${kind}-workbench.js`, import.meta.url), "utf8")
@@ -390,4 +394,88 @@ test("uploading a blank image clears old coordinates and actual grid creation ca
   assert.equal(app.node("#histagent-generate").disabled, false);
   assert.equal(app.node("#histagent-local-preview").hidden, false);
   assert.equal(app.node("#histagent-context-ring").hidden, false);
+});
+
+
+test("unavailable startup service leaves spot selection usable and chat evidence-gated", async () => {
+  const app = workbench("histagent", {
+    getHistAgentServiceHealth: async () => { throw new Error("The analysis service is currently unavailable."); }
+  });
+  app.run("clearEvidenceForSelection()");
+  await app.run("checkInitialServiceAvailability()");
+  assert.match(app.node("#histagent-run-status").textContent, /currently unavailable.*Image upload and spot selection remain available/);
+  assert.equal(app.node("#histagent-generate").disabled, false);
+  assert.equal(app.node("#histagent-chat-input").disabled, true);
+  assert.equal(app.run("selectedSpot.id"), "S001");
+});
+
+test("late startup failure cannot overwrite a successful explicit analysis", async () => {
+  const probe = deferred();
+  const app = workbench("histagent", {
+    getHistAgentServiceHealth: () => probe.promise,
+    generateHistAgentReadout: async () => genes
+  });
+  const checking = app.run("checkInitialServiceAvailability()");
+  await app.run("generateEvidence()");
+  probe.reject(new Error("Service unavailable"));
+  await checking;
+  assert.equal(app.node("#histagent-run-status").textContent, "2 ranked genes generated for S001.");
+  assert.equal(app.node("#histagent-chat-input").disabled, false);
+});
+
+test("Atlas startup outage keeps the manuscript example explicitly labelled", async () => {
+  const app = workbench("atlas", {
+    getHistAgentServiceHealth: async () => { throw new Error("The analysis service is currently unavailable."); }
+  });
+  await new Promise(setImmediate);
+  assert.equal(app.node("#atlas-status-badge").textContent, "Example view");
+  assert.match(app.node("#atlas-result-summary").textContent, /currently unavailable.*manuscript example remains visible/);
+  assert.equal(app.node("#atlas-search-button").disabled, false);
+});
+
+test("late Atlas startup failure cannot overwrite a real retrieval result", async () => {
+  const probe = deferred();
+  const app = workbench("atlas", {
+    getHistAgentServiceHealth: () => probe.promise,
+    callHistAgentService: async () => [[[
+      "Cancer cell", .5, "human", "breast", "EPCAM", "slide-one"
+    ]], { ranked_genes: ["EPCAM"] }, "Retrieved evidence", null]
+  });
+  await app.run("runRetrieval('live query')");
+  probe.reject(new Error("Service unavailable"));
+  await Promise.resolve();
+  assert.equal(app.node("#atlas-status-badge").textContent, "Live result");
+  assert.doesNotMatch(app.node("#atlas-result-summary").textContent, /unavailable/);
+});
+
+
+test("cold image load initializes spots before a fast unavailable-health response", async () => {
+  let probes = 0;
+  const app = workbench("histagent", {
+    getHistAgentServiceHealth: async () => { probes += 1; throw new Error("Service unavailable"); }
+  });
+  const image = app.node("#histagent-tissue-image");
+  image.complete = false;
+  app.run("exampleManifest = {image_url:'/example.jpg', title:'Example',mpp:0.5,species:'human',organ:'kidney',default_barcode:'S001',spots:[{id:'S001',barcode:'S001',x:100,y:200}]} ");
+  const startup = app.run("resetExample().then(() => waitForTissueImage()).then(() => checkInitialServiceAvailability())");
+  await new Promise(setImmediate);
+  assert.equal(probes, 0);
+  image.complete = true;
+  image.emit("load");
+  await startup;
+  assert.equal(app.run("selectedSpot.id"), "S001");
+  assert.equal(probes, 1);
+  assert.match(app.node("#histagent-run-status").textContent, /Service unavailable/);
+});
+
+test("image readiness handles cached images, failures and a bounded wait", async () => {
+  const app = workbench("histagent");
+  const image = app.node("#histagent-tissue-image");
+  image.complete = true;
+  await app.run("waitForTissueImage()");
+  image.complete = false;
+  const failed = app.run("waitForTissueImage()");
+  image.emit("error");
+  await assert.rejects(failed, /tissue image could not be loaded/);
+  await assert.rejects(app.run("waitForTissueImage({timeoutMs:5})"), /tissue image could not be loaded/);
 });
