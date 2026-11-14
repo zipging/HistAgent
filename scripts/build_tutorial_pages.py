@@ -14,7 +14,7 @@ ROOT = Path(__file__).resolve().parents[1]
 NOTEBOOK_DIR = ROOT / "docs" / "notebooks"
 TUTORIAL_DIR = ROOT / "docs" / "tutorials"
 ASSET_VERSION = "20260816academic1"
-DESIGN_VERSION = "20261114-wordmark1"
+DESIGN_VERSION = "20261114-figure2-logo1"
 
 
 @dataclass(frozen=True)
@@ -44,7 +44,7 @@ def build_header() -> BeautifulSoup:
         """
 <header class="site-header">
   <div class="header-inner">
-    <a class="brand" href="/"><span class="brand-copy"><strong>Hist<span>Agent</span></strong></span></a>
+    <a class="brand" href="/"><img class="brand-figure2" src="/assets/histagent-figure2-logo.png" width="46" height="46" alt="" aria-hidden="true"><span class="brand-copy"><strong>Hist<span>Agent</span></strong></span></a>
     <button class="nav-toggle" type="button" data-nav-toggle aria-expanded="false" aria-controls="primary-nav">Menu</button>
     <nav class="primary-nav" id="primary-nav" data-primary-nav aria-label="Primary navigation">
       <a href="/">Overview</a><a href="/tutorials/" aria-current="page">Tutorials</a><a href="/histagent/">HistAgent</a><a href="/atlas-explorer/">Atlas Explorer</a><a href="https://github.com/zipging/HistAgent">GitHub</a>

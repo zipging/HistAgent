@@ -66,3 +66,8 @@ body.atlas-page,body.histagent-page{height:auto;min-width:0;overflow:visible;bac
  .atlas-page .atlas-results{display:block;border-top:1px solid var(--ha-line);grid-column:auto}.atlas-page .atlas-ranked-section{border-right:0;border-bottom:1px solid var(--ha-line)}.atlas-page :is(.atlas-ranked-section,.atlas-chat-section){padding:22px 18px}.atlas-page .atlas-chat-section{min-height:350px}.atlas-page .atlas-retrieved-summary{flex-wrap:wrap}.atlas-page .atlas-results-header h2{font-size:15px}.atlas-page .atlas-message p{font-size:14px}
 }
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto!important}*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+
+/* Original blue robot emblem from manuscript Figure 2. */
+.site-header .brand{gap:10px}
+.site-header .brand-figure2{display:block;width:46px;height:46px;flex:0 0 46px;object-fit:contain}
+@media(max-width:760px){.site-header .brand{gap:8px}.site-header .brand-figure2{width:40px;height:40px;flex-basis:40px}}

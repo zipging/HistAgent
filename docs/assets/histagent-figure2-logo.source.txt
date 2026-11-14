@@ -1,0 +1,5 @@
+Original HistAgent robot emblem, reproduced without redesign from manuscript Figure 2 (top-left).
+Losslessly extracted from original HistAgent_figure2.pdf, page 1, image xref 68, soft mask xref 317.
+Source image: 512 x 512 RGBA PNG.
+The current manuscript revision contains the same emblem at image xref 157 in a downsampled 224 x 224 version.
+Header uses the original PNG; favicon and Apple touch icon are resized from that PNG.
