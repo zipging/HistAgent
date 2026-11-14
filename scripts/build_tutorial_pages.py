@@ -15,6 +15,7 @@ NOTEBOOK_DIR = ROOT / "docs" / "notebooks"
 TUTORIAL_DIR = ROOT / "docs" / "tutorials"
 ASSET_VERSION = "20260816academic1"
 DESIGN_VERSION = "20261114-figure2-logo1"
+PRODUCT_VERSION = "20261114unified1"
 
 
 @dataclass(frozen=True)
@@ -112,6 +113,8 @@ def render_tutorial(tutorial: Tutorial) -> None:
         f'<link rel="stylesheet" href="/assets/notebook.css?v={ASSET_VERSION}">',
         f'<link rel="stylesheet" href="/assets/design-system.css?v={DESIGN_VERSION}">',
         f'<link rel="stylesheet" href="/assets/editorial.css?v={DESIGN_VERSION}">',
+        f'<link rel="stylesheet" href="/assets/product-shell.css?v={PRODUCT_VERSION}">',
+        f'<link rel="stylesheet" href="/assets/tutorial-product.css?v={PRODUCT_VERSION}">',
     ):
         append_fragment(head, fragment(markup))
 
@@ -127,6 +130,7 @@ def render_tutorial(tutorial: Tutorial) -> None:
 
     body = soup.body
     body.clear()
+    body["class"] = ["ha-product-site", "ha-tutorials"]
     append_fragment(body, fragment('<a class="skip-link" href="#tutorial-main">Skip to content</a>'))
     append_fragment(body, build_header())
 
@@ -134,10 +138,10 @@ def render_tutorial(tutorial: Tutorial) -> None:
     append_fragment(workspace, build_sidebar(tutorial, headings))
     page = soup.new_tag("main", attrs={"class": "nb-page", "id": "tutorial-main"})
     toolbar = fragment(
-        f'<div class="nb-toolbar"><span><a href="/tutorials/">Tutorials</a><span aria-hidden="true"> / </span><strong>{tutorial.title}</strong></span>'
+        f'<div class="nb-toolbar ha-page-toolbar"><span><a href="/tutorials/">Tutorials</a><span aria-hidden="true"> / </span><strong>{tutorial.title}</strong></span>'
         f'<a class="nb-download" href="/notebooks/{tutorial.notebook}" download>Download .ipynb</a></div>'
     )
-    append_fragment(page, toolbar)
+    append_fragment(body, toolbar)
     page.append(notebook_main)
     workspace.append(page)
     body.append(workspace)

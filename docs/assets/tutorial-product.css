@@ -1,0 +1,85 @@
+/* The reading workspace uses the same frame and rail as the live tools. */
+.ha-tutorials .nb-workspace { --nb-sidebar: #f8f9fb; --nb-paper: #fff; --nb-ink: #242830; --nb-text: #4d5767; --nb-muted: #69717f; --nb-line: #e5e7ec; --nb-green: #375dce; --nb-green-dark: #294ba9; --nb-green-soft: #eef2fd; display: grid; grid-template-columns: var(--ha-rail-width) minmax(0,1fr); width: 100%; max-width: none; min-height: calc(100dvh - 123px); margin: 0; }
+.ha-tutorials .nb-sidebar { position: sticky; top: calc(var(--ha-header-height) + var(--ha-toolbar-height)); align-self: start; height: calc(100dvh - var(--ha-header-height) - var(--ha-toolbar-height)); padding: 24px 12px; border-right: 1px solid var(--ha-line); background: #f8f9fb; scrollbar-width: thin; }
+.ha-tutorials .nb-sidebar-heading { padding: 0 8px 18px; }
+.ha-tutorials .nb-sidebar-kicker { display: none; }
+.ha-tutorials .nb-sidebar-heading h2 { margin: 0 0 7px; color: #424b59; font: 500 13px/1.5 var(--sans); letter-spacing: 0; }
+.ha-tutorials .nb-sidebar-heading p { margin: 0; color: #69717f; font-size: 11px; line-height: 1.7; }
+.ha-tutorials .nb-nav-group { border: 0; }
+.ha-tutorials .nb-nav-group:last-child { border: 0; }
+.ha-tutorials .nb-nav-chapter { min-height: 0; padding: 12px 8px; gap: 8px; grid-template-columns: 20px minmax(0,1fr); border: 0; border-radius: 6px; }
+.ha-tutorials .nb-nav-chapter:hover { background: #f0f2f6; }
+.ha-tutorials .nb-nav-chapter[aria-current=page] { border: 0; background: #eef0f4; box-shadow: none; }
+.ha-tutorials .nb-nav-number { color: #737d8c; font: 11px/1.7 var(--mono); }
+.ha-tutorials .nb-nav-chapter[aria-current=page] .nb-nav-number { color: #596b94; font-weight: 400; }
+.ha-tutorials .nb-nav-chapter strong { color: #505b6c; font-size: 12px; font-weight: 500; line-height: 1.6; }
+.ha-tutorials .nb-nav-chapter small { margin-top: 3px; color: #69717f; font-size: 10px; line-height: 1.7; }
+.ha-tutorials .nb-subnav { margin: 8px 4px 14px 36px; padding-left: 10px; border-color: #dde2eb; }
+.ha-tutorials .nb-subnav a { padding: 6px 0; color: #69717f !important; font-size: 11px !important; line-height: 1.6; }
+.ha-tutorials .nb-subnav a[aria-current=location] { color: #375dce !important; }
+.ha-tutorials .nb-sidebar-note { margin: 23px 8px 0; padding: 15px 0; border: 0; border-top: 1px solid var(--ha-line); border-radius: 0; background: transparent; }
+.ha-tutorials .nb-sidebar-note strong { color: #5b6677; font-size: 11px; font-weight: 500; }
+.ha-tutorials .nb-sidebar-note span { color: #737d8c; font-size: 11px; line-height: 1.7; }
+.ha-tutorials .nb-page { min-width: 0; width: 100%; max-width: 1180px; padding: 36px 48px 72px; margin: 0 auto; background: #fff; }
+.ha-tutorials .nb-toolbar > span { display: block; min-width: 0; color: #69717f; font-size: 12px; line-height: 1.6; }
+.ha-tutorials .nb-toolbar strong { font-weight: 500; font-size: 14px; color: #424b59; }
+.ha-tutorials .nb-toolbar a { color: #69717f !important; font-weight: 400; }
+.ha-tutorials .nb-toolbar .nb-download { display: inline-flex; align-items: center; flex-shrink: 0; min-height: 36px; padding: 7px 12px; border: 1px solid #3154ba; border-radius: 7px; background: #375dce; color: #fff !important; font-size: 12px; font-weight: 500; text-decoration: none; }
+.ha-tutorials .nb-toolbar .nb-download:hover { background: #2c50bb; }
+.ha-tutorials .nb-overview-hero { padding: 0 0 28px; border-color: var(--ha-line); }
+.ha-tutorials .nb-page .eyebrow { margin-bottom: 13px; color: #69717f; font: 400 11px/1.6 var(--sans); letter-spacing: 0; text-transform: none; }
+.ha-tutorials .nb-overview-hero h1 { margin: 12px 0 16px; color: #303947; font: 450 36px/1.15 var(--sans); letter-spacing: -1.1px; }
+.ha-tutorials .nb-overview-hero .lede { max-width: 740px; color: #69717f; font-size: 15px; line-height: 1.8; }
+.ha-tutorials .nb-overview-section { padding: 30px 0; }
+.ha-tutorials .nb-overview-section h2 { margin: 0 0 18px; color: #424b59; font: 450 24px/1.3 var(--sans); letter-spacing: -.5px; }
+.ha-tutorials .nb-overview-list { margin-top: 20px; border-color: var(--ha-line); }
+.ha-tutorials .nb-overview-row { grid-template-columns: 25px minmax(0,1fr) 120px; padding: 22px 0; gap: 16px; border-color: var(--ha-line); }
+.ha-tutorials .nb-overview-row:hover { background: #f8f9fb; }
+.ha-tutorials .nb-overview-number { color: #737d8c; font: 11px/1.7 var(--mono); }
+.ha-tutorials .nb-overview-row h3 { margin: 0 0 6px; color: #4b5667; font: 500 16px/1.5 var(--sans); letter-spacing: -.2px; }
+.ha-tutorials .nb-overview-row p { color: #69717f; font-size: 13px; line-height: 1.8; }
+.ha-tutorials .nb-overview-meta { color: #69717f; font: 11px/1.7 var(--sans); }
+.ha-tutorials .nb-reading-note p { color: #5b6677; font-size: 14px; line-height: 1.8; }
+.ha-tutorials .nb-reading-note .button { min-height: 36px; padding: 8px 13px; border: 1px solid #3154ba; border-radius: 7px; background: #375dce; color: #fff; font-size: 12px; }
+.ha-tutorials .nb-page :is(.jp-MarkdownOutput,.text_cell_render) h1 { margin-top: 12px; color: #303947; font: 450 34px/1.2 var(--sans); letter-spacing: -1px; }
+.ha-tutorials .nb-page :is(.jp-MarkdownOutput,.text_cell_render) h2 { margin-top: 32px; color: #424b59; font: 450 25px/1.3 var(--sans); letter-spacing: -.5px; scroll-margin-top: 0; }
+.ha-tutorials .nb-page :is(.jp-MarkdownOutput,.text_cell_render) h3 { color: #4b5667; font: 500 19px/1.5 var(--sans); letter-spacing: -.2px; }
+.ha-tutorials .nb-page :is(.jp-MarkdownOutput,.text_cell_render) :is(p,li) { color: #4d5767; font-size: 15px; line-height: 1.85; }
+.ha-tutorials .nb-page :is(.highlight pre,.jp-InputArea-editor pre) { border-radius: 7px; font-size: 12px !important; line-height: 1.8 !important; }
+.ha-tutorials .nb-page :is(.input_area,.jp-InputArea-editor) { border-color: #e3e7ef !important; border-radius: 7px; }
+.ha-tutorials .nb-page :is(.jp-OutputArea-output pre,.output_area pre) { font-size: 12px !important; line-height: 1.8 !important; }
+.ha-tutorials .nb-page img { max-width: 100%; height: auto; }
+@media (max-width: 1100px) {
+  .ha-tutorials .nb-page { padding: 30px 32px 60px; }
+  .ha-tutorials .nb-overview-row { grid-template-columns: 25px minmax(0,1fr); }
+  .ha-tutorials .nb-overview-meta { grid-column: 2; }
+}
+@media (max-width: 900px) {
+  .ha-tutorials .nb-workspace { display: block; }
+  .ha-tutorials .nb-sidebar { position: static; height: auto; padding: 16px; border-right: 0; border-bottom: 1px solid var(--ha-line); }
+  .ha-tutorials .nb-sidebar-heading,
+  .ha-tutorials .nb-sidebar-note,
+  .ha-tutorials .nb-subnav { display: none; }
+  .ha-tutorials .nb-tutorial-nav { display: flex; gap: 6px; overflow-x: auto; padding: 0 0 4px; }
+  .ha-tutorials .nb-nav-group { flex: 0 0 180px; border: 0; }
+  .ha-tutorials .nb-nav-chapter { min-height: 62px; grid-template-columns: 18px minmax(0,1fr); padding: 10px; }
+  .ha-tutorials .nb-nav-chapter small { display: none; }
+}
+@media (max-width: 760px) {
+  .ha-tutorials .nb-toolbar > span { display: block; font-size: 11px; overflow-wrap: anywhere; }
+  .ha-tutorials .nb-toolbar strong { font-size: 12px; }
+  .ha-tutorials .nb-toolbar .nb-download { min-height: 40px; padding: 7px 9px; font-size: 11px; }
+  .ha-tutorials .nb-toolbar > span > a,
+  .ha-tutorials .nb-toolbar > span > span { display: none; }
+  .ha-tutorials .nb-page { padding: 26px 20px 55px; }
+  .ha-tutorials .nb-overview-hero h1,
+  .ha-tutorials .nb-page :is(.jp-MarkdownOutput,.text_cell_render) h1 { font-size: 29px; }
+  .ha-tutorials .nb-overview-section h2,
+  .ha-tutorials .nb-page :is(.jp-MarkdownOutput,.text_cell_render) h2 { font-size: 23px; }
+  .ha-tutorials .nb-overview-row { grid-template-columns: 21px minmax(0,1fr); gap: 12px; }
+}
+@media print {
+  .ha-tutorials .nb-workspace { display: block; }
+  .ha-tutorials .nb-sidebar { display: none; }
+  .ha-tutorials .nb-page { max-width: none; padding: 0; }
+}

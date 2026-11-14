@@ -15,8 +15,10 @@
     <link rel="stylesheet" href="/assets/atlas-workbench.css?v=20260819i">
     <link rel="stylesheet" href="/assets/design-system.css?v=20261114-figure2-logo1">
     <link rel="stylesheet" href="/assets/editorial.css?v=20261114-lighttable">
+    <link rel="stylesheet" href="/assets/product-shell.css?v=20261114unified1">
+    <link rel="stylesheet" href="/assets/atlas-product.css?v=20261114product1">
   </head>
-  <body class="atlas-page">
+  <body class="atlas-page atlas-explorer-page ha-product-site">
     <a class="skip-link" href="#atlas-workbench">Skip to Atlas Explorer</a>
     <header class="site-header">
       <div class="header-inner">
@@ -35,12 +37,9 @@
     </header>
 
     <main class="atlas-main" id="atlas-workbench">
-      <div class="ha-workspace-intro"><h1>Atlas Explorer</h1><p>Search measured spatial transcriptomics evidence with a text or H&amp;E image query.</p></div>
       <section class="atlas-product" aria-label="HistAgent Atlas Explorer">
         <header class="atlas-product-bar">
-          <a class="atlas-product-brand" href="/atlas-explorer/" aria-label="HistAgent Atlas Explorer home">
-            <span class="ha-product-title">Atlas Explorer<small>Measured spatial evidence</small></span>
-          </a>
+          <div class="ha-workspace-heading"><span>Workspace /</span><h1>Atlas Explorer</h1></div>
           <form class="atlas-search" id="atlas-search-form">
             <label class="sr-only" for="atlas-query">Biological query</label>
             <span class="atlas-search-icon" aria-hidden="true"></span>
@@ -60,7 +59,8 @@
         <div class="atlas-workspace">
           <aside class="atlas-controls" aria-labelledby="query-setup-title">
             <div class="atlas-panel-heading">
-              <p>Query setup</p>
+              <p id="query-setup-title">Query setup</p>
+              <span class="ha-panel-caption">Search measured spatial evidence.</span>
             </div>
 
             <div class="atlas-field">
@@ -198,7 +198,7 @@
               <div class="atlas-map-tools" aria-label="Map controls">
                 <button type="button" data-map-action="zoom-in" aria-label="Zoom in" title="Zoom in">+</button>
                 <button type="button" data-map-action="zoom-out" aria-label="Zoom out" title="Zoom out">−</button>
-                <button type="button" data-map-action="reset" aria-label="Reset map" title="Reset map">⌂</button>
+                <button type="button" data-map-action="reset" aria-label="Reset map" title="Reset map"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M9 4H4v5m11-5h5v5M4 15v5h5m11-5v5h-5"/></svg></button>
               </div>
               <div class="atlas-map-hint">Scroll to zoom · drag to pan</div>
               <div class="atlas-loading" id="atlas-loading" hidden>
@@ -218,6 +218,8 @@
           </section>
 
           <aside class="atlas-results" aria-label="Retrieved evidence and follow-up analysis">
+            <details class="atlas-evidence-panel" open>
+              <summary><span>Retrieved evidence</span><span class="atlas-evidence-caption">Ranked spots</span><span class="atlas-disclosure-chevron" aria-hidden="true"></span></summary>
             <section class="atlas-ranked-section">
               <header class="atlas-results-header">
                 <h2>Ranked evidence cards</h2>
@@ -241,10 +243,12 @@
                 </article>
               </div>
             </section>
+            </details>
 
             <section class="atlas-chat-section">
               <header class="atlas-results-header">
-                <h2>Retrieval-grounded analysis</h2>
+                <h2>Conversation</h2>
+                <span class="atlas-conversation-context">Retrieval-grounded analysis</span>
               </header>
               <div class="atlas-chat" id="atlas-chat-log" aria-live="polite">
                 <div class="atlas-message user">
