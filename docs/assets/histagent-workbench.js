@@ -36,6 +36,7 @@ const imageMeta = document.querySelector("#histagent-image-meta");
 const selectionBadge = document.querySelector("#histagent-selection-badge");
 const runStatus = document.querySelector("#histagent-run-status");
 const evidenceBadge = document.querySelector("#histagent-evidence-badge");
+const evidencePanel = document.querySelector("#histagent-evidence-panel");
 const atlasAction = document.querySelector("#histagent-atlas-action");
 const geneCount = document.querySelector("#histagent-gene-count");
 const geneList = document.querySelector("#histagent-gene-list");
@@ -519,6 +520,7 @@ function clearEvidenceForSelection() {
   currentEvidence = null;
   evidenceSpotKey = "";
   evidenceBadge.textContent = "Not generated";
+  if (evidencePanel) evidencePanel.open = false;
   geneCount.textContent = "Awaiting HistAgent";
   geneList.replaceChildren();
   evidenceFields.innerHTML = `
@@ -528,12 +530,14 @@ function clearEvidenceForSelection() {
   `;
   chatHistory = [];
   chatLog.innerHTML = `
-    <div class="atlas-message assistant">
-      <span>HistAgent</span>
-      <p>Analyze the selected spot before starting the conversation.</p>
+    <div class="ha-chat-welcome">
+      <img src="/assets/histagent-figure2-logo.png" width="48" height="48" alt="">
+      <h3>Explore this tissue spot</h3>
+      <p>Analyze the selected spot to discuss its ranked genes and surrounding tissue context.</p>
     </div>
   `;
   chatInput.disabled = true;
+  chatInput.placeholder = "Analyze a spot to start a conversation";
   chatButton.disabled = true;
   atlasAction.hidden = true;
 }
@@ -652,6 +656,7 @@ function renderEvidence(evidence, badge = "Generated") {
   const programs = evidence.display?.programs || Object.entries(evidence.pathway_evidence || {})
     .map(([label, support]) => ({ label, genes: Array.isArray(support) ? support : [] }));
   evidenceBadge.textContent = badge;
+  if (evidencePanel) evidencePanel.open = true;
   geneCount.textContent = `Top ${Math.min(20, genes.length)} of ${genes.length}`;
   geneList.innerHTML = genes.slice(0, 20)
     .map((gene) => `<li><em>${escapeHtml(gene)}</em></li>`)
@@ -679,6 +684,7 @@ function renderEvidence(evidence, badge = "Generated") {
   `;
   chatHistory = [];
   chatInput.disabled = false;
+  chatInput.placeholder = "Ask about the selected spot";
   chatButton.disabled = false;
   atlasAction.hidden = false;
   chatLog.innerHTML = `

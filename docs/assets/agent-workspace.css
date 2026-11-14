@@ -1,0 +1,220 @@
+/* Image, evidence and conversation. Scoped to the HistAgent application. */
+.histagent-page {
+  --ha-glass: #f7f8fa;
+  --ha-ink: #242830;
+  --ha-muted: #69717f;
+  --ha-line: #e5e7ec;
+  --ha-plum: #375dce;
+  --ha-soft: #eef2fd;
+  --atlas-ink: var(--ha-ink);
+  --atlas-muted: var(--ha-muted);
+  --atlas-line: var(--ha-line);
+  --atlas-line-dark: #d4d8df;
+  --atlas-teal: var(--ha-plum);
+  --atlas-teal-dark: #294ba9;
+  --atlas-teal-pale: var(--ha-soft);
+  background: #fff;
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+}
+.histagent-page .site-header { background: #fff; border-color: var(--ha-line); }
+.histagent-page .header-inner { width: 100%; max-width: none; min-height: 60px; padding: 0 24px; gap: 32px; }
+.histagent-page .site-header .brand { gap: 8px; }
+.histagent-page .site-header .brand-figure2 { width: 36px; height: 36px; flex-basis: 36px; }
+.histagent-page .brand-copy strong { font-size: 21px; letter-spacing: -.8px; }
+.histagent-page .primary-nav { gap: 6px; }
+.histagent-page .primary-nav a { padding: 7px 12px; border: 0; border-radius: 6px; color: #656e7b; font-size: 13px; font-weight: 400; }
+.histagent-page .primary-nav a:hover { background: #f5f6f8; color: var(--ha-ink); }
+.histagent-page .primary-nav a[aria-current=page] { background: #eef0f4; color: var(--ha-ink); font-weight: 500; }
+.histagent-page .primary-nav a:last-child { margin-left: 8px; }
+.histagent-page .atlas-main { max-width: none; padding: 0; }
+.histagent-page .histagent-product { border: 0; border-radius: 0; min-height: 0; overflow: clip; }
+.histagent-page .histagent-product-bar { min-height: 62px; padding: 10px 24px; grid-template-columns: 1fr auto 1fr; gap: 24px; border-color: var(--ha-line); }
+.ha-workspace-heading { display: flex; align-items: baseline; gap: 10px; min-width: 0; white-space: nowrap; }
+.ha-workspace-heading > span { color: #67717f; font-size: 12px; }
+.ha-workspace-heading h1 { margin: 0; color: var(--ha-ink); font-size: 14px; font-weight: 500; letter-spacing: -.15px; }
+.histagent-page .histagent-steps { gap: 24px; grid-row: auto; grid-column: auto; }
+.histagent-page .histagent-steps li { gap: 7px; color: #67717f; font-size: 12px; }
+.histagent-page .histagent-steps li:not(:last-child)::after { display: none; }
+.histagent-page .histagent-steps span { width: 19px; height: 19px; flex-basis: 19px; border: 1px solid #e1e4e9; border-radius: 50%; background: #fff; color: #67717f; font: 11px var(--mono); }
+.histagent-page .histagent-steps li.complete span { border-color: #d8deed; background: #f1f4fa; color: #6a7a9a; }
+.histagent-page .histagent-steps li.active span { border-color: #d8e0f6; background: var(--ha-soft); color: var(--ha-plum); }
+.histagent-page .histagent-steps li.active strong { color: #444b58; font-weight: 500; }
+.histagent-page .histagent-generate { justify-self: end; min-height: 36px; min-width: 160px; padding: 8px 14px; border: 1px solid #3154ba; border-radius: 7px; background: var(--ha-plum); font-size: 12px; font-weight: 500; box-shadow: 0 1px 2px #18254210; }
+.histagent-page .histagent-generate:hover { background: #2c50bb; }
+.histagent-page .histagent-generate:disabled { cursor: not-allowed; }
+.histagent-page .histagent-workspace { grid-template-columns: 224px minmax(0,1fr) 410px; height: calc(100dvh - 123px); min-height: 620px; overflow: hidden; }
+.histagent-page .histagent-controls { display: block; padding: 24px 18px; min-height: 0; overflow-y: auto; border-right: 1px solid var(--ha-line); background: #f8f9fb; scrollbar-width: thin; }
+.histagent-page .atlas-panel-heading { padding: 0 0 19px; }
+.histagent-page .atlas-panel-heading p { font-size: 13px; font-weight: 500; }
+.ha-panel-caption { display: block; margin-top: 4px; color: #67717f; font-size: 11px; line-height: 1.5; }
+.histagent-page .histagent-upload { min-height: 76px; padding: 12px; gap: 10px; border: 1px dashed #ccd2dc; border-radius: 8px; background: #fff; }
+.histagent-page .histagent-upload:hover { border-color: #98a8cc; background: #fcfdff; }
+.histagent-page .histagent-upload[data-dragging=true] { border-color: var(--ha-plum); background: var(--ha-soft); }
+.histagent-page .histagent-upload-icon { width: 26px; height: 28px; flex-basis: 26px; color: #68768e; }
+.histagent-upload-icon svg { width: 24px; height: 24px; }
+.histagent-page .histagent-upload strong { font-size: 12px; font-weight: 500; }
+.histagent-page .histagent-upload small { font-size: 11px; color: #67717f; }
+.histagent-page .histagent-example-button { margin: 0 0 26px; padding: 7px 0; min-height: 32px; border: 0; border-radius: 4px; color: #697381; background: transparent; font-size: 11px; text-align: left; }
+.histagent-page .histagent-example-button:hover { color: var(--ha-plum); background: transparent; }
+.histagent-page .atlas-field { margin-bottom: 15px; gap: 6px; }
+.histagent-page .atlas-label { font-size: 11px; color: #697381; }
+.histagent-page .atlas-field select { height: 37px; min-height: 37px; border-color: #e0e3e9; border-radius: 6px; padding-left: 10px; color: #424956; font-size: 12px; box-shadow: 0 1px 2px #1f293705; }
+.histagent-page .histagent-parameter-grid { margin-top: 20px; gap: 9px; }
+.histagent-page .histagent-parameter-grid > label > span:first-child,
+.histagent-page .histagent-parameter-grid > div > span { color: #697381; font-size: 11px; }
+.histagent-page .histagent-unit-input { min-height: 34px; border-color: #e0e3e9; border-radius: 6px; }
+.histagent-page .histagent-unit-input input { padding: 7px; font-size: 11px; }
+.histagent-page .histagent-unit-input small { color: #67717f; font-size: 11px; }
+.histagent-page .histagent-parameter-grid > div > strong { min-height: 34px; padding: 8px 4px; border-color: #e4e7ed; border-radius: 6px; background: #f0f2f5; color: #69717e; font: 11px var(--mono); }
+.histagent-page .histagent-selected-spot { margin-top: 25px; padding-top: 21px; border-color: #e4e7ed; }
+.histagent-page .histagent-control-heading { display: grid; gap: 6px; margin-bottom: 13px; }
+.histagent-page .histagent-control-heading span { font-size: 12px; font-weight: 500; }
+.histagent-page .histagent-control-heading b { font: 11px/1.6 var(--mono); color: #67717f; }
+.histagent-page .histagent-crop-pair { gap: 10px; }
+.histagent-page .histagent-crop-pair figure { border-color: #e2e5eb; border-radius: 7px; }
+.histagent-page .histagent-crop-pair figcaption { padding: 6px 0; color: #697381; font-size: 11px; }
+.histagent-page .histagent-selected-spot p { margin-top: 12px; color: #67717f; font: 11px/1.7 var(--mono); }
+.histagent-page .histagent-tissue-panel { min-width: 0; min-height: 0; padding: 23px 24px 17px; display: grid; grid-template-rows: auto minmax(0,1fr) auto auto; align-content: stretch; overflow: hidden; background: #f2f3f6; }
+.histagent-page .histagent-tissue-header { min-height: 67px; gap: 16px; align-items: flex-start; }
+.histagent-page .histagent-tissue-header h2 { color: #5c6471; font-size: 12px; font-weight: 500; }
+.histagent-page .histagent-tissue-header > span { max-width: 120px; color: #67717f; font: 11px/1.6 var(--mono); }
+.histagent-page .atlas-legend { gap: 13px; margin-top: 9px; }
+.histagent-page .atlas-legend span { gap: 5px; color: #67717f; font-size: 11px; }
+.histagent-page .atlas-legend i { width: 6px; height: 6px; }
+.histagent-page .histagent-tissue-stage { width: 100%; height: 100%; min-height: 0; aspect-ratio: auto; border: 1px solid #e0e3e9; border-radius: 10px; background: #fff; box-shadow: 0 2px 5px #24304904, 0 12px 36px #24304903; }
+.histagent-page .histagent-map-tools { top: 14px; right: 14px; left: auto; display: grid; gap: 5px; }
+.histagent-page .histagent-map-tools button { width: 32px; height: 32px; min-height: 32px; border: 1px solid #e1e4ea; border-radius: 6px; color: #69717d; background: #fffffff5; box-shadow: 0 1px 3px #232b3b06; font-size: 17px; font-weight: 400; }
+.histagent-map-tools svg { width: 17px; height: 17px; pointer-events: none; }
+.histagent-page .histagent-map-tools button:hover { color: var(--ha-plum); border-color: #b5c3e6; }
+.histagent-page .histagent-map-tools button:focus-visible { outline: 2px solid var(--ha-plum); outline-offset: 3px; }
+.histagent-page .atlas-scale { right: 14px; bottom: 14px; border: 1px solid #eaecf0; border-radius: 4px; color: #67717f; font-size: 11px; }
+.histagent-page .atlas-scale span { border-color: #848d99; width: 28px; }
+.histagent-page .histagent-selection-summary { margin-top: 16px; gap: 12px; align-items: center; }
+.histagent-page .histagent-selection-summary strong { color: #596270; font-size: 11px; font-weight: 500; }
+.histagent-page .histagent-selection-summary div > span { margin-top: 2px; color: #67717f; font: 11px/1.7 var(--mono); }
+.histagent-page #histagent-selection-badge { flex-shrink: 0; padding: 4px 7px; border-radius: 4px; background: #e9edf3; color: #677382; font-size: 11px; }
+.histagent-page #histagent-selection-badge.live { background: #e6ece8; color: #4f7059; }
+.histagent-page .histagent-run-status { min-height: 36px; margin: 12px 0 0; padding: 10px 0 0; border-color: #e2e5eb; color: #67717f; font-size: 11px; line-height: 1.5; }
+.histagent-page .histagent-run-status[data-error=true] { color: #a44e42; }
+.histagent-page .histagent-results { display: grid; height: 100%; min-height: 0; min-width: 0; grid-template-columns: minmax(0,1fr); grid-template-rows: auto minmax(0,1fr); grid-column: auto; border-left: 1px solid var(--ha-line); border-top: 0; background: #fff; overflow: hidden; }
+.ha-evidence-panel { min-width: 0; border-bottom: 1px solid var(--ha-line); }
+.ha-evidence-panel[open] { max-height: min(42vh,350px); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
+.ha-evidence-panel > summary { display: flex; align-items: center; gap: 10px; padding: 18px 21px; background: #fff; color: #626b79; cursor: pointer; list-style: none; font-size: 12px; }
+.ha-evidence-panel > summary::-webkit-details-marker { display: none; }
+.ha-evidence-panel[open] > summary { position: sticky; top: 0; z-index: 2; border-bottom: 1px solid #f0f1f4; }
+.ha-evidence-label { display: flex; align-items: center; gap: 8px; color: #4e5765; font-weight: 500; }
+.ha-evidence-label svg { width: 18px; height: 18px; color: #67717f; }
+.ha-evidence-panel #histagent-evidence-badge { margin-left: auto; color: #67717f; font-size: 11px; }
+.ha-disclosure-chevron { width: 6px; height: 6px; margin: 0 2px 3px 5px; border-right: 1px solid #939aa5; border-bottom: 1px solid #939aa5; transform: rotate(45deg); }
+.ha-evidence-panel[open] .ha-disclosure-chevron { margin-bottom: -2px; transform: rotate(225deg); }
+.histagent-page .histagent-evidence-section { padding: 16px 21px 20px; overflow: visible; border: 0; }
+.histagent-page .histagent-evidence-section .atlas-results-header { margin-bottom: 14px; gap: 10px; }
+.histagent-page .histagent-evidence-section h2 { color: #697381; font-size: 11px; font-weight: 400; }
+.histagent-page #histagent-atlas-action { padding: 5px 8px; border: 1px solid #dce2f0; border-radius: 5px; color: #5d74a6; background: #fff; font-size: 11px; }
+.histagent-page .histagent-readout { padding-bottom: 15px; border-color: #edf0f4; }
+.histagent-page .histagent-evidence-heading strong { font-size: 11px; color: #67717f; }
+.histagent-page .histagent-evidence-heading span { font-size: 11px; color: #67717f; }
+.histagent-page .histagent-gene-list { gap: 5px; }
+.histagent-page .histagent-gene-list li { padding: 5px 7px; border: 1px solid #e7ebf2; border-radius: 4px; background: #f6f8fc; color: #5a6d91; font-size: 11px; }
+.histagent-page .histagent-gene-list li::before { color: #67717f; font-size: 8px; }
+.histagent-page .histagent-evidence-fields { margin-top: 0; }
+.histagent-page .histagent-evidence-fields article { padding: 13px 0; border-color: #edf0f4; }
+.histagent-page .histagent-evidence-fields span { margin-bottom: 5px; color: #67717f; font-family: var(--sans); font-size: 11px; font-weight: 400; letter-spacing: 0; text-transform: none; }
+.histagent-page .histagent-evidence-fields strong { color: #5e6877; font-size: 12px; font-weight: 400; }
+.histagent-page .histagent-evidence-fields p { color: #67717f; font-size: 11px; }
+.histagent-page .histagent-evidence-empty { min-height: 80px; padding: 20px; border-radius: 6px; background: #f8f9fb; color: #67717f; font-size: 12px; }
+.histagent-page .histagent-chat-section { min-height: 0; padding: 22px 21px 18px; overflow: hidden; grid-template-rows: auto minmax(0,1fr) auto auto; }
+.histagent-page .histagent-chat-section > .atlas-results-header { margin-bottom: 24px; gap: 10px; align-items: baseline; }
+.histagent-page .histagent-chat-section h2 { font-size: 14px; font-weight: 500; letter-spacing: -.2px; }
+.histagent-page .histagent-chat-section .ha-conversation-context { padding: 0; border: 0; background: transparent; color: #67717f; font-family: var(--sans); font-size: 11px; }
+.histagent-page .atlas-chat { display: flex; flex-direction: column; min-height: 0; max-height: none; padding: 0 4px 0 0; overflow-y: auto; scrollbar-width: thin; }
+.ha-chat-welcome { margin: auto 0; padding: 32px 20px 46px; text-align: center; }
+.ha-chat-welcome img { display: block; width: 48px; height: 48px; object-fit: contain; margin: 0 auto 18px; }
+.ha-chat-welcome h3 { margin: 0 0 10px; color: #404958; font-size: 20px; font-weight: 450; line-height: 1.35; letter-spacing: -.5px; }
+.ha-chat-welcome p { max-width: 270px; margin: 0 auto; color: #67717f; font-size: 13px; line-height: 1.75; }
+.histagent-page .atlas-message { flex: 0 0 auto; margin-bottom: 25px; min-width: 0; }
+.histagent-page .atlas-message > span { display: flex; align-items: center; gap: 6px; margin: 0 0 9px; color: #67717f; font-family: var(--sans); font-size: 11px; font-weight: 400; letter-spacing: 0; }
+.histagent-page .atlas-message.assistant > span::before { width: 20px; height: 20px; background: url('/assets/histagent-figure2-logo.png') center / contain no-repeat; content: ''; }
+.histagent-page .atlas-message p { max-width: 100%; padding: 0; border: 0; border-radius: 0; background: transparent; color: #4d5767; font-size: 14px; line-height: 1.8; overflow-wrap: anywhere; }
+.histagent-page .atlas-message.user p { max-width: 94%; padding: 12px 15px; border-radius: 10px; background: #f2f4f7; color: #566171; }
+.histagent-page .atlas-message.error p { padding: 12px 14px; border: 1px solid #eedfd8; border-radius: 7px; background: #fbf6f3; color: #855f4b; }
+.histagent-page .histagent-chat-retry { margin-top: 10px; padding: 6px 10px; border-color: #d5ddeb; border-radius: 5px; font-size: 11px; }
+.histagent-page .ha-chat-prompts { margin: 10px 0 8px; }
+.histagent-page .ha-chat-prompts summary { padding: 5px 0; color: #67717f; font-size: 11px; }
+.histagent-page .histagent-suggestions { padding: 7px 0 5px; gap: 7px; }
+.histagent-page .histagent-suggestions button { padding: 7px 9px; border-color: #e5e8ee; border-radius: 6px; background: #fff; color: #67717f; font-size: 11px; }
+.histagent-page .histagent-suggestions button:hover { border-color: #b5c3e6; color: var(--ha-plum); }
+.histagent-page .atlas-chat-form { position: relative; display: block; margin: 0; padding: 0; border: 1px solid #dce1e9; border-radius: 11px; background: #fff; box-shadow: 0 2px 5px #24304905; }
+.histagent-page .atlas-chat-form:focus-within { border-color: #91a6dd; box-shadow: 0 0 0 3px #375dce0b; }
+.histagent-page .atlas-chat-form:has(textarea:disabled) { border-color: #e7eaf0; background: #f9fafb; box-shadow: none; }
+.histagent-page .atlas-chat-form textarea { display: block; min-height: 110px; max-height: 180px; padding: 14px 15px 45px; border: 0; border-radius: 11px; background: transparent; color: #505b6c; font-size: 13px; line-height: 1.6; resize: vertical; box-shadow: none; }
+.histagent-page .atlas-chat-form textarea:focus { box-shadow: none; }
+.histagent-page .atlas-chat-form textarea::placeholder { color: #99a2b0; }
+.histagent-page .atlas-chat-form textarea:disabled { background: transparent; color: #9da6b4; opacity: 1; }
+.histagent-page .atlas-chat-form button { position: absolute; bottom: 10px; right: 10px; width: 30px; height: 30px; border-radius: 7px; background: #303a4a; font-size: 18px; }
+.histagent-page .atlas-chat-form button:disabled { opacity: 1; background: #e6e9ef; color: #a1a9b5; cursor: not-allowed; }
+.histagent-page .histagent-stage-loading { border-radius: 9px; background: #ffffffed; }
+.histagent-page .histagent-stage-loading > span { width: 26px; height: 26px; border-width: 2px; border-color: #e4e9f4; border-top-color: var(--ha-plum); }
+.histagent-page .histagent-stage-loading strong { font-size: 14px; font-weight: 500; }
+.histagent-page .histagent-stage-loading small { color: #67717f; font-size: 12px; }
+@media (min-width: 1550px) {
+  .histagent-page .histagent-workspace { grid-template-columns: 242px minmax(0,1fr) 450px; }
+  .histagent-page .histagent-controls { padding: 28px 22px; }
+  .histagent-page .histagent-tissue-panel { padding: 28px 32px 20px; }
+  .histagent-page .histagent-chat-section { padding: 24px 28px 22px; }
+  .ha-evidence-panel > summary { padding-inline: 28px; }
+  .histagent-page .histagent-evidence-section { padding-inline: 28px; }
+}
+@media (max-width: 1279px) {
+  .histagent-page .histagent-workspace { grid-template-columns: 200px minmax(0,1fr) 360px; }
+  .histagent-page .histagent-controls { padding: 22px 14px; }
+  .histagent-page .histagent-tissue-panel { padding: 21px 18px 16px; }
+  .histagent-page .histagent-steps { gap: 15px; }
+  .histagent-page .histagent-steps li { font-size: 11px; }
+  .histagent-page .histagent-chat-section { padding-inline: 18px; }
+  .ha-evidence-panel > summary { padding-inline: 18px; }
+}
+@media (max-width: 1099px) {
+  .histagent-page .histagent-workspace { height: auto; min-height: 0; overflow: visible; grid-template-columns: 210px minmax(0,1fr); }
+  .histagent-page .histagent-controls { overflow: visible; }
+  .histagent-page .histagent-tissue-panel { min-height: 590px; grid-template-rows: auto minmax(350px,1fr) auto auto; }
+  .histagent-page .histagent-tissue-stage { height: 100%; }
+  .histagent-page .histagent-results { grid-column: 1/-1; min-height: 620px; height: auto; grid-template-rows: auto minmax(450px,1fr); border-left: 0; border-top: 1px solid var(--ha-line); }
+  .ha-evidence-panel[open] { max-height: 340px; }
+  .histagent-page .histagent-chat-section { max-width: 780px; width: 100%; justify-self: center; padding: 24px; }
+  .histagent-page .histagent-steps { display: none; }
+  .histagent-page .histagent-product-bar { grid-template-columns: 1fr auto; }
+}
+@media (max-width: 760px) {
+  .histagent-page .header-inner { min-height: 58px; padding: 0 16px; gap: 12px; }
+  .histagent-page .primary-nav { top: 58px; padding: 10px 14px; }
+  .histagent-page .primary-nav a { padding: 12px; min-height: 44px; }
+  .histagent-page .primary-nav a:last-child { margin: 0; }
+  .histagent-page .nav-toggle { min-height: 36px; padding: 6px 11px; border-color: #e3e6ec; border-radius: 6px; font-size: 12px; }
+  .histagent-page .histagent-product-bar { position: sticky; top: 0; z-index: 15; min-height: 62px; padding: 11px 16px; gap: 12px; background: #fffffff5; }
+  .ha-workspace-heading { display: block; }
+  .ha-workspace-heading > span { display: none; }
+  .ha-workspace-heading h1 { font-size: 13px; }
+  .histagent-page .histagent-generate { width: auto; min-width: 0; min-height: 39px; padding: 9px 12px; font-size: 11px; }
+  .histagent-page .histagent-workspace { grid-template-columns: minmax(0,1fr); }
+  .histagent-page .histagent-tissue-panel { grid-row: 1; min-height: 0; padding: 20px 16px 16px; grid-template-rows: auto auto auto auto; overflow: visible; }
+  .histagent-page .histagent-tissue-stage { height: auto; min-height: 0; aspect-ratio: var(--histagent-image-ratio,1 / 1); }
+  .histagent-page .histagent-tissue-header { min-height: 63px; }
+  .histagent-page .histagent-selection-summary { flex-wrap: wrap; gap: 7px; }
+  .histagent-page .histagent-controls { grid-row: 2; display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; padding: 22px 18px; border-right: 0; border-bottom: 1px solid var(--ha-line); }
+  .histagent-page .histagent-controls > :is(.atlas-panel-heading,.histagent-upload,.histagent-example-button,.histagent-parameter-grid,.histagent-selected-spot) { grid-column: 1/-1; }
+  .histagent-page .histagent-controls .atlas-field select { min-height: 44px; }
+  .histagent-page .histagent-upload { min-height: 76px; }
+  .histagent-page .histagent-example-button { margin-bottom: 18px; min-height: 40px; }
+  .histagent-page .histagent-parameter-grid { margin-top: 4px; }
+  .histagent-page .histagent-crop-pair { max-width: 230px; margin-left: 0; }
+  .histagent-page .histagent-results { grid-column: auto; min-height: 620px; border-top: 0; }
+  .ha-evidence-panel > summary { min-height: 56px; padding: 17px 18px; }
+  .ha-evidence-panel[open] { max-height: 380px; }
+  .histagent-page .histagent-chat-section { min-height: 530px; padding: 24px 18px 20px; }
+  .histagent-page .atlas-chat { max-height: 500px; }
+  .histagent-page .atlas-chat-form textarea { font-size: 16px; }
+  .histagent-page .atlas-chat-form button { width: 36px; height: 36px; }
+  .ha-chat-welcome { padding: 35px 20px 50px; }
+}
