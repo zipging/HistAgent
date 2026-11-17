@@ -60,6 +60,7 @@ function workbench(kind, services = {}) {
     console: { error() {} }, Blob, File, URL, URLSearchParams, setTimeout, clearTimeout,
     fetch: () => new Promise(() => {}),
     getHistAgentServiceHealth: () => new Promise(() => {}),
+    waitForHistAgentService: services.getHistAgentServiceHealth || (async () => ({ status: "available" })),
     ...services
   });
   let source = readFileSync(new URL(`../docs/assets/${kind}-workbench.js`, import.meta.url), "utf8")
@@ -412,7 +413,10 @@ test("unavailable startup service leaves spot selection usable and chat evidence
 test("late startup failure cannot overwrite a successful explicit analysis", async () => {
   const probe = deferred();
   const app = workbench("histagent", {
-    getHistAgentServiceHealth: () => probe.promise,
+    waitForHistAgentService: (() => {
+      let calls = 0;
+      return () => ++calls === 1 ? probe.promise : Promise.resolve({ status: "available" });
+    })(),
     generateHistAgentReadout: async () => genes
   });
   const checking = app.run("checkInitialServiceAvailability()");
@@ -478,4 +482,68 @@ test("image readiness handles cached images, failures and a bounded wait", async
   image.emit("error");
   await assert.rejects(failed, /tissue image could not be loaded/);
   await assert.rejects(app.run("waitForTissueImage({timeoutMs:5})"), /tissue image could not be loaded/);
+});
+
+test("explicit analysis waits for cold-start readiness then submits once", async () => {
+  const ready = deferred();
+  const started = deferred();
+  let submissions = 0;
+  const app = workbench("histagent", {
+    waitForHistAgentService: (options) => {
+      options.onStarting();
+      started.resolve();
+      return ready.promise;
+    },
+    generateHistAgentReadout: async () => { submissions += 1; return genes; }
+  });
+  const analysis = app.run("generateEvidence()");
+  await started.promise;
+  assert.match(app.node("#histagent-run-status").textContent, /waking up.*Analysis will start/);
+  assert.equal(submissions, 0);
+  assert.equal(app.node("#histagent-generate").disabled, true);
+  ready.resolve({ status: "available" });
+  await analysis;
+  assert.equal(submissions, 1);
+  assert.equal(app.node("#histagent-selection-badge").textContent, "Evidence ready");
+});
+
+test("selection changes during cold start prevent a stale model submission", async () => {
+  const ready = deferred();
+  let submissions = 0;
+  let waiting;
+  const app = workbench("histagent", {
+    waitForHistAgentService: (options) => { waiting = options; return ready.promise; },
+    generateHistAgentReadout: async () => { submissions += 1; return genes; }
+  });
+  const analysis = app.run("generateEvidence()");
+  app.run("selectSpot({ id: 'S002', x: 300, y: 400, xNorm: 0.3, yNorm: 0.4 })");
+  assert.equal(waiting.shouldContinue(), false);
+  const status = app.node("#histagent-run-status").textContent;
+  waiting.onStarting();
+  assert.equal(app.node("#histagent-run-status").textContent, status);
+  ready.resolve(null);
+  await analysis;
+  assert.equal(submissions, 0);
+  assert.equal(app.run("currentEvidence"), null);
+});
+
+test("obsolete startup progress cannot overwrite explicit analysis", async () => {
+  const probe = deferred();
+  let startup;
+  let calls = 0;
+  const app = workbench("histagent", {
+    waitForHistAgentService: (options) => {
+      calls += 1;
+      if (calls === 1) { startup = options; return probe.promise; }
+      return Promise.resolve({ status: "available" });
+    },
+    generateHistAgentReadout: async () => genes
+  });
+  const checking = app.run("checkInitialServiceAvailability()");
+  await app.run("generateEvidence()");
+  startup.onStarting();
+  assert.equal(startup.shouldContinue(), false);
+  probe.resolve(null);
+  await checking;
+  assert.equal(app.node("#histagent-run-status").textContent, "2 ranked genes generated for S001.");
 });

@@ -1,8 +1,8 @@
 import {
   callHistAgentService,
-  getHistAgentServiceHealth,
+  waitForHistAgentService,
   generateHistAgentReadout
-} from "./histagent-services.js?v=20261114availability1";
+} from "./histagent-services.js?v=20261117coldstart1";
 const LOCAL_DIAMETER_UM = 55;
 const CONTEXT_DIAMETER_UM = 220;
 const EXAMPLE_MANIFEST_URL = "/assets/gsm5924036-spots.json";
@@ -181,8 +181,14 @@ async function checkInitialServiceAvailability() {
   const attempt = inferenceAttempt;
   setStatus("Checking the analysis service. Select a spot, then use Analyze selected spot.");
   try {
-    await getHistAgentServiceHealth();
-    if (inferenceAttempt !== attempt || inferencePending || currentEvidence) return;
+    const shouldContinue = () => inferenceAttempt === attempt && !inferencePending && !currentEvidence;
+    await waitForHistAgentService({
+      shouldContinue,
+      onStarting: () => {
+        if (shouldContinue()) setStatus("The model service is waking up. This page will check readiness automatically. You can select a tissue spot while it loads.");
+      }
+    });
+    if (!shouldContinue()) return;
     setStatus("Select a tissue spot, then use Analyze selected spot to generate evidence and unlock the conversation.");
   } catch (error) {
     if (inferenceAttempt !== attempt || inferencePending || currentEvidence) return;
@@ -738,6 +744,14 @@ async function generateEvidence() {
   setBusy(true);
   setStatus(`Analyzing ${selection.spot.id} with HistAgent.`);
   try {
+    await waitForHistAgentService({
+      shouldContinue: () => isCurrentSelection(selection),
+      onStarting: () => {
+        if (isCurrentSelection(selection)) setStatus("The model service is waking up. Analysis will start when it is ready. Loading can take a few minutes.");
+      }
+    });
+    if (!isCurrentSelection(selection)) return;
+    setStatus(`Analyzing ${selection.spot.id} with HistAgent.`);
     const localCanvas = canvasCrop(selection.spot.x, selection.spot.y, LOCAL_DIAMETER_UM);
     // Training stored the four-times context field at 256 px; the released
     // inference transform then applies its 224 px center crop.

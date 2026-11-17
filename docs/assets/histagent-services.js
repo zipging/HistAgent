@@ -47,7 +47,7 @@ async function parseGatewayResponse(response, health = false) {
     const waitingForDailyQuotaReset = payload?.detail?.code === "gpu_quota_exhausted"
       && /\bdaily\b/i.test(message) && /\breset\b/i.test(message);
     // The gateway cooldown does not tell us when HF's daily allowance resets.
-    if (Number.isFinite(seconds) && seconds > 0 && !waitingForDailyQuotaReset) {
+    if (Number.isFinite(seconds) && seconds > 0 && !waitingForDailyQuotaReset && payload?.detail?.code !== "backend_starting") {
       const minutes = Math.ceil(seconds / 60);
       message += ` Try again in ${minutes} minute${minutes === 1 ? "" : "s"}.`;
     }
@@ -106,6 +106,39 @@ async function requestGateway(path, options, { health = false, timeoutMs = 33000
 
 export async function getHistAgentServiceHealth({ timeoutMs = 15000 } = {}) {
   return requestGateway("/api/health", { method: "GET", cache: "no-store" }, { health: true, timeoutMs });
+}
+
+// Only readiness GETs are repeated. Model submissions always remain single requests.
+export async function waitForHistAgentService({
+  timeoutMs = 300000,
+  pollIntervalMs = 5000,
+  onStarting = () => {},
+  shouldContinue = () => true
+} = {}) {
+  const deadline = Date.now() + timeoutMs;
+  let starting = false;
+  while (shouldContinue()) {
+    const remaining = deadline - Date.now();
+    if (remaining <= 0) break;
+    try {
+      const health = await getHistAgentServiceHealth({ timeoutMs: Math.min(15000, remaining) });
+      return shouldContinue() ? health : null;
+    } catch (error) {
+      if (!shouldContinue()) return null;
+      if (error.code === "backend_starting") {
+        starting = true;
+        onStarting(error.message);
+      } else if (!starting || error.code !== "service_timeout") {
+        throw error;
+      }
+      const delay = Math.min(pollIntervalMs, deadline - Date.now());
+      if (delay > 0) await new Promise((resolve) => setTimeout(resolve, delay));
+    }
+  }
+  if (!shouldContinue()) return null;
+  const error = new Error("The model service is still starting. Please try Analyze selected spot again shortly.");
+  error.code = "service_startup_timeout";
+  throw error;
 }
 
 export async function callHistAgentService(service, apiName, data) {

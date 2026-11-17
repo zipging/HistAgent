@@ -512,3 +512,147 @@ def test_transient_owner_verification_recovers_after_cooldown_with_one_serialize
                 assert (await client.get("/api/health", headers={"Origin": ORIGIN})).status_code == 200
                 assert checks == 2
     asyncio.run(scenario())
+
+
+def test_sleeping_model_wakes_once_without_replaying_analysis_then_health_recovers():
+    ready = False
+
+    def respond(request):
+        assert request.headers["Authorization"] == f"Bearer {TOKEN}"
+        if str(request.url) == proxy.UPSTREAM_RUNTIME_URL:
+            assert request.method == "GET"
+            assert "Origin" not in request.headers and "Cookie" not in request.headers
+            return httpx.Response(200, json={"stage": "SLEEPING", "hardware": {"requested": "zero-a10g"}})
+        if str(request.url) == proxy.UPSTREAM_RESTART_URL:
+            assert request.method == "POST"
+            assert "Origin" not in request.headers and "Cookie" not in request.headers
+            return httpx.Response(200, json={"stage": "BUILDING"})
+        if ready:
+            return httpx.Response(200, json={"status": "available"})
+        return httpx.Response(503, text=f"<html>private diagnostic {TOKEN}</html>")
+
+    now = [100.0]
+    app, requests = make_app(respond, clock=lambda: now[0])
+    with TestClient(app) as client:
+        response = call(client)
+        assert response.status_code == 503
+        assert response.json()["detail"]["code"] == "backend_starting"
+        assert response.headers["Retry-After"] == "5"
+        assert TOKEN not in response.text and "private diagnostic" not in response.text
+        assert app.state.admission.active == 0
+        for _ in range(3):
+            response = client.get("/api/health", headers={"Origin": ORIGIN})
+            assert response.json()["detail"]["code"] == "backend_starting"
+        assert sum(str(r.url) == proxy.UPSTREAM_RUNTIME_URL for r in requests) == 1
+        assert sum(str(r.url) == proxy.UPSTREAM_RESTART_URL for r in requests) == 1
+        assert sum(r.method == "POST" and str(r.url).startswith(proxy.UPSTREAM_ORIGIN) for r in requests) == 1
+        ready = True
+        assert client.get("/api/health", headers={"Origin": ORIGIN}).json()["status"] == "available"
+
+
+@pytest.mark.parametrize("stage", ["BUILDING", "STARTING", "RUNNING_BUILDING", "RUNNING", "PAUSED", "RUNTIME_ERROR", "BUILD_ERROR", "UNKNOWN"])
+def test_only_sleeping_state_triggers_restart(stage):
+    def respond(request):
+        if str(request.url) == proxy.UPSTREAM_RUNTIME_URL:
+            return httpx.Response(200, json={"stage": stage})
+        if str(request.url) == proxy.UPSTREAM_RESTART_URL:
+            pytest.fail("Unexpected restart")
+        return httpx.Response(503, text="Unavailable")
+
+    app, requests = make_app(respond)
+    with TestClient(app) as client:
+        response = client.get("/api/health", headers={"Origin": ORIGIN})
+        expected = "backend_starting" if stage in proxy.STARTING_STAGES else "upstream_unavailable"
+        assert response.status_code == 503
+        assert response.json()["detail"]["code"] == expected
+        assert not any(str(r.url) == proxy.UPSTREAM_RESTART_URL for r in requests)
+
+
+@pytest.mark.parametrize("hardware", [{"current": "a10g-small"}, {"requested": "cpu-upgrade"}, "zero-a10g", None])
+def test_sleeping_paid_or_invalid_hardware_is_not_restarted(hardware):
+    def respond(request):
+        if str(request.url) == proxy.UPSTREAM_RUNTIME_URL:
+            return httpx.Response(200, json={"stage": "SLEEPING", "hardware": hardware})
+        if str(request.url) == proxy.UPSTREAM_RESTART_URL:
+            pytest.fail("Unexpected restart")
+        return httpx.Response(503, text="Unavailable")
+
+    app, _ = make_app(respond)
+    with TestClient(app) as client:
+        assert call(client).json()["detail"]["code"] == "upstream_unavailable"
+
+
+@pytest.mark.parametrize("control_response", [
+    lambda _: httpx.Response(403, text=TOKEN),
+    lambda _: httpx.Response(307, headers={"Location": "https://attacker.example/"}),
+    lambda _: httpx.Response(200, text=TOKEN),
+    lambda _: httpx.Response(200, json=[TOKEN]),
+    lambda _: httpx.Response(200, json={"stage": [TOKEN]}),
+    lambda _: httpx.Response(200, content=b"x" * (proxy.MAX_METADATA_BYTES + 1)),
+])
+def test_runtime_control_failure_is_sanitized_and_cooldown_is_bounded(control_response):
+    def respond(request):
+        if str(request.url) == proxy.UPSTREAM_RUNTIME_URL:
+            return control_response(request)
+        if str(request.url) == proxy.UPSTREAM_RESTART_URL:
+            pytest.fail("Unexpected restart")
+        return httpx.Response(503, text="Unavailable")
+
+    now = [100.0]
+    app, requests = make_app(respond, clock=lambda: now[0])
+    with TestClient(app) as client:
+        for _ in range(3):
+            response = call(client)
+            assert response.json()["detail"]["code"] == "upstream_unavailable"
+            assert TOKEN not in response.text and "Location" not in response.headers
+        assert sum(str(r.url) == proxy.UPSTREAM_RUNTIME_URL for r in requests) == 1
+        now[0] += proxy.WAKE_CHECK_COOLDOWN_SECONDS
+        assert call(client).status_code == 503
+        assert sum(str(r.url) == proxy.UPSTREAM_RUNTIME_URL for r in requests) == 2
+
+
+@pytest.mark.parametrize("restart_status", [403, 429, 500, 307])
+def test_failed_restart_never_claims_starting_or_retries(restart_status):
+    def respond(request):
+        if str(request.url) == proxy.UPSTREAM_RUNTIME_URL:
+            return httpx.Response(200, json={"stage": "SLEEPING"})
+        if str(request.url) == proxy.UPSTREAM_RESTART_URL:
+            return httpx.Response(restart_status, text=TOKEN, headers={"Location": "https://attacker.example/"})
+        return httpx.Response(503, text="Unavailable")
+
+    app, requests = make_app(respond)
+    with TestClient(app) as client:
+        for _ in range(3):
+            response = call(client)
+            assert response.json()["detail"]["code"] == "upstream_unavailable"
+            assert TOKEN not in response.text and "Location" not in response.headers
+        assert sum(str(r.url) == proxy.UPSTREAM_RESTART_URL for r in requests) == 1
+
+
+def test_concurrent_sleeping_health_checks_issue_one_restart():
+    async def scenario():
+        runtime_started = asyncio.Event()
+        finish_runtime = asyncio.Event()
+
+        async def respond(request):
+            if str(request.url) == proxy.UPSTREAM_RUNTIME_URL:
+                runtime_started.set()
+                await finish_runtime.wait()
+                return httpx.Response(200, json={"stage": "SLEEPING"})
+            if str(request.url) == proxy.UPSTREAM_RESTART_URL:
+                return httpx.Response(200, json={"stage": "BUILDING"})
+            return httpx.Response(503, text="Unavailable")
+
+        app, requests = make_app(respond)
+        async with app.router.lifespan_context(app):
+            async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="https://proxy.test") as client:
+                pending = [asyncio.create_task(client.get("/api/health", headers={"Origin": ORIGIN})) for _ in range(5)]
+                try:
+                    await asyncio.wait_for(runtime_started.wait(), 2)
+                finally:
+                    finish_runtime.set()
+                responses = await asyncio.gather(*pending)
+                assert all(r.json()["detail"]["code"] == "backend_starting" for r in responses)
+                assert sum(str(r.url) == proxy.UPSTREAM_RUNTIME_URL for r in requests) == 1
+                assert sum(str(r.url) == proxy.UPSTREAM_RESTART_URL for r in requests) == 1
+    asyncio.run(scenario())

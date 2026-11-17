@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { callHistAgentService, getHistAgentServiceHealth } from "../docs/assets/histagent-services.js";
+import { callHistAgentService, getHistAgentServiceHealth, waitForHistAgentService } from "../docs/assets/histagent-services.js";
 
 globalThis.window = {
   localStorage: { getItem: () => "anonymous-test-browser", setItem() {} },
@@ -130,4 +130,90 @@ test("a stalled readiness check is aborted after its deadline without retry", as
     return true;
   });
   assert.equal(calls, 1);
+});
+
+test("cold-start readiness repeats only GETs and reports progress before readiness", async () => {
+  let calls = 0;
+  const progress = [];
+  globalThis.fetch = async (url, request) => {
+    assert.match(url, /\/api\/health$/);
+    assert.equal(request.method, "GET");
+    assert.equal(request.body, undefined);
+    calls += 1;
+    return calls < 3
+      ? Response.json({ detail: { code: "backend_starting", message: "The model is waking up." } }, {
+        status: 503, headers: { "Retry-After": "5" }
+      })
+      : Response.json({ status: "available" });
+  };
+  const health = await waitForHistAgentService({ pollIntervalMs: 1, onStarting: (message) => progress.push(message) });
+  assert.equal(health.status, "available");
+  assert.equal(calls, 3);
+  assert.deepEqual(progress, ["The model is waking up.", "The model is waking up."]);
+});
+
+test("cold-start polling has a finite deadline", async () => {
+  let calls = 0;
+  globalThis.fetch = async () => {
+    calls += 1;
+    return Response.json({ detail: { code: "backend_starting", message: "Loading" } }, { status: 503 });
+  };
+  await assert.rejects(waitForHistAgentService({ timeoutMs: 15, pollIntervalMs: 2 }), (error) => {
+    assert.equal(error.code, "service_startup_timeout");
+    return true;
+  });
+  assert.ok(calls > 0 && calls < 20);
+});
+
+test("cold-start polling stops when its caller becomes obsolete", async () => {
+  let active = true;
+  let calls = 0;
+  globalThis.fetch = async () => {
+    calls += 1;
+    return Response.json({ detail: { code: "backend_starting", message: "Loading" } }, { status: 503 });
+  };
+  assert.equal(await waitForHistAgentService({
+    pollIntervalMs: 1, shouldContinue: () => active, onStarting: () => { active = false; }
+  }), null);
+  assert.equal(calls, 1);
+});
+
+test("other availability failures and model cold-start failures are never retried", async () => {
+  let calls = 0;
+  globalThis.fetch = async () => {
+    calls += 1;
+    return Response.json({ detail: { code: "upstream_unavailable", message: "Unavailable" } }, { status: 503 });
+  };
+  await assert.rejects(waitForHistAgentService({ pollIntervalMs: 1 }), /Unavailable/);
+  assert.equal(calls, 1);
+  globalThis.fetch = async () => {
+    calls += 1;
+    return Response.json({ detail: { code: "backend_starting", message: "Loading" } }, { status: 503 });
+  };
+  await assert.rejects(callHistAgentService("reasoning", "retrieve_atlas", []), /Loading/);
+  assert.equal(calls, 2);
+});
+
+
+test("a health timeout during confirmed startup keeps polling within the original deadline", async () => {
+  let calls = 0;
+  const originalSetTimeout = globalThis.setTimeout;
+  globalThis.setTimeout = (callback, delay, ...args) => originalSetTimeout(callback, Math.min(delay, 1), ...args);
+  globalThis.fetch = async (_url, request) => {
+    assert.equal(request.method, "GET");
+    calls += 1;
+    if (calls === 1) return Response.json({ detail: { code: "backend_starting", message: "Loading" } }, { status: 503 });
+    if (calls === 2) {
+      return new Promise((_resolve, reject) => request.signal.addEventListener("abort", () => {
+        reject(new DOMException("Aborted", "AbortError"));
+      }));
+    }
+    return Response.json({ status: "available" });
+  };
+  try {
+    assert.equal((await waitForHistAgentService({ pollIntervalMs: 1 })).status, "available");
+    assert.equal(calls, 3);
+  } finally {
+    globalThis.setTimeout = originalSetTimeout;
+  }
 });

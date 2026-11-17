@@ -16,6 +16,10 @@ from starlette.responses import JSONResponse, RedirectResponse, Response
 
 UPSTREAM_ORIGIN = "https://wli14-histagent-agent.hf.space"
 WHOAMI_URL = "https://huggingface.co/api/whoami-v2"
+UPSTREAM_RUNTIME_URL = "https://huggingface.co/api/spaces/wli14/HistAgent-agent/runtime"
+UPSTREAM_RESTART_URL = "https://huggingface.co/api/spaces/wli14/HistAgent-agent/restart"
+WAKE_CHECK_COOLDOWN_SECONDS = 60.0
+STARTING_STAGES = frozenset({"BUILDING", "STARTING", "RUNNING_BUILDING"})
 EXPECTED_OWNER = "wli14"
 ALLOWED_ORIGINS = frozenset({"https://histagent.bio", "https://www.histagent.bio"})
 ROUTES = {"/api/health": "GET", "/api/generate": "POST", "/api/call": "POST"}
@@ -153,6 +157,45 @@ def retry_after(headers: httpx.Headers) -> dict[str, str]:
     return {}
 
 
+async def recover_sleeping_upstream(request: Request, settings: Settings, transport: httpx.AsyncBaseTransport | None) -> bool:
+    state = request.app.state
+    async with state.wake_lock:
+        if state.clock() < state.next_wake_check:
+            return state.upstream_starting
+        # Reserve before I/O so cancellation and concurrent visitors cannot
+        # issue multiple restart commands. Never replay the model request.
+        state.next_wake_check = state.clock() + WAKE_CHECK_COOLDOWN_SECONDS
+        state.upstream_starting = False
+        try:
+            async with asyncio.timeout(12.0), client(transport, httpx.Timeout(5.0)) as control_client:
+                headers = {"Authorization": f"Bearer {settings.token}"}
+                async with control_client.stream("GET", UPSTREAM_RUNTIME_URL, headers=headers) as response:
+                    if response.status_code != 200:
+                        return False
+                    metadata = httpx.Response(200, content=await read_response(response, MAX_METADATA_BYTES)).json()
+                if not isinstance(metadata, dict):
+                    return False
+                stage = metadata.get("stage")
+                if stage in STARTING_STAGES:
+                    state.upstream_starting = True
+                    return True
+                if stage != "SLEEPING":
+                    return False
+                hardware = metadata.get("hardware", {})
+                if not isinstance(hardware, dict) or any(
+                    value and value != "zero-a10g" for value in (hardware.get("current"), hardware.get("requested"))
+                ):
+                    return False
+                state.upstream_starting = True
+                async with control_client.stream("POST", UPSTREAM_RESTART_URL, headers=headers) as response:
+                    state.upstream_starting = response.status_code == 200
+                return state.upstream_starting
+        except Exception:
+            # Control-plane diagnostics and credentials never reach visitors.
+            state.upstream_starting = False
+            return False
+
+
 async def forward(request: Request, settings: Settings, owner: str, transport: httpx.AsyncBaseTransport | None) -> Response:
     path = request.url.path
     origin = request.headers["origin"]
@@ -189,6 +232,9 @@ async def forward(request: Request, settings: Settings, owner: str, transport: h
             content_type = upstream.headers.get("content-type", "")
             if not re.match(r"application/(?:[a-z0-9.+-]+\+)?json(?:\s*;|$)", content_type, re.I):
                 status = upstream.status_code if upstream.status_code >= 400 else 502
+                if status == 503 and await recover_sleeping_upstream(request, settings, transport):
+                    return failure(origin, 503, "backend_starting",
+                        "The analysis service is waking up and loading its models. Please wait.", headers={"Retry-After": "5"})
                 return failure(origin, status, "backend_rate_limited" if status == 429 else "upstream_unavailable",
                     "The model host is temporarily rate-limiting requests." if status == 429 else "The HistAgent service returned an unexpected response.", headers=waiting)
             raw = await read_response(upstream, MAX_METADATA_BYTES if path == "/api/health" else MAX_RESPONSE_BYTES)
@@ -243,6 +289,10 @@ def create_app(
     application.state.owner_check_lock = asyncio.Lock()
     application.state.next_owner_check = 0.0
     application.state.admission = Admission(2)
+    application.state.clock = clock
+    application.state.wake_lock = asyncio.Lock()
+    application.state.next_wake_check = 0.0
+    application.state.upstream_starting = False
 
     @application.get("/", include_in_schema=False)
     async def home() -> Response:
