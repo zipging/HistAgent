@@ -2,7 +2,7 @@ import {
   callHistAgentService,
   waitForHistAgentService,
   generateHistAgentReadout
-} from "./histagent-services.js?v=20261117coldstart1";
+} from "./histagent-services.js?v=20261117coldstart2";
 const LOCAL_DIAMETER_UM = 55;
 const CONTEXT_DIAMETER_UM = 220;
 const EXAMPLE_MANIFEST_URL = "/assets/gsm5924036-spots.json";

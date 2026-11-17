@@ -217,3 +217,43 @@ test("a health timeout during confirmed startup keeps polling within the origina
     globalThis.setTimeout = originalSetTimeout;
   }
 });
+
+
+test("a sleeping public gateway's HTML 503 is polled only by health checks", async () => {
+  let calls = 0;
+  const progress = [];
+  globalThis.fetch = async (_url, request) => {
+    assert.equal(request.method, "GET");
+    calls += 1;
+    return calls === 1
+      ? new Response("<html>Space is sleeping</html>", { status: 503 })
+      : Response.json({ status: "available" });
+  };
+  const health = await waitForHistAgentService({ pollIntervalMs: 1, onStarting: (message) => progress.push(message) });
+  assert.equal(health.status, "available");
+  assert.equal(calls, 2);
+  assert.match(progress[0], /gateway is waking up/);
+  globalThis.fetch = async (_url, request) => {
+    assert.equal(request.method, "POST");
+    calls += 1;
+    return new Response("<html>Space is sleeping</html>", { status: 503 });
+  };
+  await assert.rejects(callHistAgentService("reasoning", "retrieve_atlas", []), (error) => {
+    assert.equal(error.code, "gateway_error");
+    return true;
+  });
+  assert.equal(calls, 3);
+});
+
+test("structured JSON 503 without a starting code still fails immediately", async () => {
+  let calls = 0;
+  globalThis.fetch = async () => {
+    calls += 1;
+    return Response.json(null, { status: 503 });
+  };
+  await assert.rejects(waitForHistAgentService({ pollIntervalMs: 1 }), (error) => {
+    assert.equal(error.code, "gateway_error");
+    return true;
+  });
+  assert.equal(calls, 1);
+});

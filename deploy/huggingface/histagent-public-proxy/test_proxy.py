@@ -550,7 +550,7 @@ def test_sleeping_model_wakes_once_without_replaying_analysis_then_health_recove
         assert client.get("/api/health", headers={"Origin": ORIGIN}).json()["status"] == "available"
 
 
-@pytest.mark.parametrize("stage", ["BUILDING", "STARTING", "RUNNING_BUILDING", "RUNNING", "PAUSED", "RUNTIME_ERROR", "BUILD_ERROR", "UNKNOWN"])
+@pytest.mark.parametrize("stage", ["BUILDING", "STARTING", "RUNNING_BUILDING", "RUNNING_APP_STARTING", "RUNNING", "PAUSED", "RUNTIME_ERROR", "BUILD_ERROR", "UNKNOWN"])
 def test_only_sleeping_state_triggers_restart(stage):
     def respond(request):
         if str(request.url) == proxy.UPSTREAM_RUNTIME_URL:

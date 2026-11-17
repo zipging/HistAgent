@@ -33,12 +33,19 @@ function errorMessage(payload, fallback) {
 
 async function parseGatewayResponse(response, health = false) {
   let payload = null;
+  let decodedJson = false;
   try {
     payload = await response.json();
+    decodedJson = true;
   } catch {
     // The status code still provides a useful fallback when the body is empty.
   }
   if (!response.ok) {
+    if (health && !decodedJson && response.status === 503) {
+      const error = new Error("The analysis gateway is waking up. Readiness will be checked automatically.");
+      error.code = "backend_starting";
+      throw error;
+    }
     const missingService = !payload && [404, 410].includes(response.status);
     let message = errorMessage(payload, missingService
       ? "The analysis service is currently unavailable. Please try again later."
