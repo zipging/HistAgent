@@ -28,6 +28,7 @@ MAX_RESPONSE_BYTES = 32 * 1024 * 1024
 MAX_METADATA_BYTES = 64 * 1024
 ALLOWED_REQUEST_HEADERS = frozenset({"content-type", "x-histagent-session"})
 UPSTREAM_TIMEOUT = httpx.Timeout(300.0, connect=15.0, write=30.0, pool=15.0)
+HEALTH_TIMEOUT_SECONDS = 5.0
 IDENTITY_TIMEOUT = httpx.Timeout(15.0)
 OWNER_CHECK_RETRY_SECONDS = 60.0
 BODY_READ_TIMEOUT_SECONDS = 60.0
@@ -167,7 +168,7 @@ async def recover_sleeping_upstream(request: Request, settings: Settings, transp
         state.next_wake_check = state.clock() + WAKE_CHECK_COOLDOWN_SECONDS
         state.upstream_starting = False
         try:
-            async with asyncio.timeout(12.0), client(transport, httpx.Timeout(5.0)) as control_client:
+            async with asyncio.timeout(7.0), client(transport, httpx.Timeout(3.0)) as control_client:
                 headers = {"Authorization": f"Bearer {settings.token}"}
                 async with control_client.stream("GET", UPSTREAM_RUNTIME_URL, headers=headers) as response:
                     if response.status_code != 200:
@@ -196,6 +197,22 @@ async def recover_sleeping_upstream(request: Request, settings: Settings, transp
             return False
 
 
+@asynccontextmanager
+async def upstream_response(upstream_client: httpx.AsyncClient, request: Request, headers: dict[str, str], body: bytes | None):
+    url = f"{UPSTREAM_ORIGIN}{request.url.path}"
+    if request.url.path == "/api/health":
+        # Bound the entire health exchange, including connection and body,
+        # before allowing a separate short control-plane recovery attempt.
+        async with asyncio.timeout(HEALTH_TIMEOUT_SECONDS):
+            async with upstream_client.stream("GET", url, headers=headers) as response:
+                raw = await read_response(response, MAX_METADATA_BYTES)
+                buffered = httpx.Response(response.status_code, headers=response.headers, content=raw)
+        yield buffered
+    else:
+        async with upstream_client.stream(request.method, url, headers=headers, content=body) as response:
+            yield response
+
+
 async def forward(request: Request, settings: Settings, owner: str, transport: httpx.AsyncBaseTransport | None) -> Response:
     path = request.url.path
     origin = request.headers["origin"]
@@ -222,10 +239,9 @@ async def forward(request: Request, settings: Settings, owner: str, transport: h
     # This is a fresh HTTP request to one literal model host, not forwarding
     # the incoming ASGI request. In particular, never copy X-IP-Token, Cookie,
     # caller Authorization, X-HF-Authorization, or forwarding/IP headers.
-    async with client(transport, UPSTREAM_TIMEOUT) as upstream_client:
-        async with upstream_client.stream(
-            request.method, f"{UPSTREAM_ORIGIN}{path}", headers=headers, content=body,
-        ) as upstream:
+    timeout = httpx.Timeout(HEALTH_TIMEOUT_SECONDS) if path == "/api/health" else UPSTREAM_TIMEOUT
+    async with client(transport, timeout) as upstream_client:
+        async with upstream_response(upstream_client, request, headers, body) as upstream:
             if upstream.status_code < 200 or 300 <= upstream.status_code < 400:
                 raise ProxyFailure(502, "upstream_redirect_rejected", "The HistAgent service returned an unexpected redirect.")
             waiting = retry_after(upstream.headers)
@@ -334,9 +350,15 @@ def create_app(
             return await forward(request, config, owner, transport)
         except ProxyFailure as error:
             return failure(origin, error.status, error.code, error.message)
-        except httpx.TimeoutException:
+        except (httpx.TimeoutException, TimeoutError):
+            if request.url.path == "/api/health" and await recover_sleeping_upstream(request, config, transport):
+                return failure(origin, 503, "backend_starting",
+                    "The analysis service is waking up and loading its models. Please wait.", headers={"Retry-After": "5"})
             return failure(origin, 504, "upstream_timeout", "The HistAgent service did not respond in time. Please retry later.")
         except httpx.HTTPError:
+            if request.url.path == "/api/health" and await recover_sleeping_upstream(request, config, transport):
+                return failure(origin, 503, "backend_starting",
+                    "The analysis service is waking up and loading its models. Please wait.", headers={"Retry-After": "5"})
             return failure(origin, 502, "upstream_unavailable", "The HistAgent service could not be reached. Please retry later.")
         except ClientDisconnect:
             return failure(origin, 400, "invalid_request", "The request upload was interrupted.")

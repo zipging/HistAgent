@@ -143,7 +143,10 @@ def test_fixed_routes_build_owner_headers_without_incoming_or_previous_cookies()
         if request.method == "POST":
             expected |= {"content-type", "content-length"}
         assert set(request.headers) == expected
-        assert request.extensions["timeout"] == {"connect": 15.0, "read": 300.0, "write": 30.0, "pool": 15.0}
+        expected_timeout = {"connect": 15.0, "read": 300.0, "write": 30.0, "pool": 15.0}
+        if request.url.path == "/api/health":
+            expected_timeout = {phase: 5.0 for phase in ("connect", "read", "write", "pool")}
+        assert request.extensions["timeout"] == expected_timeout
         return httpx.Response(200, json={"data": []}, headers={"Set-Cookie": "upstream_cookie=private"})
 
     app, requests = make_app(respond)
@@ -656,3 +659,43 @@ def test_concurrent_sleeping_health_checks_issue_one_restart():
                 assert sum(str(r.url) == proxy.UPSTREAM_RUNTIME_URL for r in requests) == 1
                 assert sum(str(r.url) == proxy.UPSTREAM_RESTART_URL for r in requests) == 1
     asyncio.run(scenario())
+
+
+@pytest.mark.parametrize("exception", [httpx.ReadTimeout, httpx.ConnectError])
+@pytest.mark.parametrize("stage", ["SLEEPING", "RUNNING_APP_STARTING", "RUNNING"])
+def test_health_transport_failure_checks_runtime_without_resending_model_request(exception, stage):
+    def respond(request):
+        if str(request.url) == proxy.UPSTREAM_RUNTIME_URL:
+            return httpx.Response(200, json={"stage": stage})
+        if str(request.url) == proxy.UPSTREAM_RESTART_URL:
+            return httpx.Response(200, json={"stage": "BUILDING"})
+        assert request.extensions["timeout"]["read"] == 5.0
+        raise exception(f"private diagnostic {TOKEN}")
+
+    app, requests = make_app(respond)
+    with TestClient(app) as client:
+        response = client.get("/api/health", headers={"Origin": ORIGIN})
+        expected = "backend_starting" if stage != "RUNNING" else (
+            "upstream_timeout" if exception is httpx.ReadTimeout else "upstream_unavailable")
+        assert response.json()["detail"]["code"] == expected
+        assert TOKEN not in response.text
+        assert sum(str(r.url) == proxy.UPSTREAM_RUNTIME_URL for r in requests) == 1
+        assert sum(str(r.url) == proxy.UPSTREAM_RESTART_URL for r in requests) == (stage == "SLEEPING")
+        assert sum(str(r.url).startswith(proxy.UPSTREAM_ORIGIN) for r in requests) == 1
+
+
+def test_entire_health_forward_has_deadline_and_recovers_slow_connection(monkeypatch):
+    monkeypatch.setattr(proxy, "HEALTH_TIMEOUT_SECONDS", 0.01)
+
+    async def respond(request):
+        if str(request.url) == proxy.UPSTREAM_RUNTIME_URL:
+            return httpx.Response(200, json={"stage": "RUNNING_APP_STARTING"})
+        await asyncio.sleep(1)
+        return httpx.Response(200, json={"status": "available"})
+
+    app, requests = make_app(respond)
+    with TestClient(app) as client:
+        response = client.get("/api/health", headers={"Origin": ORIGIN})
+        assert response.status_code == 503
+        assert response.json()["detail"]["code"] == "backend_starting"
+        assert sum(str(r.url) == proxy.UPSTREAM_RUNTIME_URL for r in requests) == 1
