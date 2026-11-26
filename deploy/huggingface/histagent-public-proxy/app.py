@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import asyncio
+import math
 import os
 import re
 import time
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
+from email.utils import parsedate_to_datetime
 from typing import Any, Callable
 
 import httpx
@@ -197,6 +199,19 @@ async def recover_sleeping_upstream(request: Request, settings: Settings, transp
             return False
 
 
+def is_json(response: httpx.Response) -> bool:
+    return re.match(r"application/(?:[a-z0-9.+-]+\+)?json(?:\s*;|$)", response.headers.get("content-type", ""), re.I) is not None
+
+
+def cooldown_seconds(value: str) -> float:
+    if value.isdigit():
+        return int(value)
+    try:
+        return max(0, parsedate_to_datetime(value).timestamp() - time.time())
+    except (ValueError, OverflowError, TypeError):
+        return 15
+
+
 @asynccontextmanager
 async def upstream_response(upstream_client: httpx.AsyncClient, request: Request, headers: dict[str, str], body: bytes | None):
     url = f"{UPSTREAM_ORIGIN}{request.url.path}"
@@ -205,8 +220,13 @@ async def upstream_response(upstream_client: httpx.AsyncClient, request: Request
         # before allowing a separate short control-plane recovery attempt.
         async with asyncio.timeout(HEALTH_TIMEOUT_SECONDS):
             async with upstream_client.stream("GET", url, headers=headers) as response:
-                raw = await read_response(response, MAX_METADATA_BYTES)
-                buffered = httpx.Response(response.status_code, headers=response.headers, content=raw)
+                if response.status_code == 429 and not is_json(response):
+                    raw = b""  # The edge may return a large HTML page that we do not use.
+                else:
+                    raw = await read_response(response, MAX_METADATA_BYTES)
+                # aiter_bytes already decoded transport compression.
+                metadata_headers = {"Content-Type": response.headers.get("Content-Type", ""), **retry_after(response.headers)}
+                buffered = httpx.Response(response.status_code, headers=metadata_headers, content=raw)
         yield buffered
     else:
         async with upstream_client.stream(request.method, url, headers=headers, content=body) as response:
@@ -245,9 +265,14 @@ async def forward(request: Request, settings: Settings, owner: str, transport: h
             if upstream.status_code < 200 or 300 <= upstream.status_code < 400:
                 raise ProxyFailure(502, "upstream_redirect_rejected", "The HistAgent service returned an unexpected redirect.")
             waiting = retry_after(upstream.headers)
-            content_type = upstream.headers.get("content-type", "")
-            if not re.match(r"application/(?:[a-z0-9.+-]+\+)?json(?:\s*;|$)", content_type, re.I):
+            if not is_json(upstream):
                 status = upstream.status_code if upstream.status_code >= 400 else 502
+                if status == 429 and path == "/api/health":
+                    waiting.setdefault("Retry-After", "15")
+                    request.app.state.health_cooldown = request.app.state.clock() + cooldown_seconds(waiting["Retry-After"])
+                    return failure(origin, 429, "host_rate_limited",
+                        "The model host is temporarily limiting readiness checks.",
+                        headers=waiting)
                 if status == 503 and await recover_sleeping_upstream(request, settings, transport):
                     return failure(origin, 503, "backend_starting",
                         "The analysis service is waking up and loading its models. Please wait.", headers={"Retry-After": "5"})
@@ -305,6 +330,10 @@ def create_app(
     application.state.owner_check_lock = asyncio.Lock()
     application.state.next_owner_check = 0.0
     application.state.admission = Admission(2)
+    application.state.health_lock = asyncio.Lock()
+    application.state.health_snapshot = None
+    application.state.health_cooldown = 0.0
+    application.state.health_generation = 0
     application.state.clock = clock
     application.state.wake_lock = asyncio.Lock()
     application.state.next_wake_check = 0.0
@@ -346,24 +375,46 @@ def create_app(
         needs_admission = request.method == "POST"
         if needs_admission and not application.state.admission.acquire():
             return failure(origin, 429, "proxy_busy", "The public upload service is busy. Please retry shortly.", headers={"Retry-After": "5"})
+
+        async def checked_forward() -> Response:
+            try:
+                return await forward(request, config, owner, transport)
+            except ProxyFailure as error:
+                return failure(origin, error.status, error.code, error.message)
+            except (httpx.TimeoutException, TimeoutError):
+                if request.url.path == "/api/health" and await recover_sleeping_upstream(request, config, transport):
+                    return failure(origin, 503, "backend_starting",
+                        "The analysis service is waking up and loading its models. Please wait.", headers={"Retry-After": "5"})
+                return failure(origin, 504, "upstream_timeout", "The HistAgent service did not respond in time. Please retry later.")
+            except httpx.HTTPError:
+                if request.url.path == "/api/health" and await recover_sleeping_upstream(request, config, transport):
+                    return failure(origin, 503, "backend_starting",
+                        "The analysis service is waking up and loading its models. Please wait.", headers={"Retry-After": "5"})
+                return failure(origin, 502, "upstream_unavailable", "The HistAgent service could not be reached. Please retry later.")
+            except ClientDisconnect:
+                return failure(origin, 400, "invalid_request", "The request upload was interrupted.")
+            except Exception:
+                return failure(origin, 502, "proxy_error", "The HistAgent service could not complete this request.")
+
         try:
-            return await forward(request, config, owner, transport)
-        except ProxyFailure as error:
-            return failure(origin, error.status, error.code, error.message)
-        except (httpx.TimeoutException, TimeoutError):
-            if request.url.path == "/api/health" and await recover_sleeping_upstream(request, config, transport):
-                return failure(origin, 503, "backend_starting",
-                    "The analysis service is waking up and loading its models. Please wait.", headers={"Retry-After": "5"})
-            return failure(origin, 504, "upstream_timeout", "The HistAgent service did not respond in time. Please retry later.")
-        except httpx.HTTPError:
-            if request.url.path == "/api/health" and await recover_sleeping_upstream(request, config, transport):
-                return failure(origin, 503, "backend_starting",
-                    "The analysis service is waking up and loading its models. Please wait.", headers={"Retry-After": "5"})
-            return failure(origin, 502, "upstream_unavailable", "The HistAgent service could not be reached. Please retry later.")
-        except ClientDisconnect:
-            return failure(origin, 400, "invalid_request", "The request upload was interrupted.")
-        except Exception:
-            return failure(origin, 502, "proxy_error", "The HistAgent service could not complete this request.")
+            if needs_admission:
+                return await checked_forward()
+            state = application.state
+            generation = state.health_generation
+            async with state.health_lock:
+                remaining = state.health_cooldown - clock()
+                # Reuse an overlapping probe, including slow failures. Later visitors
+                # get a fresh check unless the host gave us a throttle interval.
+                if generation != state.health_generation or remaining > 0:
+                    status, body, retry = state.health_snapshot
+                    headers = cors_headers(origin)
+                    if retry:
+                        headers["Retry-After"] = str(math.ceil(remaining)) if remaining > 0 else retry
+                    return Response(body, status_code=status, headers=headers, media_type="application/json")
+                response = await checked_forward()
+                state.health_snapshot = (response.status_code, response.body, response.headers.get("Retry-After"))
+                state.health_generation += 1
+                return response
         finally:
             # Also runs for task cancellation; no automatic resubmission follows.
             if needs_admission:

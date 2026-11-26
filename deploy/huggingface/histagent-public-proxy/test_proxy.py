@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import gzip
 import importlib.util
 import sys
 from pathlib import Path
@@ -656,6 +657,7 @@ def test_concurrent_sleeping_health_checks_issue_one_restart():
                     finish_runtime.set()
                 responses = await asyncio.gather(*pending)
                 assert all(r.json()["detail"]["code"] == "backend_starting" for r in responses)
+                assert sum(r.url.path == "/api/health" for r in requests) == 1
                 assert sum(str(r.url) == proxy.UPSTREAM_RUNTIME_URL for r in requests) == 1
                 assert sum(str(r.url) == proxy.UPSTREAM_RESTART_URL for r in requests) == 1
     asyncio.run(scenario())
@@ -699,3 +701,31 @@ def test_entire_health_forward_has_deadline_and_recovers_slow_connection(monkeyp
         assert response.status_code == 503
         assert response.json()["detail"]["code"] == "backend_starting"
         assert sum(str(r.url) == proxy.UPSTREAM_RUNTIME_URL for r in requests) == 1
+
+
+def test_host_health_throttle_shared_across_visitors_then_recovers():
+    now = [0.]
+    responses = iter([httpx.Response(429, text="x" * (proxy.MAX_METADATA_BYTES + 1), headers={"Retry-After": "38"}),
+                      httpx.Response(200, json={"status": "available"})])
+    app, requests = make_app(lambda _: next(responses), clock=lambda: now[0])
+    with TestClient(app) as client:
+        first = client.get("/api/health", headers={"Origin": ORIGIN})
+        assert first.json()["detail"]["code"] == "host_rate_limited"
+        assert first.headers["Retry-After"] == "38"
+        now[0] += 10
+        other = "https://www.histagent.bio"
+        second = client.get("/api/health", headers={"Origin": other})
+        assert second.status_code == 429
+        assert second.headers["Retry-After"] == "28"
+        assert second.headers["Access-Control-Allow-Origin"] == other
+        assert len(model_requests(requests)) == 1
+        now[0] += 28
+        assert client.get("/api/health", headers={"Origin": ORIGIN}).status_code == 200
+        assert len(model_requests(requests)) == 2
+
+
+def test_health_handles_compressed_upstream_response():
+    app, _ = make_app(lambda _: httpx.Response(200, content=gzip.compress(b'{"status":"available"}'),
+                                               headers={"Content-Type": "application/json", "Content-Encoding": "gzip"}))
+    with TestClient(app) as client:
+        assert client.get("/api/health", headers={"Origin": ORIGIN}).json()["status"] == "available"
