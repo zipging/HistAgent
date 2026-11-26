@@ -39,8 +39,8 @@ body.ha-product-site {
 .ha-product-site .site-header { position: sticky; top: 0; z-index: 50; height: auto; border-bottom: 1px solid var(--ha-line); background: #fff; box-shadow: none; }
 .ha-product-site .header-inner { display: flex; align-items: center; justify-content: space-between; width: 100%; max-width: none; min-height: var(--ha-header-height); margin: 0; padding: 0 24px; gap: 32px; }
 .ha-product-site .site-header .brand { display: inline-flex; align-items: center; gap: 8px; text-decoration: none; }
-.ha-product-site .site-header .brand-figure2 { display: block; width: 36px; height: 36px; flex: 0 0 36px; object-fit: contain; }
-.ha-product-site .brand-copy strong { color: var(--ha-ink); font-size: 21px; font-weight: 600; line-height: 1; letter-spacing: -.8px; }
+.ha-product-site .site-header .brand-figure2 { display: block; width: 26px; height: 26px; flex: 0 0 26px; object-fit: contain; }
+.ha-product-site .brand-copy strong { color: #1b7c5c; font: 400 21px/1 Arial, sans-serif; letter-spacing: -.35px; }
 .ha-product-site .brand-copy strong > span { font-weight: 400; }
 .ha-product-site .primary-nav { display: flex; align-items: center; gap: 6px; margin: 0; }
 .ha-product-site .primary-nav a { padding: 7px 12px; border: 0; border-radius: 6px; background: transparent; color: #656e7b; font: 400 13px/1.6 var(--sans); text-decoration: none; white-space: nowrap; }

@@ -1,4 +1,4 @@
-import { callHistAgentService, getHistAgentServiceHealth } from "./histagent-services.js?v=20261114availability1";
+import { callHistAgentService, getHistAgentServiceHealth } from "./histagent-services.js?v=20261126availability";
 
 const ATLAS_IMAGE_QUERY_KEY = "histagent-atlas-image-query";
 const ATLAS_EVIDENCE_QUERY_KEY = "histagent-atlas-evidence-query";

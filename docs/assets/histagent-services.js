@@ -24,6 +24,10 @@ function sessionId() {
   return value;
 }
 
+function isHostRateLimit(code) {
+  return code === "backend_rate_limited" || code === "host_rate_limited";
+}
+
 function errorMessage(payload, fallback) {
   const detail = payload?.detail;
   if (typeof detail === "string" && detail) return detail;
@@ -47,10 +51,16 @@ async function parseGatewayResponse(response, health = false) {
       throw error;
     }
     const missingService = !payload && [404, 410].includes(response.status);
-    let message = errorMessage(payload, missingService
+    const hostLimited = !decodedJson && response.status === 429;
+    let message = errorMessage(payload, hostLimited
+      ? "The model host is temporarily busy."
+      : missingService
       ? "The analysis service is currently unavailable. Please try again later."
       : `HistAgent service failed (${response.status})`);
-    const seconds = Number(payload?.detail?.retry_after_seconds || response.headers.get("Retry-After"));
+    const retryAfter = payload?.detail?.retry_after_seconds || response.headers.get("Retry-After");
+    const parsedSeconds = Number(retryAfter);
+    const seconds = Number.isFinite(parsedSeconds) ? Math.max(0, parsedSeconds)
+      : Math.max(0, Math.ceil((Date.parse(retryAfter) - Date.now()) / 1000)) || 0;
     const waitingForDailyQuotaReset = payload?.detail?.code === "gpu_quota_exhausted"
       && /\bdaily\b/i.test(message) && /\breset\b/i.test(message);
     // The gateway cooldown does not tell us when HF's daily allowance resets.
@@ -59,7 +69,7 @@ async function parseGatewayResponse(response, health = false) {
       message += ` Try again in ${minutes} minute${minutes === 1 ? "" : "s"}.`;
     }
     const error = new Error(message);
-    error.code = payload?.detail?.code || (missingService ? "service_unavailable" : "gateway_error");
+    error.code = payload?.detail?.code || (hostLimited ? "host_rate_limited" : missingService ? "service_unavailable" : "gateway_error");
     error.retryAfterSeconds = seconds;
     throw error;
   }
@@ -68,11 +78,16 @@ async function parseGatewayResponse(response, health = false) {
       throw new Error("The analysis service returned invalid availability information.");
     }
     if (payload.status !== "available") {
-      const message = Object.values(payload.backends || {}).find((backend) => backend?.message)?.message;
+      const unavailable = Object.values(payload.backends || {}).filter(backend => backend?.status === "unavailable");
+      const message = unavailable.find(backend => backend.message)?.message;
       const error = new Error(message || (Number(payload.remaining_gpu_seconds) === 0
         ? "The shared analysis allowance is temporarily exhausted. Please try again later."
         : "The analysis service is starting or temporarily unavailable. Please try again later."));
       error.code = "service_unavailable";
+      if (Number(payload.remaining_gpu_seconds) > 0 && unavailable.length && unavailable.every(backend => isHostRateLimit(backend.code))) {
+        error.code = "backend_rate_limited";
+        error.retryAfterSeconds = Math.max(...unavailable.map(backend => Number(backend.retry_after_seconds) || 0));
+      }
       throw error;
     }
     return payload;
@@ -120,10 +135,13 @@ export async function waitForHistAgentService({
   timeoutMs = 300000,
   pollIntervalMs = 5000,
   onStarting = () => {},
+  onRateLimit,
   shouldContinue = () => true
 } = {}) {
   const deadline = Date.now() + timeoutMs;
   let starting = false;
+  let backoffMs = pollIntervalMs * 3;
+  let rateLimitError;
   while (shouldContinue()) {
     const remaining = deadline - Date.now();
     if (remaining <= 0) break;
@@ -132,17 +150,30 @@ export async function waitForHistAgentService({
       return shouldContinue() ? health : null;
     } catch (error) {
       if (!shouldContinue()) return null;
-      if (error.code === "backend_starting") {
+      let delay = pollIntervalMs;
+      if (onRateLimit && isHostRateLimit(error.code)) {
+        starting = false;
+        rateLimitError = error;
+        delay = Math.max(backoffMs, (error.retryAfterSeconds || 0) * 1000);
+        if (delay >= deadline - Date.now()) throw error;
+        backoffMs = Math.min(60000, backoffMs * 2);
+        onRateLimit(Math.ceil(delay / 1000));
+      } else if (error.code === "backend_starting") {
         starting = true;
+        rateLimitError = null;
         onStarting(error.message);
       } else if (!starting || error.code !== "service_timeout") {
         throw error;
       }
-      const delay = Math.min(pollIntervalMs, deadline - Date.now());
-      if (delay > 0) await new Promise((resolve) => setTimeout(resolve, delay));
+      const resumeAt = Math.min(Date.now() + delay, deadline);
+      // A changed spot cancels the pending action even during a long host cooldown.
+      while (shouldContinue() && Date.now() < resumeAt) {
+        await new Promise((resolve) => setTimeout(resolve, Math.min(pollIntervalMs, resumeAt - Date.now())));
+      }
     }
   }
   if (!shouldContinue()) return null;
+  if (rateLimitError) throw rateLimitError;
   const error = new Error("The model service is still starting. Please try Analyze selected spot again shortly.");
   error.code = "service_startup_timeout";
   throw error;

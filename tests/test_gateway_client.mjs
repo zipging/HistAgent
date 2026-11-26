@@ -257,3 +257,61 @@ test("structured JSON 503 without a starting code still fails immediately", asyn
   });
   assert.equal(calls, 1);
 });
+
+test("explicit analysis can wait through a transient host throttle before any POST", async () => {
+  for (const code of ["host_rate_limited", "backend_rate_limited"]) {
+    let calls = 0;
+    let progress = 0;
+    globalThis.fetch = async (_url, request) => {
+      assert.equal(request.method, "GET");
+      return ++calls === 1
+        ? Response.json({ detail: { code, message: "Busy" } }, { status: 429 })
+        : Response.json({ status: "available" });
+    };
+    const health = await waitForHistAgentService({
+      pollIntervalMs: 1, onRateLimit: () => { progress++; }
+    });
+    assert.equal(health.status, "available");
+    assert.equal(calls, 2);
+    assert.equal(progress, 1);
+  }
+});
+
+test("a long host cooldown is reported immediately and respects HTTP-date Retry-After", async () => {
+  let calls = 0;
+  globalThis.fetch = async () => {
+    calls++;
+    return new Response("Busy", { status: 429, headers: {
+      "Retry-After": new Date(Date.now() + 3600000).toUTCString()
+    } });
+  };
+  await assert.rejects(waitForHistAgentService({
+    timeoutMs: 1000, onRateLimit: () => assert.fail("outside wait budget")
+  }), error => error.code === "host_rate_limited" && error.retryAfterSeconds >= 3598);
+  assert.equal(calls, 1);
+});
+
+test("passive health checks and GPU quota or POST failures never retry a 429", async () => {
+  let calls = 0;
+  let code = "backend_rate_limited";
+  globalThis.fetch = async () => {
+    calls++;
+    return Response.json({ detail: { code, message: "Busy" } }, { status: 429 });
+  };
+  await assert.rejects(waitForHistAgentService(), /Busy/);
+  await assert.rejects(callHistAgentService("reasoning", "retrieve_atlas", []), /Busy/);
+  code = "gpu_quota_exhausted";
+  await assert.rejects(waitForHistAgentService({ onRateLimit: () => assert.fail() }), /Busy/);
+  assert.equal(calls, 3);
+});
+
+test("degraded health carries backend throttle metadata so Analyze can wait", async () => {
+  globalThis.fetch = async () => Response.json({ status: "degraded", remaining_gpu_seconds: 2400,
+    backends: {
+      inference: { status: "unavailable", code: "backend_rate_limited", message: "Busy", retry_after_seconds: 42 },
+      reasoning: { status: "reachable" }
+    }
+  });
+  await assert.rejects(getHistAgentServiceHealth(),
+    error => error.code === "backend_rate_limited" && error.retryAfterSeconds === 42);
+});

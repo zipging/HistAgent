@@ -2,7 +2,7 @@ import {
   callHistAgentService,
   waitForHistAgentService,
   generateHistAgentReadout
-} from "./histagent-services.js?v=20261117coldstart2";
+} from "./histagent-services.js?v=20261126availability";
 const LOCAL_DIAMETER_UM = 55;
 const CONTEXT_DIAMETER_UM = 220;
 const EXAMPLE_MANIFEST_URL = "/assets/gsm5924036-spots.json";
@@ -746,6 +746,9 @@ async function generateEvidence() {
   try {
     await waitForHistAgentService({
       shouldContinue: () => isCurrentSelection(selection),
+      onRateLimit: (seconds) => {
+        if (isCurrentSelection(selection)) setStatus(`The model host is busy. Checking again in ${seconds} seconds before submitting your spot.`);
+      },
       onStarting: () => {
         if (isCurrentSelection(selection)) setStatus("The model service is waking up. Analysis will start when it is ready. Loading can take a few minutes.");
       }
@@ -787,7 +790,7 @@ async function generateEvidence() {
     console.error(error);
     if (!isCurrentSelection(selection)) return;
     clearEvidenceForSelection();
-    setStatus(`${(error.message || "Spot inference is temporarily unavailable").replace(/[.。]\s*$/, "")}. The selected local and contextual views are ready to retry.`, true);
+    setStatus(`${(error.message || "Spot inference is temporarily unavailable").replace(/[.。]\s*$/, "")}. Your spot selection is saved on this page.`, true);
   } finally {
     setBusy(false);
   }

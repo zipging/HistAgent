@@ -45,7 +45,7 @@ def build_header() -> BeautifulSoup:
         """
 <header class="site-header">
   <div class="header-inner">
-    <a class="brand" href="/"><img class="brand-figure2" src="/assets/histagent-figure2-logo.png" width="46" height="46" alt="" aria-hidden="true"><span class="brand-copy"><strong>Hist<span>Agent</span></strong></span></a>
+    <a class="brand" href="/"><img class="brand-figure2" src="/assets/histagent-figure2-logo.svg" width="46" height="46" alt="" aria-hidden="true"><span class="brand-copy"><strong>Hist<span>Agent</span></strong></span></a>
     <button class="nav-toggle" type="button" data-nav-toggle aria-expanded="false" aria-controls="primary-nav">Menu</button>
     <nav class="primary-nav" id="primary-nav" data-primary-nav aria-label="Primary navigation">
       <a href="/">Overview</a><a href="/tutorials/" aria-current="page">Tutorials</a><a href="/histagent/">HistAgent</a><a href="/atlas-explorer/">Atlas Explorer</a><a href="https://github.com/zipging/HistAgent">GitHub</a>
@@ -107,13 +107,13 @@ def render_tutorial(tutorial: Tutorial) -> None:
     head = soup.head
     for markup in (
         '<meta name="theme-color" content="#f5f7fa">',
-        '<link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">',
-        '<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">',
+        '<link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png?v=20261126brand">',
+        '<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png?v=20261126brand">',
         '<link rel="stylesheet" href="/assets/site.css?v=20260727paper2">',
         f'<link rel="stylesheet" href="/assets/notebook.css?v={ASSET_VERSION}">',
         f'<link rel="stylesheet" href="/assets/design-system.css?v={DESIGN_VERSION}">',
         f'<link rel="stylesheet" href="/assets/editorial.css?v={DESIGN_VERSION}">',
-        f'<link rel="stylesheet" href="/assets/product-shell.css?v={PRODUCT_VERSION}">',
+        f'<link rel="stylesheet" href="/assets/product-shell.css?v=20261126brand">',
         f'<link rel="stylesheet" href="/assets/tutorial-product.css?v={PRODUCT_VERSION}">',
     ):
         append_fragment(head, fragment(markup))

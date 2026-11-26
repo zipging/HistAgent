@@ -1,5 +1,3 @@
-Original HistAgent robot emblem, reproduced without redesign from manuscript Figure 2 (top-left).
-Losslessly extracted from original HistAgent_figure2.pdf, page 1, image xref 68, soft mask xref 317.
-Source image: 512 x 512 RGBA PNG.
-The current manuscript revision contains the same emblem at image xref 157 in a downsampled 224 x 224 version.
-Header uses the original PNG; favicon and Apple touch icon are resized from that PNG.
+HistAgent three-color cube from manuscript Figure 2.
+Vector source: response_figure_materials/2.4_agent_evaluation/assets/histagent_figure2_logo.svg
+The header uses the original vector paths. Workspace avatars and favicons are square, transparent exports from the matching Figure 2 PNG.
