@@ -179,7 +179,7 @@ function waitForTissueImage({ timeoutMs = 15000 } = {}) {
 
 async function checkInitialServiceAvailability() {
   const attempt = inferenceAttempt;
-  setStatus("Checking the analysis service. Select a spot, then use Analyze selected spot.");
+  setStatus("Checking service availability…");
   try {
     const shouldContinue = () => inferenceAttempt === attempt && !inferencePending && !currentEvidence;
     await waitForHistAgentService({
@@ -189,17 +189,34 @@ async function checkInitialServiceAvailability() {
       }
     });
     if (!shouldContinue()) return;
-    setStatus("Select a tissue spot, then use Analyze selected spot to generate evidence and unlock the conversation.");
+    setStatus("Generate an evidence card for your selected spot to start a conversation.");
   } catch (error) {
     if (inferenceAttempt !== attempt || inferencePending || currentEvidence) return;
-    setStatus(`${error.message} Image upload and spot selection remain available; use Analyze selected spot to retry.`, true);
+    setStatus(`${error.message} Image upload and spot selection remain available; choose Generate evidence card to retry.`, true);
   }
+}
+
+const chatWelcome = document.querySelector("#histagent-chat-welcome");
+const chatGenerateButton = document.querySelector("#histagent-chat-generate");
+const cardHint = document.querySelector("#histagent-card-hint");
+
+function updateCardActions() {
+  const label = inferencePending ? "Generating card…" : "Generate evidence card";
+  for (const button of [generateButton, chatGenerateButton]) {
+    button.disabled = inferencePending || !selectedSpot;
+    button.textContent = label;
+  }
+  if (currentEvidence && !inferencePending) generateButton.textContent = "Regenerate evidence card";
+  cardHint.textContent = inferencePending
+    ? "Preparing the card for your selected spot. You can ask a question here when it’s ready."
+    : selectedSpot
+      ? "Generate the ranked gene list for this spot, then ask questions about the results."
+      : "Select a tissue spot to get started.";
 }
 
 function setBusy(value) {
   inferencePending = value;
-  generateButton.disabled = value || !selectedSpot;
-  generateButton.textContent = value ? "Analyzing…" : "Analyze selected spot";
+  updateCardActions();
   stageLoading.hidden = !value;
 }
 
@@ -504,7 +521,6 @@ function clearSpotSelection() {
   selectedSpot = null;
   spots = [];
   clearEvidenceForSelection();
-  generateButton.disabled = true;
   spotId.textContent = "No spot selected";
   spotCount.textContent = "0 sampling spots";
   selectedCoordinates.textContent = "Select a tissue spot to view its coordinates.";
@@ -535,15 +551,10 @@ function clearEvidenceForSelection() {
     </div>
   `;
   chatHistory = [];
-  chatLog.innerHTML = `
-    <div class="ha-chat-welcome">
-      <img src="/assets/histagent-figure2-logo.png" width="48" height="48" alt="">
-      <h3>Explore this tissue spot</h3>
-      <p>Analyze the selected spot to discuss its ranked genes and surrounding tissue context.</p>
-    </div>
-  `;
+  chatLog.replaceChildren(chatWelcome);
+  updateCardActions();
   chatInput.disabled = true;
-  chatInput.placeholder = "Analyze a spot to start a conversation";
+  chatInput.placeholder = "Generate an evidence card first";
   chatButton.disabled = true;
   atlasAction.hidden = true;
 }
@@ -552,7 +563,7 @@ function selectSpot(spot, options = {}) {
   if (!spot) return;
   const changed = selectedSpot?.id !== spot.id;
   selectedSpot = spot;
-  generateButton.disabled = inferencePending;
+  updateCardActions();
   spotId.textContent = spot.id;
   renderSpots();
   updateCropPreviews();
@@ -561,7 +572,7 @@ function selectSpot(spot, options = {}) {
   setWorkflowStep("spot");
   if (changed && !options.preserveEvidence) {
     clearEvidenceForSelection();
-    setStatus(`${spot.id} selected. Generate its spot evidence.`);
+    setStatus(`${spot.id} selected. Generate its evidence card to start a conversation.`);
   }
 }
 
@@ -1107,6 +1118,7 @@ window.addEventListener("resize", () => {
   renderSpots();
 });
 generateButton.addEventListener("click", generateEvidence);
+chatGenerateButton.addEventListener("click", generateEvidence);
 
 atlasAction.addEventListener("click", () => {
   if (!currentEvidence) return;

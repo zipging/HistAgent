@@ -182,3 +182,5 @@
   .histagent-page .atlas-chat-form button { width: 36px; height: 36px; }
   .ha-chat-welcome { padding: 35px 20px 50px; }
 }
+
+.histagent-page .ha-chat-welcome .histagent-generate { margin-top: 16px; min-height: 42px; }

@@ -14,7 +14,7 @@
     <link rel="stylesheet" href="/assets/design-system.css?v=20261114-figure2-logo1">
     <link rel="stylesheet" href="/assets/editorial.css?v=20261114-lighttable">
     <link rel="stylesheet" href="/assets/product-shell.css?v=20261126brand">
-    <link rel="stylesheet" href="/assets/agent-workspace.css?v=20261114unified1">
+    <link rel="stylesheet" href="/assets/agent-workspace.css?v=20261126card">
   </head>
   <body class="atlas-page histagent-page ha-product-site">
     <a class="skip-link" href="#histagent-workbench">Skip to HistAgent</a>
@@ -41,10 +41,10 @@
           <ol class="histagent-steps" aria-label="Analysis workflow">
             <li class="complete" data-step="image"><span>1</span><strong>Tissue image</strong></li>
             <li class="active" data-step="spot"><span>2</span><strong>Select spot</strong></li>
-            <li data-step="evidence"><span>3</span><strong>Analyze spot</strong></li>
+            <li data-step="evidence"><span>3</span><strong>Evidence card</strong></li>
           </ol>
-          <button class="histagent-generate" id="histagent-generate" type="button">
-            Analyze selected spot
+          <button class="histagent-generate" id="histagent-generate" type="button" disabled>
+            Generate evidence card
           </button>
         </header>
 
@@ -166,7 +166,7 @@
               <div class="atlas-scale"><span></span>1 mm</div>
               <div class="histagent-stage-loading" id="histagent-stage-loading" hidden>
                 <span></span>
-                <strong>Analyzing selected spot</strong>
+                <strong>Generating evidence card</strong>
                 <small>HistAgent is processing the local and contextual H&amp;E views.</small>
               </div>
             </div>
@@ -180,7 +180,7 @@
             </div>
 
             <p class="histagent-run-status" id="histagent-run-status" role="status" aria-live="polite">
-              Select a spot, then analyze it with HistAgent.
+              Select a spot and generate its evidence card to start a conversation.
             </p>
           </section>
 
@@ -215,10 +215,11 @@
                 <span class="ha-conversation-context">Evidence-grounded analysis</span>
               </header>
               <div class="atlas-chat" id="histagent-chat-log" aria-live="polite">
-                <div class="ha-chat-welcome">
+                <div class="ha-chat-welcome" id="histagent-chat-welcome">
                   <img src="/assets/histagent-figure2-logo.png" width="48" height="48" alt="">
-                  <h3>Explore this tissue spot</h3>
-                  <p>Analyze the selected spot to discuss its ranked genes and surrounding tissue context.</p>
+                  <h3>Generate a card to start chatting</h3>
+                  <p id="histagent-card-hint">Select a tissue spot to get started.</p>
+                  <button class="histagent-generate" id="histagent-chat-generate" type="button" disabled>Generate evidence card</button>
                 </div>
               </div>
               <details class="ha-chat-prompts">
@@ -230,7 +231,7 @@
               </details>
               <form class="atlas-chat-form" id="histagent-chat-form">
                 <label class="sr-only" for="histagent-chat-input">Ask about the selected spot evidence</label>
-                <textarea id="histagent-chat-input" rows="2" placeholder="Analyze a spot to start a conversation" disabled></textarea>
+                <textarea id="histagent-chat-input" rows="2" placeholder="Generate an evidence card first" disabled></textarea>
                 <button type="submit" aria-label="Send question" disabled>↑</button>
               </form>
             </section>
@@ -240,6 +241,6 @@
     </main>
 
     <script src="/assets/site.js?v=20260729bio1"></script>
-    <script type="module" src="/assets/histagent-workbench.js?v=20261126availability"></script>
+    <script type="module" src="/assets/histagent-workbench.js?v=20261126card"></script>
   </body>
 </html>
