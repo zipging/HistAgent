@@ -137,12 +137,13 @@ def test_fixed_routes_build_owner_headers_without_incoming_or_previous_cookies()
     def respond(request):
         assert request.headers["Authorization"] == f"Bearer {TOKEN}"
         assert request.headers["Origin"] == ORIGIN
-        assert request.headers["X-HistAgent-Session"] == "browser-session-123"
+
         for name in ["Cookie", "X-HF-Authorization", "X-IP-Token", "X-Forwarded-For", "X-Real-IP", "Forwarded", "CF-Connecting-IP", "X-Arbitrary"]:
             assert name not in request.headers
-        expected = {"host", "accept", "accept-encoding", "connection", "user-agent", "authorization", "origin", "x-histagent-session"}
+        expected = {"host", "accept", "accept-encoding", "connection", "user-agent", "authorization", "origin"}
         if request.method == "POST":
-            expected |= {"content-type", "content-length"}
+            assert request.headers["X-HistAgent-Session"] == "browser-session-123"
+            expected |= {"content-type", "content-length", "x-histagent-session"}
         assert set(request.headers) == expected
         expected_timeout = {"connect": 15.0, "read": 300.0, "write": 30.0, "pool": 15.0}
         if request.url.path == "/api/health":
@@ -729,3 +730,29 @@ def test_health_handles_compressed_upstream_response():
                                                headers={"Content-Type": "application/json", "Content-Encoding": "gzip"}))
     with TestClient(app) as client:
         assert client.get("/api/health", headers={"Origin": ORIGIN}).json()["status"] == "available"
+
+
+def test_available_health_is_shared_for_thirty_seconds_and_refreshed_after_model_failure():
+    now = [50.]
+    statuses = iter(["available", "degraded", "available", "degraded"])
+    def respond(request):
+        if request.method == "POST":
+            return httpx.Response(503, json={"detail": "unavailable"})
+        assert "X-HistAgent-Session" not in request.headers
+        return httpx.Response(200, json={"status": next(statuses)})
+
+    app, requests = make_app(respond, clock=lambda: now[0])
+    with TestClient(app) as client:
+        def health(origin=ORIGIN):
+            response = client.get("/api/health", headers={"Origin": origin, "X-HistAgent-Session": "reviewer-session"})
+            assert response.headers["Access-Control-Allow-Origin"] == origin
+            return response.json()["status"]
+        assert health() == "available"
+        now[0] += 29
+        assert health("https://www.histagent.bio") == "available"
+        assert len(model_requests(requests)) == 1
+        now[0] += 1
+        assert health() == "degraded"
+        assert health() == "available"
+        assert call(client).status_code == 503
+        assert health() == "degraded"

@@ -1,5 +1,5 @@
 gradio==5.44.1
-spaces==0.51.3
+# The ZeroGPU builder installs its matching spaces runtime.
 torch==2.8.0
 torchvision==0.23.0
 transformers==4.57.6

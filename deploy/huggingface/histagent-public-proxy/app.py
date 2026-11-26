@@ -31,6 +31,7 @@ MAX_METADATA_BYTES = 64 * 1024
 ALLOWED_REQUEST_HEADERS = frozenset({"content-type", "x-histagent-session"})
 UPSTREAM_TIMEOUT = httpx.Timeout(300.0, connect=15.0, write=30.0, pool=15.0)
 HEALTH_TIMEOUT_SECONDS = 5.0
+HEALTH_AVAILABLE_TTL_SECONDS = 30.0
 IDENTITY_TIMEOUT = httpx.Timeout(15.0)
 OWNER_CHECK_RETRY_SECONDS = 60.0
 BODY_READ_TIMEOUT_SECONDS = 60.0
@@ -238,7 +239,7 @@ async def forward(request: Request, settings: Settings, owner: str, transport: h
     origin = request.headers["origin"]
     headers = {"Authorization": f"Bearer {settings.token}", "Origin": origin}
     session = request.headers.get("x-histagent-session", "")
-    if re.fullmatch(r"[A-Za-z0-9._-]{8,96}", session):
+    if request.method == "POST" and re.fullmatch(r"[A-Za-z0-9._-]{8,96}", session):
         headers["X-HistAgent-Session"] = session
     body = None
     if request.method == "POST":
@@ -290,6 +291,7 @@ async def forward(request: Request, settings: Settings, owner: str, transport: h
                 if not isinstance(payload, dict):
                     raise ProxyFailure(502, "upstream_invalid_response", "The HistAgent service returned invalid health metadata.")
                 payload["proxy_owner"] = owner
+                request.state.backend_available = upstream.status_code == 200 and payload.get("status") == "available"
             # Rebuild headers; discard cookies, credentials, signed identities,
             # location and diagnostics. Preserve backend error codes and wording.
             outgoing = JSONResponse(payload, status_code=upstream.status_code, headers={**cors_headers(origin), **waiting})
@@ -333,6 +335,8 @@ def create_app(
     application.state.health_lock = asyncio.Lock()
     application.state.health_snapshot = None
     application.state.health_cooldown = 0.0
+    application.state.health_valid_until = 0.0
+    application.state.backend_failures = 0
     application.state.health_generation = 0
     application.state.clock = clock
     application.state.wake_lock = asyncio.Lock()
@@ -397,21 +401,36 @@ def create_app(
                 return failure(origin, 502, "proxy_error", "The HistAgent service could not complete this request.")
 
         try:
-            if needs_admission:
-                return await checked_forward()
             state = application.state
+            if needs_admission:
+                response = await checked_forward()
+                if response.status_code == 429 or response.status_code >= 500:
+                    if state.health_valid_until > 0:
+                        state.health_snapshot = None
+                    state.health_valid_until = 0.0
+                    state.backend_failures += 1
+                return response
             generation = state.health_generation
             async with state.health_lock:
                 remaining = state.health_cooldown - clock()
-                # Reuse an overlapping probe, including slow failures. Later visitors
-                # get a fresh check unless the host gave us a throttle interval.
-                if generation != state.health_generation or remaining > 0:
+                # Share overlapping probes. Later requests reuse only a healthy
+                # snapshot or the host's explicit throttle window.
+                if state.health_snapshot is not None and (
+                    generation != state.health_generation or remaining > 0 or clock() < state.health_valid_until
+                ):
                     status, body, retry = state.health_snapshot
                     headers = cors_headers(origin)
                     if retry:
                         headers["Retry-After"] = str(math.ceil(remaining)) if remaining > 0 else retry
                     return Response(body, status_code=status, headers=headers, media_type="application/json")
+                state.health_valid_until = 0.0
+                failures_before_probe = state.backend_failures
                 response = await checked_forward()
+                if response.status_code == 200 and getattr(request.state, "backend_available", False):
+                    # A model failure can arrive while this probe is in flight.
+                    if failures_before_probe != state.backend_failures:
+                        return response
+                    state.health_valid_until = clock() + HEALTH_AVAILABLE_TTL_SECONDS
                 state.health_snapshot = (response.status_code, response.body, response.headers.get("Retry-After"))
                 state.health_generation += 1
                 return response
